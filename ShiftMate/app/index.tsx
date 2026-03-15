@@ -2,7 +2,7 @@
 import { Colors } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { supabase } from "@/lib/supabase";
-import { useRouter } from "expo-router";
+import { Stack, useRouter } from "expo-router";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 
 export default function Home() {
@@ -16,30 +16,37 @@ export default function Home() {
   });
 
   return (
-    <View style={[styles.container, { backgroundColor: theme.background }]}>
-      <Text style={[styles.title, { color: theme.tint }]}>ShiftMate</Text>
-      <Text style={[styles.subtitle, { color: theme.text }]}>
-        Discover your next work shift instantly
-      </Text>
+    <>
+      <Stack.Screen
+        options={{
+          headerShown: false,
+        }}
+      />
+      <View style={[styles.container, { backgroundColor: theme.background }]}>
+        <Text style={[styles.title, { color: theme.tint }]}>ShiftMate</Text>
+        <Text style={[styles.subtitle, { color: theme.text }]}>
+          Discover your next work shift instantly
+        </Text>
 
-      <View style={styles.actions}>
-        <Pressable
-          style={[styles.button, { backgroundColor: theme.tint }]}
-          onPress={() => router.push("/auth/login")}
-        >
-          <Text style={styles.buttonText}>Login</Text>
-        </Pressable>
+        <View style={styles.actions}>
+          <Pressable
+            style={[styles.button, { backgroundColor: theme.tint }]}
+            onPress={() => router.push("/auth/login")}
+          >
+            <Text style={styles.buttonText}>Login</Text>
+          </Pressable>
 
-        <Pressable
-          style={[styles.buttonOutline, { borderColor: theme.tint }]}
-          onPress={() => router.push("/auth/register")}
-        >
-          <Text style={[styles.buttonTextOutline, { color: theme.tint }]}>
-            Create Account
-          </Text>
-        </Pressable>
+          <Pressable
+            style={[styles.buttonOutline, { borderColor: theme.tint }]}
+            onPress={() => router.push("/auth/register")}
+          >
+            <Text style={[styles.buttonTextOutline, { color: theme.tint }]}>
+              Create Account
+            </Text>
+          </Pressable>
+        </View>
       </View>
-    </View>
+    </>
   );
 }
 

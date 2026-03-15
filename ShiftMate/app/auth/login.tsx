@@ -2,15 +2,15 @@
 import { Colors } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { supabase } from "@/lib/supabase";
-import { useRouter } from "expo-router";
+import { Stack, useRouter } from "expo-router";
 import { useState } from "react";
 import {
-    Alert,
-    Pressable,
-    StyleSheet,
-    Text,
-    TextInput,
-    View,
+  Alert,
+  Pressable,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
 } from "react-native";
 
 export default function Login() {
@@ -61,37 +61,45 @@ export default function Login() {
   };
 
   return (
-    <View style={[styles.container, { backgroundColor: theme.background }]}>
-      <Text style={[styles.title, { color: theme.text }]}>Login</Text>
-
-      <TextInput
-        placeholder="Email"
-        placeholderTextColor={theme.icon}
-        value={email}
-        onChangeText={setEmail}
-        keyboardType="email-address"
-        autoCapitalize="none"
-        style={[styles.input, { color: theme.text, borderColor: theme.tint }]}
+    <>
+      <Stack.Screen
+        options={{
+          title: "Login",
+          headerShown: true,
+        }}
       />
-      <TextInput
-        placeholder="Password"
-        placeholderTextColor={theme.icon}
-        value={password}
-        onChangeText={setPassword}
-        secureTextEntry
-        style={[styles.input, { color: theme.text, borderColor: theme.tint }]}
-      />
+      <View style={[styles.container, { backgroundColor: theme.background }]}>
+        <Text style={[styles.title, { color: theme.text }]}>Login</Text>
 
-      <Pressable
-        style={[styles.button, { backgroundColor: theme.tint }]}
-        onPress={handleLogin}
-        disabled={loading}
-      >
-        <Text style={styles.buttonText}>
-          {loading ? "Loading..." : "Login"}
-        </Text>
-      </Pressable>
-    </View>
+        <TextInput
+          placeholder="Email"
+          placeholderTextColor={theme.icon}
+          value={email}
+          onChangeText={setEmail}
+          keyboardType="email-address"
+          autoCapitalize="none"
+          style={[styles.input, { color: theme.text, borderColor: theme.tint }]}
+        />
+        <TextInput
+          placeholder="Password"
+          placeholderTextColor={theme.icon}
+          value={password}
+          onChangeText={setPassword}
+          secureTextEntry
+          style={[styles.input, { color: theme.text, borderColor: theme.tint }]}
+        />
+
+        <Pressable
+          style={[styles.button, { backgroundColor: theme.tint }]}
+          onPress={handleLogin}
+          disabled={loading}
+        >
+          <Text style={styles.buttonText}>
+            {loading ? "Loading..." : "Login"}
+          </Text>
+        </Pressable>
+      </View>
+    </>
   );
 }
 

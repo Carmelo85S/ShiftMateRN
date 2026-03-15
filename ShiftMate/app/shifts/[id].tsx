@@ -1,8 +1,7 @@
-// app/(tabs)/shifts/[id].tsx
 import { Colors } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { supabase } from "@/lib/supabase";
-import { useLocalSearchParams, useRouter } from "expo-router";
+import { Stack, useLocalSearchParams } from "expo-router";
 import { useEffect, useState } from "react";
 import {
   ActivityIndicator,
@@ -18,12 +17,10 @@ type Shift = {
   shift_date: string;
   start_time: string;
   end_time: string;
-  status: string;
 };
 
-export default function ShiftDetails() {
-  const router = useRouter();
-  const params = useLocalSearchParams<{ id: string }>();
+export default function ShiftDetail() {
+  const { id } = useLocalSearchParams();
   const colorScheme = useColorScheme();
   const theme = Colors[colorScheme ?? "light"];
 
@@ -32,40 +29,40 @@ export default function ShiftDetails() {
 
   useEffect(() => {
     const fetchShift = async () => {
-      setLoading(true);
-      try {
-        const { data, error } = await supabase
-          .from("shifts")
-          .select(
-            `
-            id,
-            title,
-            shift_date,
-            start_time,
-            end_time,
-            status
-          `,
-          )
-          .eq("id", params.id)
-          .single();
+      const { data, error } = await supabase
+        .from("shifts")
+        .select("*")
+        .eq("id", id)
+        .single();
 
-        if (error) throw error;
-
-        setShift(data); // ✅ assegna i dati dello shift
-      } catch (err: any) {
-        console.error(err);
-        setShift(null);
-      } finally {
-        setLoading(false);
+      if (error) {
+        console.error(error);
+      } else {
+        setShift(data);
       }
+
+      setLoading(false);
     };
 
     fetchShift();
-  }, [params.id]);
+  }, []);
+
+  const formatDate = (date: string) => {
+    const d = new Date(date);
+    return d.toLocaleDateString("en-GB", {
+      weekday: "long",
+      day: "numeric",
+      month: "long",
+    });
+  };
+
+  const handleApply = () => {
+    console.log("User applied to shift:", shift?.id);
+  };
 
   if (loading) {
     return (
-      <View style={[styles.container, { backgroundColor: theme.background }]}>
+      <View style={[styles.center, { backgroundColor: theme.background }]}>
         <ActivityIndicator size="large" color={theme.tint} />
       </View>
     );
@@ -73,56 +70,107 @@ export default function ShiftDetails() {
 
   if (!shift) {
     return (
-      <View style={[styles.container, { backgroundColor: theme.background }]}>
-        <Text style={[styles.text, { color: theme.text }]}>
-          Shift not found
-        </Text>
-        <Pressable
-          onPress={() => router.back()}
-          style={[styles.backButton, { borderColor: theme.tint }]}
-        >
-          <Text style={[styles.backButtonText, { color: theme.tint }]}>
-            Back
-          </Text>
-        </Pressable>
+      <View style={[styles.center, { backgroundColor: theme.background }]}>
+        <Text style={{ color: theme.text }}>Shift not found</Text>
       </View>
     );
   }
 
   return (
-    <View style={[styles.container, { backgroundColor: theme.background }]}>
-      <Pressable
-        onPress={() => router.back()}
-        style={[styles.backButton, { borderColor: theme.tint }]}
-      >
-        <Text style={[styles.backButtonText, { color: theme.tint }]}>Back</Text>
-      </Pressable>
+    <>
+      <Stack.Screen
+        options={{
+          title: "Shift Details",
+          headerShown: true,
+        }}
+      />
+      <View style={[styles.container, { backgroundColor: theme.background }]}>
+        <View style={[styles.card, { backgroundColor: theme.card }]}>
+          <Text style={[styles.title, { color: theme.text }]}>
+            {shift.title}
+          </Text>
 
-      <Text style={[styles.title, { color: theme.tint }]}>{shift.title}</Text>
-      <Text style={[styles.subtitle, { color: theme.text }]}>
-        Date: {shift.shift_date}
-      </Text>
-      <Text style={[styles.subtitle, { color: theme.text }]}>
-        Time: {shift.start_time} - {shift.end_time}
-      </Text>
-      <Text style={[styles.subtitle, { color: theme.text }]}>
-        Status: {shift.status}
-      </Text>
-    </View>
+          <View style={styles.infoRow}>
+            <Text style={[styles.label, { color: theme.text }]}>Date</Text>
+            <Text style={[styles.value, { color: theme.text }]}>
+              {formatDate(shift.shift_date)}
+            </Text>
+          </View>
+
+          <View style={styles.infoRow}>
+            <Text style={[styles.label, { color: theme.text }]}>Time</Text>
+            <Text style={[styles.value, { color: theme.text }]}>
+              {shift.start_time.slice(0, 5)} - {shift.end_time.slice(0, 5)}
+            </Text>
+          </View>
+        </View>
+
+        <Pressable
+          onPress={handleApply}
+          style={[styles.applyButton, { backgroundColor: theme.tint }]}
+        >
+          <Text style={styles.applyText}>Apply for this shift</Text>
+        </Pressable>
+      </View>
+    </>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 24 },
-  title: { fontSize: 28, fontWeight: "bold", marginTop: 20, marginBottom: 8 },
-  subtitle: { fontSize: 18, marginBottom: 6 },
-  text: { fontSize: 16, marginBottom: 12 },
-  backButton: {
-    padding: 12,
-    borderWidth: 1,
-    borderRadius: 10,
-    alignSelf: "flex-start",
+  container: {
+    flex: 1,
+    padding: 24,
+    justifyContent: "space-between",
+  },
+
+  center: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+
+  card: {
+    padding: 24,
+    borderRadius: 18,
+
+    shadowColor: "#000",
+    shadowOpacity: 0.08,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 4 },
+
+    elevation: 4,
+  },
+
+  title: {
+    fontSize: 26,
+    fontWeight: "700",
+    marginBottom: 20,
+  },
+
+  infoRow: {
     marginBottom: 16,
   },
-  backButtonText: { fontWeight: "600", fontSize: 16 },
+
+  label: {
+    fontSize: 13,
+    opacity: 0.6,
+    marginBottom: 4,
+  },
+
+  value: {
+    fontSize: 17,
+    fontWeight: "600",
+  },
+
+  applyButton: {
+    padding: 18,
+    borderRadius: 14,
+    alignItems: "center",
+  },
+
+  applyText: {
+    color: "white",
+    fontWeight: "700",
+    fontSize: 16,
+  },
 });
