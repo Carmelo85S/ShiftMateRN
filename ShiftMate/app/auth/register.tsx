@@ -2,15 +2,15 @@
 import { Colors } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { supabase } from "@/lib/supabase";
-import { useRouter } from "expo-router";
+import { Stack, useRouter } from "expo-router";
 import { useState } from "react";
 import {
-    Alert,
-    Pressable,
-    StyleSheet,
-    Text,
-    TextInput,
-    View,
+  Alert,
+  Pressable,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
 } from "react-native";
 
 export default function Register() {
@@ -62,51 +62,61 @@ export default function Register() {
   };
 
   return (
-    <View style={[styles.container, { backgroundColor: theme.background }]}>
-      <Text style={[styles.title, { color: theme.text }]}>Create Account</Text>
-
-      <TextInput
-        placeholder="Name"
-        placeholderTextColor={theme.icon}
-        value={name}
-        onChangeText={setName}
-        style={[styles.input, { color: theme.text, borderColor: theme.tint }]}
+    <>
+      <Stack.Screen
+        options={{
+          title: "Register",
+          headerShown: true,
+        }}
       />
-      <TextInput
-        placeholder="Surname"
-        placeholderTextColor={theme.icon}
-        value={surname}
-        onChangeText={setSurname}
-        style={[styles.input, { color: theme.text, borderColor: theme.tint }]}
-      />
-      <TextInput
-        placeholder="Email"
-        placeholderTextColor={theme.icon}
-        value={email}
-        onChangeText={setEmail}
-        keyboardType="email-address"
-        autoCapitalize="none"
-        style={[styles.input, { color: theme.text, borderColor: theme.tint }]}
-      />
-      <TextInput
-        placeholder="Password"
-        placeholderTextColor={theme.icon}
-        value={password}
-        onChangeText={setPassword}
-        secureTextEntry
-        style={[styles.input, { color: theme.text, borderColor: theme.tint }]}
-      />
-
-      <Pressable
-        style={[styles.button, { backgroundColor: theme.tint }]}
-        onPress={handleRegister}
-        disabled={loading}
-      >
-        <Text style={styles.buttonText}>
-          {loading ? "Loading..." : "Register"}
+      <View style={[styles.container, { backgroundColor: theme.background }]}>
+        <Text style={[styles.title, { color: theme.text }]}>
+          Create Account
         </Text>
-      </Pressable>
-    </View>
+
+        <TextInput
+          placeholder="Name"
+          placeholderTextColor={theme.icon}
+          value={name}
+          onChangeText={setName}
+          style={[styles.input, { color: theme.text, borderColor: theme.tint }]}
+        />
+        <TextInput
+          placeholder="Surname"
+          placeholderTextColor={theme.icon}
+          value={surname}
+          onChangeText={setSurname}
+          style={[styles.input, { color: theme.text, borderColor: theme.tint }]}
+        />
+        <TextInput
+          placeholder="Email"
+          placeholderTextColor={theme.icon}
+          value={email}
+          onChangeText={setEmail}
+          keyboardType="email-address"
+          autoCapitalize="none"
+          style={[styles.input, { color: theme.text, borderColor: theme.tint }]}
+        />
+        <TextInput
+          placeholder="Password"
+          placeholderTextColor={theme.icon}
+          value={password}
+          onChangeText={setPassword}
+          secureTextEntry
+          style={[styles.input, { color: theme.text, borderColor: theme.tint }]}
+        />
+
+        <Pressable
+          style={[styles.button, { backgroundColor: theme.tint }]}
+          onPress={handleRegister}
+          disabled={loading}
+        >
+          <Text style={styles.buttonText}>
+            {loading ? "Loading..." : "Register"}
+          </Text>
+        </Pressable>
+      </View>
+    </>
   );
 }
 

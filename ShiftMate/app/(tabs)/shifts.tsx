@@ -1,112 +1,171 @@
-import { Image } from 'expo-image';
-import { Platform, StyleSheet } from 'react-native';
+import { Colors } from "@/constants/theme";
+import { useColorScheme } from "@/hooks/use-color-scheme";
+import { supabase } from "@/lib/supabase";
+import { useRouter } from "expo-router";
+import { useEffect, useState } from "react";
+import { FlatList, Pressable, StyleSheet, Text, View } from "react-native";
 
-import { Collapsible } from '@/components/ui/collapsible';
-import { ExternalLink } from '@/components/external-link';
-import ParallaxScrollView from '@/components/parallax-scroll-view';
-import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
-import { IconSymbol } from '@/components/ui/icon-symbol';
-import { Fonts } from '@/constants/theme';
+type Shift = {
+  id: string;
+  title: string;
+  shift_date: string;
+  start_time: string;
+  end_time: string;
+};
 
-export default function TabTwoScreen() {
+export default function Shifts() {
+  const router = useRouter();
+  const colorScheme = useColorScheme();
+  const theme = Colors[colorScheme ?? "light"];
+
+  const [shifts, setShifts] = useState<Shift[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchShifts = async () => {
+      setLoading(true);
+
+      const { data, error } = await supabase
+        .from("shifts")
+        .select("id, title, shift_date, start_time, end_time")
+        .eq("status", "open")
+        .order("shift_date", { ascending: true });
+
+      if (error) {
+        console.error("Error fetching shifts:", error.message);
+      } else {
+        setShifts(data as Shift[]);
+      }
+
+      setLoading(false);
+    };
+
+    fetchShifts();
+  }, []);
+
+  const formatDate = (date: string) => {
+    const d = new Date(date);
+    return d.toLocaleDateString("en-GB", {
+      weekday: "short",
+      day: "numeric",
+      month: "short",
+    });
+  };
+
+  const renderShift = ({ item }: { item: Shift }) => (
+    <Pressable
+      style={({ pressed }) => [
+        styles.shiftCard,
+        { backgroundColor: theme.card, opacity: pressed ? 0.85 : 1 },
+      ]}
+      onPress={() => router.push(`/shifts/${item.id}`)}
+    >
+      <View style={styles.cardHeader}>
+        <Text style={[styles.shiftTitle, { color: theme.text }]}>
+          {item.title}
+        </Text>
+
+        <View style={[styles.badge, { backgroundColor: theme.tint }]}>
+          <Text style={styles.badgeText}>OPEN</Text>
+        </View>
+      </View>
+
+      <Text style={[styles.date, { color: theme.text }]}>
+        {formatDate(item.shift_date)}
+      </Text>
+
+      <Text style={[styles.time, { color: theme.text }]}>
+        {item.start_time.slice(0, 5)} - {item.end_time.slice(0, 5)}
+      </Text>
+    </Pressable>
+  );
+
   return (
-    <ParallaxScrollView
-      headerBackgroundColor={{ light: '#D0D0D0', dark: '#353636' }}
-      headerImage={
-        <IconSymbol
-          size={310}
-          color="#808080"
-          name="chevron.left.forwardslash.chevron.right"
-          style={styles.headerImage}
-        />
-      }>
-      <ThemedView style={styles.titleContainer}>
-        <ThemedText
-          type="title"
-          style={{
-            fontFamily: Fonts.rounded,
-          }}>
-          Explore
-        </ThemedText>
-      </ThemedView>
-      <ThemedText>This app includes example code to help you get started.</ThemedText>
-      <Collapsible title="File-based routing">
-        <ThemedText>
-          This app has two screens:{' '}
-          <ThemedText type="defaultSemiBold">app/(tabs)/index.tsx</ThemedText> and{' '}
-          <ThemedText type="defaultSemiBold">app/(tabs)/explore.tsx</ThemedText>
-        </ThemedText>
-        <ThemedText>
-          The layout file in <ThemedText type="defaultSemiBold">app/(tabs)/_layout.tsx</ThemedText>{' '}
-          sets up the tab navigator.
-        </ThemedText>
-        <ExternalLink href="https://docs.expo.dev/router/introduction">
-          <ThemedText type="link">Learn more</ThemedText>
-        </ExternalLink>
-      </Collapsible>
-      <Collapsible title="Android, iOS, and web support">
-        <ThemedText>
-          You can open this project on Android, iOS, and the web. To open the web version, press{' '}
-          <ThemedText type="defaultSemiBold">w</ThemedText> in the terminal running this project.
-        </ThemedText>
-      </Collapsible>
-      <Collapsible title="Images">
-        <ThemedText>
-          For static images, you can use the <ThemedText type="defaultSemiBold">@2x</ThemedText> and{' '}
-          <ThemedText type="defaultSemiBold">@3x</ThemedText> suffixes to provide files for
-          different screen densities
-        </ThemedText>
-        <Image
-          source={require('@/assets/images/react-logo.png')}
-          style={{ width: 100, height: 100, alignSelf: 'center' }}
-        />
-        <ExternalLink href="https://reactnative.dev/docs/images">
-          <ThemedText type="link">Learn more</ThemedText>
-        </ExternalLink>
-      </Collapsible>
-      <Collapsible title="Light and dark mode components">
-        <ThemedText>
-          This template has light and dark mode support. The{' '}
-          <ThemedText type="defaultSemiBold">useColorScheme()</ThemedText> hook lets you inspect
-          what the user&apos;s current color scheme is, and so you can adjust UI colors accordingly.
-        </ThemedText>
-        <ExternalLink href="https://docs.expo.dev/develop/user-interface/color-themes/">
-          <ThemedText type="link">Learn more</ThemedText>
-        </ExternalLink>
-      </Collapsible>
-      <Collapsible title="Animations">
-        <ThemedText>
-          This template includes an example of an animated component. The{' '}
-          <ThemedText type="defaultSemiBold">components/HelloWave.tsx</ThemedText> component uses
-          the powerful{' '}
-          <ThemedText type="defaultSemiBold" style={{ fontFamily: Fonts.mono }}>
-            react-native-reanimated
-          </ThemedText>{' '}
-          library to create a waving hand animation.
-        </ThemedText>
-        {Platform.select({
-          ios: (
-            <ThemedText>
-              The <ThemedText type="defaultSemiBold">components/ParallaxScrollView.tsx</ThemedText>{' '}
-              component provides a parallax effect for the header image.
-            </ThemedText>
-          ),
-        })}
-      </Collapsible>
-    </ParallaxScrollView>
+    <View style={[styles.container, { backgroundColor: theme.background }]}>
+      <Text style={[styles.title, { color: theme.text }]}>
+        Available Shifts
+      </Text>
+
+      <FlatList
+        data={shifts}
+        keyExtractor={(item) => item.id}
+        renderItem={renderShift}
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={{ paddingBottom: 30 }}
+        ListEmptyComponent={
+          <Text style={[styles.emptyText, { color: theme.text }]}>
+            {loading ? "Loading shifts..." : "No shifts available"}
+          </Text>
+        }
+      />
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  headerImage: {
-    color: '#808080',
-    bottom: -90,
-    left: -35,
-    position: 'absolute',
+  container: {
+    flex: 1,
+    padding: 20,
   },
-  titleContainer: {
-    flexDirection: 'row',
-    gap: 8,
+
+  title: {
+    fontSize: 26,
+    fontWeight: "700",
+    marginBottom: 20,
+  },
+
+  shiftCard: {
+    padding: 18,
+    borderRadius: 16,
+    marginBottom: 16,
+
+    shadowColor: "#000",
+    shadowOpacity: 0.08,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 4 },
+
+    elevation: 3,
+  },
+
+  cardHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+
+  shiftTitle: {
+    fontSize: 18,
+    fontWeight: "600",
+  },
+
+  date: {
+    marginTop: 8,
+    fontSize: 15,
+    opacity: 0.8,
+  },
+
+  time: {
+    marginTop: 4,
+    fontSize: 16,
+    fontWeight: "500",
+  },
+
+  badge: {
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 8,
+  },
+
+  badgeText: {
+    color: "white",
+    fontSize: 11,
+    fontWeight: "700",
+  },
+
+  emptyText: {
+    textAlign: "center",
+    marginTop: 60,
+    fontSize: 16,
+    opacity: 0.7,
   },
 });
