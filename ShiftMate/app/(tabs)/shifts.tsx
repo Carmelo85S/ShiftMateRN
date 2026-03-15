@@ -27,12 +27,13 @@ export default function Shifts() {
       const { data, error } = await supabase
         .from("shifts")
         .select("id, title, shift_date, start_time, end_time")
-        .eq("status", "open");
+        .eq("status", "open")
+        .order("shift_date", { ascending: true });
       if (error) {
         console.error("Error fetching shifts:", error.message);
       } else {
         setShifts(data as Shift[]);
-        console.log(shifts);
+        console.log(data);
       }
       setLoading(false);
     };
