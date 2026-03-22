@@ -1,22 +1,24 @@
 import { Ionicons } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
-import React, { useState } from "react";
+import React from "react";
 import {
-    Alert,
-    Image,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
+  Alert,
+  Image,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from "react-native";
 
-export default function AvatarPicker() {
-  const [image, setImage] = useState<string | null>(null);
+type AvatarPickerProps = {
+  value: string | null;
+  onChange: (uri: string) => void;
+};
 
+export default function AvatarPicker({ value, onChange }: AvatarPickerProps) {
   const pickImage = async () => {
     const permissionResult =
       await ImagePicker.requestMediaLibraryPermissionsAsync();
-
     if (!permissionResult.granted) {
       Alert.alert(
         "Permission required",
@@ -25,24 +27,23 @@ export default function AvatarPicker() {
       return;
     }
 
-    let result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: "images",
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
       allowsEditing: true,
       aspect: [4, 3],
       quality: 1,
     });
 
-    console.log(result);
-
-    if (!result.canceled) {
-      setImage(result.assets[0].uri);
+    if (!result.canceled && result.assets[0].uri) {
+      onChange(result.assets[0].uri);
     }
   };
+
   return (
     <View style={styles.container}>
       <TouchableOpacity style={styles.imagePicker} onPress={pickImage}>
-        {image ? (
-          <Image source={{ uri: image }} style={styles.previewImage} />
+        {value ? (
+          <Image source={{ uri: value }} style={styles.previewImage} />
         ) : (
           <View style={styles.placeholderContainer}>
             <Ionicons name="image-outline" size={40} color={"#39E467"} />
@@ -55,37 +56,27 @@ export default function AvatarPicker() {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  image: {
-    width: 200,
-    height: 200,
-  },
+  container: { alignItems: "center", marginBottom: 20 },
   placeholderText: {
     fontSize: 18,
     fontWeight: "600",
     color: "#300",
-    marginBottom: 9,
+    marginTop: 8,
   },
   imagePicker: {
-    width: "100%",
-    height: 200,
-    backgroundColor: "#fcf935c4",
-    borderRadius: 12,
-    borderColor: "#686868c4",
+    width: 150,
+    height: 150,
+    borderRadius: 75,
     overflow: "hidden",
-  },
-  previewImage: {
-    width: "100%",
-    height: "100%",
-  },
-  placeholderContainer: {
-    width: "100%",
-    height: "100%",
+    backgroundColor: "#fcf935c4",
     justifyContent: "center",
     alignItems: "center",
+  },
+  previewImage: { width: "100%", height: "100%" },
+  placeholderContainer: {
+    justifyContent: "center",
+    alignItems: "center",
+    width: "100%",
+    height: "100%",
   },
 });
