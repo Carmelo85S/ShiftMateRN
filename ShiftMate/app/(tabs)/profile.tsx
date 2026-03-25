@@ -3,7 +3,7 @@ import { useColorScheme } from "@/hooks/use-color-scheme";
 import { supabase } from "@/lib/supabase";
 import { useRouter } from "expo-router";
 import { useEffect, useState } from "react";
-import { Alert, Pressable, StyleSheet, Text, View } from "react-native";
+import { Alert, Pressable, StyleSheet, Text, View, Image } from "react-native";
 
 type Profile = {
   id: string;
@@ -74,6 +74,20 @@ export default function ProfileScreen() {
 
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
+      
+      {/* Avatar */}
+      <View style={styles.avatar}>
+        {profile.avatar_url ? (
+          <Image
+            source={{ uri: profile.avatar_url }}
+            style={styles.avatarImage}
+            resizeMode="cover"
+          />
+        ) : (
+          <Text style={{ color: theme.text, fontSize: 24 }}>👤</Text>
+        )}
+      </View>
+
       <Text style={[styles.name, { color: theme.text }]}>{displayName}</Text>
 
       {profile.job_role && (
@@ -119,11 +133,17 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     marginBottom: 16,
+    overflow: "hidden",
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.2,
     shadowRadius: 4,
     elevation: 3,
+  },
+  avatarImage: {
+    width: "100%",
+    height: "100%",
+    borderRadius: 65,
   },
   name: { fontSize: 22, fontWeight: "bold", marginBottom: 4 },
   jobRole: { fontSize: 16, opacity: 0.8, marginBottom: 4 },

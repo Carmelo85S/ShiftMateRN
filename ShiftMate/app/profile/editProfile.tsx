@@ -1,3 +1,4 @@
+import AvatarUploader from "@/components/imagePicker/imagePicker";
 import { Colors } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { supabase } from "@/lib/supabase";
@@ -18,6 +19,7 @@ type Profile = {
   surname: string | null;
   job_role: string | null;
   bio: string | null;
+  avatar_url?: string | null;
 };
 
 export default function EditProfileScreen() {
@@ -32,6 +34,7 @@ export default function EditProfileScreen() {
   const [surname, setSurname] = useState("");
   const [jobRole, setJobRole] = useState("");
   const [bio, setBio] = useState("");
+  const [avatar, setAvatar] = useState<string | null>(null);
 
   useEffect(() => {
     fetchProfile();
@@ -43,7 +46,7 @@ export default function EditProfileScreen() {
 
     const { data, error } = await supabase
       .from("profiles")
-      .select("id, name, surname, job_role, bio")
+      .select("id, name, surname, job_role, bio, avatar_url")
       .eq("id", userData.user.id)
       .single();
 
@@ -56,6 +59,7 @@ export default function EditProfileScreen() {
       setSurname(data.surname ?? "");
       setJobRole(data.job_role ?? "");
       setBio(data.bio ?? "");
+      setAvatar(data.avatar_url ?? null);
     }
 
     setLoading(false);
@@ -71,6 +75,7 @@ export default function EditProfileScreen() {
         surname,
         job_role: jobRole,
         bio,
+        avatar_url: avatar, // <- salva l’avatar
       })
       .eq("id", profile.id);
 
@@ -87,10 +92,7 @@ export default function EditProfileScreen() {
     if (!profile) return;
 
     Alert.alert("Delete profile", "Are you sure?", [
-      {
-        text: "Cancel",
-        style: "cancel",
-      },
+      { text: "Cancel", style: "cancel" },
       {
         text: "Delete",
         style: "destructive",
@@ -124,6 +126,16 @@ export default function EditProfileScreen() {
     <View style={[styles.container, { backgroundColor: theme.background }]}>
       <Text style={[styles.title, { color: theme.text }]}>Edit Profile</Text>
 
+      {/* Avatar Uploader */}
+        <AvatarUploader
+          initialUrl={avatar}
+          onUpload={(url) => {
+            const cacheBusted = `${url}?t=${Date.now()}`;
+            setAvatar(cacheBusted);
+          }}
+        />
+
+      {/* Name */}
       <Text style={[styles.label, { color: theme.text }]}>Name</Text>
       <TextInput
         value={name}
@@ -133,6 +145,7 @@ export default function EditProfileScreen() {
         style={[styles.input, { borderColor: theme.tint, color: theme.text }]}
       />
 
+      {/* Surname */}
       <Text style={[styles.label, { color: theme.text }]}>Surname</Text>
       <TextInput
         value={surname}
@@ -142,6 +155,7 @@ export default function EditProfileScreen() {
         style={[styles.input, { borderColor: theme.tint, color: theme.text }]}
       />
 
+      {/* Job Role */}
       <Text style={[styles.label, { color: theme.text }]}>Job Role</Text>
       <TextInput
         value={jobRole}
@@ -151,6 +165,7 @@ export default function EditProfileScreen() {
         style={[styles.input, { borderColor: theme.tint, color: theme.text }]}
       />
 
+      {/* Bio */}
       <Text style={[styles.label, { color: theme.text }]}>Bio</Text>
       <TextInput
         value={bio}
@@ -165,6 +180,7 @@ export default function EditProfileScreen() {
         numberOfLines={4}
       />
 
+      {/* Buttons */}
       <View style={styles.buttonContainer}>
         <Pressable
           onPress={handleSave}
@@ -185,35 +201,10 @@ export default function EditProfileScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    padding: 24,
-  },
-
-  center: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-
-  title: {
-    fontSize: 26,
-    fontWeight: "bold",
-    marginBottom: 24,
-  },
-
-  avatarWrapper: {
-    alignSelf: "center",
-    marginBottom: 24,
-  },
-
-  label: {
-    marginTop: 12,
-    marginBottom: 4,
-    fontSize: 14,
-    fontWeight: "500",
-  },
-
+  container: { flex: 1, padding: 24 },
+  center: { flex: 1, justifyContent: "center", alignItems: "center" },
+  title: { fontSize: 26, fontWeight: "bold", marginBottom: 24 },
+  label: { marginTop: 12, marginBottom: 4, fontSize: 14, fontWeight: "500" },
   input: {
     borderWidth: 1,
     padding: 14,
@@ -221,7 +212,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     marginBottom: 8,
   },
-
   textArea: {
     borderWidth: 1,
     padding: 14,
@@ -231,21 +221,11 @@ const styles = StyleSheet.create({
     height: 100,
     textAlignVertical: "top",
   },
-
-  buttonContainer: {
-    marginTop: 24,
-    gap: 12,
-  },
-
+  buttonContainer: { marginTop: 24, gap: 12 },
   button: {
     padding: 16,
     borderRadius: 12,
     alignItems: "center",
   },
-
-  buttonText: {
-    color: "white",
-    fontWeight: "bold",
-    fontSize: 16,
-  },
+  buttonText: { color: "white", fontWeight: "bold", fontSize: 16 },
 });
