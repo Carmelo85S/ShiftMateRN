@@ -1,45 +1,37 @@
-/**
- * Below are the colors that are used in the app. The colors are defined in the light and dark mode.
- * There are many other ways to style your app. For example, [Nativewind](https://www.nativewind.dev/), [Tamagui](https://tamagui.dev/), [unistyles](https://reactnativeunistyles.vercel.app), etc.
- */
-
 import { Platform } from "react-native";
 
-const tintColorLight = "#0a7ea4";
-const tintColorDark = "#fff";
+// Colori principali
+const tintColorLight = "#1E90FF"; // Blu brillante
+const tintColorDark = "#0FF0FC";  // Neon azzurro
 
 export const Colors = {
   light: {
-    text: "#11181C",
-    background: "#fff",
-    tint: tintColorLight,
-    delete: "#863a3aff",
-    icon: "#687076",
-    tabIconDefault: "#687076",
-    tabIconSelected: tintColorLight,
-    card: "#f5f5f5",
+    text: "#1C1C1C",        // Testo principale
+    background: "#FAFAFA",  // Sfondo chiaro morbido
+    tint: tintColorLight,    // Colore primario
+    delete: "#FF4C4C",       // Rosso per delete
+    icon: "#555",            // Icone secondarie
+    tabIconDefault: "#AAA",  // Tab non selezionata
+    tabIconSelected: tintColorLight, // Tab selezionata
+    card: "#FFFFFF",         // Card
   },
   dark: {
-    text: "#ECEDEE",
-    background: "#151718",
-    tint: tintColorDark,
-    delete: "#863a3aff",
-    icon: "#9BA1A6",
-    tabIconDefault: "#9BA1A6",
-    tabIconSelected: tintColorDark,
-    card: "#1c1c1e",
+    text: "#E0E0E0",         // Testo principale chiaro
+    background: "#121212",   // Sfondo scuro
+    tint: tintColorDark,     // Colore primario neon
+    delete: "#FF4C4C",       // Rosso delete
+    icon: "#888",            // Icone secondarie
+    tabIconDefault: "#555",  // Tab non selezionata
+    tabIconSelected: tintColorDark,  // Tab selezionata
+    card: "#1E1E1E",         // Card scura
   },
 };
 
 export const Fonts = Platform.select({
   ios: {
-    /** iOS `UIFontDescriptorSystemDesignDefault` */
     sans: "system-ui",
-    /** iOS `UIFontDescriptorSystemDesignSerif` */
     serif: "ui-serif",
-    /** iOS `UIFontDescriptorSystemDesignRounded` */
     rounded: "ui-rounded",
-    /** iOS `UIFontDescriptorSystemDesignMonospaced` */
     mono: "ui-monospace",
   },
   default: {

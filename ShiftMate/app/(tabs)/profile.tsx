@@ -3,7 +3,7 @@ import { useColorScheme } from "@/hooks/use-color-scheme";
 import { supabase } from "@/lib/supabase";
 import { useRouter } from "expo-router";
 import { useEffect, useState } from "react";
-import { Alert, Pressable, StyleSheet, Text, View } from "react-native";
+import { Alert, Pressable, StyleSheet, Text, View, Image } from "react-native";
 
 type Profile = {
   id: string;
@@ -74,18 +74,33 @@ export default function ProfileScreen() {
 
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
+      {/* Avatar */}
+      <View style={[styles.avatarWrapper, { shadowColor: theme.tint }]}>
+        {profile.avatar_url ? (
+          <Image
+            source={{ uri: profile.avatar_url }}
+            style={styles.avatarImage}
+            resizeMode="cover"
+          />
+        ) : (
+          <Text style={{ color: theme.text, fontSize: 36 }}>👤</Text>
+        )}
+      </View>
+
+      {/* Name & Job Role */}
       <Text style={[styles.name, { color: theme.text }]}>{displayName}</Text>
-
       {profile.job_role && (
-        <Text style={[styles.jobRole, { color: theme.text }]}>
-          {profile.job_role}
-        </Text>
+        <Text style={[styles.jobRole, { color: theme.tint }]}>{profile.job_role}</Text>
       )}
 
+      {/* Bio Card */}
       {profile.bio && (
-        <Text style={[styles.bio, { color: theme.text }]}>{profile.bio}</Text>
+        <View style={[styles.bioCard, { backgroundColor: theme.card }]}>
+          <Text style={[styles.bio, { color: theme.text }]}>{profile.bio}</Text>
+        </View>
       )}
 
+      {/* Action Buttons */}
       <Pressable
         onPress={() => router.push("/profile/editProfile")}
         style={[styles.button, { backgroundColor: theme.tint }]}
@@ -95,7 +110,7 @@ export default function ProfileScreen() {
 
       <Pressable
         onPress={handleLogout}
-        style={[styles.button, { backgroundColor: "#e53935" }]}
+        style={[styles.button, { backgroundColor: theme.delete }]}
       >
         <Text style={styles.buttonText}>Logout</Text>
       </Pressable>
@@ -110,28 +125,43 @@ const styles = StyleSheet.create({
     padding: 24,
   },
   center: { flex: 1, justifyContent: "center", alignItems: "center" },
-  avatar: {
-    width: 130,
-    height: 130,
-    borderRadius: 65,
+
+  avatarWrapper: {
+    width: 140,
+    height: 140,
+    borderRadius: 70,
+    overflow: "hidden",
+    marginBottom: 16,
     borderWidth: 2,
-    borderColor: "#aaa",
+    borderColor: "#ccc",
     justifyContent: "center",
     alignItems: "center",
-    marginBottom: 16,
-    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 6,
+    elevation: 6,
+  },
+  avatarImage: { width: "100%", height: "100%" },
+
+  name: { fontSize: 24, fontWeight: "bold", marginBottom: 4 },
+  jobRole: { fontSize: 16, fontWeight: "500", opacity: 0.9, marginBottom: 8 },
+
+  bioCard: {
+    width: "85%",
+    borderRadius: 14,
+    padding: 16,
+    marginBottom: 20,
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
+    shadowOpacity: 0.15,
+    shadowRadius: 5,
     elevation: 3,
   },
-  name: { fontSize: 22, fontWeight: "bold", marginBottom: 4 },
-  jobRole: { fontSize: 16, opacity: 0.8, marginBottom: 4 },
-  bio: { fontSize: 14, textAlign: "center", lineHeight: 20, marginBottom: 16 },
+  bio: { fontSize: 15, textAlign: "center", lineHeight: 22 },
+
   button: {
-    width: "60%",
-    padding: 14,
-    borderRadius: 12,
+    width: "70%",
+    padding: 16,
+    borderRadius: 14,
     alignItems: "center",
     marginTop: 12,
   },

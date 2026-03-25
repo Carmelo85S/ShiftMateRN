@@ -20,17 +20,14 @@ export default function AvatarPicker({ value, onChange }: AvatarPickerProps) {
     const permissionResult =
       await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (!permissionResult.granted) {
-      Alert.alert(
-        "Permission required",
-        "Permission to access the media library is required.",
-      );
+      Alert.alert("Permission required", "Permission to access the media library is required.");
       return;
     }
 
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
       allowsEditing: true,
-      aspect: [4, 3],
+      aspect: [1, 1],
       quality: 1,
     });
 
@@ -54,7 +51,6 @@ export default function AvatarPicker({ value, onChange }: AvatarPickerProps) {
     </View>
   );
 }
-
 const styles = StyleSheet.create({
   container: { alignItems: "center", marginBottom: 20 },
   placeholderText: {

@@ -161,6 +161,7 @@ export default function EditProfileScreen() {
         style={[styles.input, { borderColor: theme.tint, color: theme.text }]}
       />
 
+      {/* Surname */}
       <Text style={[styles.label, { color: theme.text }]}>Surname</Text>
       <TextInput
         value={surname}
@@ -170,6 +171,7 @@ export default function EditProfileScreen() {
         style={[styles.input, { borderColor: theme.tint, color: theme.text }]}
       />
 
+      {/* Job Role */}
       <Text style={[styles.label, { color: theme.text }]}>Job Role</Text>
       <TextInput
         value={jobRole}
@@ -179,6 +181,7 @@ export default function EditProfileScreen() {
         style={[styles.input, { borderColor: theme.tint, color: theme.text }]}
       />
 
+      {/* Bio */}
       <Text style={[styles.label, { color: theme.text }]}>Bio</Text>
       <TextInput
         value={bio}
@@ -193,6 +196,7 @@ export default function EditProfileScreen() {
         numberOfLines={4}
       />
 
+      {/* Buttons */}
       <View style={styles.buttonContainer}>
         <Pressable
           onPress={handleSave}
