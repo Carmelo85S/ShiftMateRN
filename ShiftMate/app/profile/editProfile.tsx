@@ -1,13 +1,11 @@
-import AvatarPicker from "@/components/imagePicker";
+import AvatarUploader from "@/components/imagePicker/imagePicker";
 import { Colors } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { supabase } from "@/lib/supabase";
-import * as FileSystem from "expo-file-system";
 import { useRouter } from "expo-router";
 import { useEffect, useState } from "react";
 import {
   Alert,
-  Image,
   Pressable,
   StyleSheet,
   Text,
@@ -67,48 +65,8 @@ export default function EditProfileScreen() {
     setLoading(false);
   };
 
-  // Funzione per upload avatar su Supabase Storage
-  const uploadAvatar = async (uri: string) => {
-    try {
-      if (!profile) return null;
-
-      const fileExt = uri.split(".").pop();
-      const fileName = `${profile.id}.${fileExt}`;
-      const fileUri = uri;
-
-      const file = await FileSystem.readAsStringAsync(fileUri, {
-        encoding: "base64",
-      });
-
-      const { data: uploadData, error: uploadError } = await supabase.storage
-        .from("avatars")
-        .upload(fileName, Buffer.from(file, "base64"), { upsert: true });
-
-      if (uploadError) {
-        console.error(uploadError);
-        return null;
-      }
-
-      // qui prendo solo il publicUrl
-      const { data: publicData } = supabase.storage
-        .from("avatars")
-        .getPublicUrl(fileName);
-      return publicData.publicUrl;
-    } catch (err) {
-      console.error(err);
-      return null;
-    }
-  };
-
   const handleSave = async () => {
     if (!profile) return;
-
-    let avatar_url = profile.avatar_url ?? null;
-
-    if (avatar && avatar !== profile.avatar_url) {
-      const uploadedUrl = await uploadAvatar(avatar);
-      if (uploadedUrl) avatar_url = uploadedUrl;
-    }
 
     const { error } = await supabase
       .from("profiles")
@@ -117,7 +75,7 @@ export default function EditProfileScreen() {
         surname,
         job_role: jobRole,
         bio,
-        avatar_url,
+        avatar_url: avatar, // <- salva l’avatar
       })
       .eq("id", profile.id);
 
@@ -128,6 +86,32 @@ export default function EditProfileScreen() {
       Alert.alert("Success", "Profile updated");
       router.back();
     }
+  };
+
+  const handleDelete = async () => {
+    if (!profile) return;
+
+    Alert.alert("Delete profile", "Are you sure?", [
+      { text: "Cancel", style: "cancel" },
+      {
+        text: "Delete",
+        style: "destructive",
+        onPress: async () => {
+          const { error } = await supabase
+            .from("profiles")
+            .delete()
+            .eq("id", profile.id);
+
+          if (error) {
+            console.error(error);
+            Alert.alert("Error", "Failed to delete profile");
+          } else {
+            await supabase.auth.signOut();
+            router.replace("/auth/login");
+          }
+        },
+      },
+    ]);
   };
 
   if (loading) {
@@ -142,16 +126,16 @@ export default function EditProfileScreen() {
     <View style={[styles.container, { backgroundColor: theme.background }]}>
       <Text style={[styles.title, { color: theme.text }]}>Edit Profile</Text>
 
-      <AvatarPicker value={avatar} onChange={setAvatar} />
-
-      {avatar ? (
-        <Image
-          source={{ uri: avatar }}
-          style={{ width: 150, height: 150, borderRadius: 75, marginTop: 12 }}
+      {/* Avatar Uploader */}
+        <AvatarUploader
+          initialUrl={avatar}
+          onUpload={(url) => {
+            const cacheBusted = `${url}?t=${Date.now()}`;
+            setAvatar(cacheBusted);
+          }}
         />
-      ) : null}
-      <Text>LOG Public URL: {avatar}</Text>
 
+      {/* Name */}
       <Text style={[styles.label, { color: theme.text }]}>Name</Text>
       <TextInput
         value={name}
@@ -206,27 +190,7 @@ export default function EditProfileScreen() {
         </Pressable>
 
         <Pressable
-          onPress={async () => {
-            if (!profile) return;
-            Alert.alert("Delete profile", "Are you sure?", [
-              { text: "Cancel", style: "cancel" },
-              {
-                text: "Delete",
-                style: "destructive",
-                onPress: async () => {
-                  const { error } = await supabase
-                    .from("profiles")
-                    .delete()
-                    .eq("id", profile.id);
-                  if (error) Alert.alert("Error", "Failed to delete profile");
-                  else {
-                    await supabase.auth.signOut();
-                    router.replace("/auth/login");
-                  }
-                },
-              },
-            ]);
-          }}
+          onPress={handleDelete}
           style={[styles.button, { backgroundColor: "#e53935" }]}
         >
           <Text style={styles.buttonText}>Delete Profile</Text>
@@ -258,6 +222,10 @@ const styles = StyleSheet.create({
     textAlignVertical: "top",
   },
   buttonContainer: { marginTop: 24, gap: 12 },
-  button: { padding: 16, borderRadius: 12, alignItems: "center" },
+  button: {
+    padding: 16,
+    borderRadius: 12,
+    alignItems: "center",
+  },
   buttonText: { color: "white", fontWeight: "bold", fontSize: 16 },
 });
