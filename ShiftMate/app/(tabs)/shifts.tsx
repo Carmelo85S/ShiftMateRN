@@ -31,12 +31,11 @@ export default function Shifts() {
         .eq("status", "open")
         .order("shift_date", { ascending: true });
 
+
       if (error) {
         console.error("Error fetching shifts:", error.message);
       } else {
         setShifts(data as Shift[]);
-      }
-
       setLoading(false);
     };
 
@@ -168,4 +167,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
     opacity: 0.7,
   },
+  shiftTitle: { fontSize: 16, fontWeight: "600" },
+  shiftTime: { fontSize: 14, marginTop: 4, opacity: 0.7 },
+  emptyText: { textAlign: "center", marginTop: 50, fontSize: 16 },
 });
