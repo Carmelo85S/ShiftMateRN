@@ -58,7 +58,7 @@ export default function Shifts() {
         styles.shiftCard,
         { backgroundColor: theme.card, opacity: pressed ? 0.85 : 1 },
       ]}
-      onPress={() => router.push(`/shifts/${item.id}`)}
+      onPress={() => router.push(`/shift/${item.id}`)}
     >
       <View style={styles.cardHeader}>
         <Text style={[styles.shiftTitle, { color: theme.text }]}>

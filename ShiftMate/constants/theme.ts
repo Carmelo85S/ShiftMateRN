@@ -1,32 +1,33 @@
 import { Platform } from "react-native";
 
-// Colori principali
-const tintColorLight = "#1E90FF"; // Blu brillante
-const tintColorDark = "#0FF0FC";  // Neon azzurro
+// Colori principali aggiornati
+const tintColorLight = "#3B82F6"; // Blu moderno e brillante
+const tintColorDark = "#0FF0FC";  // Neon azzurro acceso
 
 export const Colors = {
   light: {
-    text: "#1C1C1C",        // Testo principale
-    background: "#FAFAFA",  // Sfondo chiaro morbido
-    tint: tintColorLight,    // Colore primario
-    delete: "#FF4C4C",       // Rosso per delete
-    icon: "#555",            // Icone secondarie
-    tabIconDefault: "#AAA",  // Tab non selezionata
+    text: "#1F2937",        // Testo principale grigio scuro elegante
+    background: "#F3F4F6",  // Sfondo chiaro morbido, meno aggressivo
+    tint: tintColorLight,    // Colore primario pulsanti e highlights
+    delete: "#EF4444",       // Rosso brillante per delete
+    icon: "#6B7280",         // Icone secondarie
+    tabIconDefault: "#D1D5DB",  // Tab non selezionata
     tabIconSelected: tintColorLight, // Tab selezionata
-    card: "#FFFFFF",         // Card
+    card: "#FFFFFF",         // Card chiara
   },
   dark: {
-    text: "#E0E0E0",         // Testo principale chiaro
-    background: "#121212",   // Sfondo scuro
+    text: "#E5E7EB",         // Testo chiaro, leggibile su scuro
+    background: "#1F2937",   // Sfondo scuro elegante
     tint: tintColorDark,     // Colore primario neon
-    delete: "#FF4C4C",       // Rosso delete
-    icon: "#888",            // Icone secondarie
-    tabIconDefault: "#555",  // Tab non selezionata
+    delete: "#F87171",       // Rosso delete leggermente più soft
+    icon: "#9CA3AF",         // Icone secondarie
+    tabIconDefault: "#6B7280",  // Tab non selezionata
     tabIconSelected: tintColorDark,  // Tab selezionata
-    card: "#1E1E1E",         // Card scura
+    card: "#111827",         // Card scura
   },
 };
 
+// Fonts aggiornati con fallback web coerente
 export const Fonts = Platform.select({
   ios: {
     sans: "system-ui",

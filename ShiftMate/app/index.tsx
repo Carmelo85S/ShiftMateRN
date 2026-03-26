@@ -1,137 +1,80 @@
-// app/index.tsx
+// app/auth/choice.tsx
+import { View, Text, Pressable, StyleSheet, ImageBackground } from "react-native";
+import { useRouter } from "expo-router";
 import { Colors } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
-import { supabase } from "@/lib/supabase";
-import { Image } from "expo-image";
-import { LinearGradient } from "expo-linear-gradient";
-import { Stack, useRouter } from "expo-router";
-import { useEffect } from "react";
-import { Pressable, StyleSheet, Text, View } from "react-native";
 
-export default function Home() {
+export default function AuthChoice() {
   const router = useRouter();
   const colorScheme = useColorScheme();
   const theme = Colors[colorScheme ?? "light"];
 
-  useEffect(() => {
-    const checkUser = async () => {
-      const { data } = await supabase.auth.getUser();
-      if (data.user) {
-        router.replace("/(tabs)/shifts");
-      }
-    };
-    checkUser();
-  }, []);
-
   return (
-    <>
-      <Stack.Screen options={{ headerShown: false }} />
+      <View style={styles.overlay}>
+        {/* Hero e sub-hero */}
+        <View style={styles.heroContainer}>
+          <Text style={[styles.heroTitle, { color: theme.text }]}>
+            ShiftMate
+          </Text>
+          <Text style={[styles.heroSubtitle, { color: theme.text }]}>
+            Manage, assign, and claim extra shifts effortlessly
+          </Text>
+        </View>
 
-      <View style={styles.container}>
-        {/* 🖼 BACKGROUND */}
-        <Image
-          source={require("@/assets/images/heroImage.png")}
-          style={StyleSheet.absoluteFillObject}
-          contentFit="cover"
-        />
+        {/* Pulsanti in basso */}
+        <View style={styles.buttonsContainer}>
+          <Pressable
+            style={[styles.button, { backgroundColor: theme.tint }]}
+            onPress={() => router.push("/auth/login")}
+          >
+            <Text style={styles.buttonText}>Login</Text>
+          </Pressable>
 
-        {/* 🌈 GRADIENT (molto meglio del nero piatto) */}
-        <LinearGradient
-          colors={["transparent", "rgba(0,0,0,0.8)"]}
-          style={StyleSheet.absoluteFillObject}
-        />
-
-        {/* 🔽 CONTENUTO */}
-        <View style={styles.content}>
-          <View style={styles.textBlock}>
-            <Text style={styles.title}>ShiftMate</Text>
-            <Text style={styles.subtitle}>
-              Discover your next work shift instantly
-            </Text>
-          </View>
-
-          <View style={styles.actions}>
-            <Pressable
-              style={styles.button}
-              onPress={() => router.push("/auth/login")}
-            >
-              <Text style={styles.buttonText}>Login</Text>
-            </Pressable>
-
-            <Pressable
-              style={styles.buttonOutline}
-              onPress={() => router.push("/auth/register")}
-            >
-              <Text style={styles.buttonTextOutline}>Create Account</Text>
-            </Pressable>
-          </View>
+          <Pressable
+            style={[styles.button, { backgroundColor: theme.tint }]}
+            onPress={() => router.push("/auth/register")}
+          >
+            <Text style={styles.buttonText}>Crea Account</Text>
+          </Pressable>
         </View>
       </View>
-    </>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
+  background: { flex: 1 },
+  overlay: { 
+    flex: 1, 
+    justifyContent: "flex-end", 
+    padding: 24, 
+    backgroundColor: "rgba(0,0,0,0.25)" 
   },
-
-  content: {
-    flex: 1,
-    justifyContent: "flex-end",
-    padding: 24,
-    paddingBottom: 50,
+  heroContainer: {
+    position: "absolute",
+    top: 100, // distanza dall'alto
+    left: 24,
+    right: 24,
+    alignItems: "center",
   },
-
-  textBlock: {
-    marginBottom: 28,
+  heroTitle: {
+    fontSize: 36,
+    fontWeight: "bold",
+    textAlign: "center",
+    marginBottom: 12,
   },
-
-  title: {
-    fontSize: 42,
-    fontWeight: "800",
-    color: "#fff",
-    marginBottom: 8,
-    letterSpacing: -0.5, // 👈 più moderno
+  heroSubtitle: {
+    fontSize: 18,
+    textAlign: "center",
+    lineHeight: 24,
   },
-
-  subtitle: {
-    fontSize: 17,
-    color: "#fff",
-    opacity: 0.9,
-    lineHeight: 22,
+  buttonsContainer: {
+    marginBottom: 60,
   },
-
-  actions: {
-    flexDirection: "row",
-    gap: 12, // 👈 più pulito (se RN supporta)
-  },
-
   button: {
-    flex: 1,
-    backgroundColor: "#fff",
-    paddingVertical: 16,
-    borderRadius: 16,
+    padding: 16,
+    borderRadius: 12,
     alignItems: "center",
+    marginBottom: 16,
   },
-
-  buttonText: {
-    fontWeight: "700",
-    fontSize: 16,
-  },
-
-  buttonOutline: {
-    flex: 1,
-    borderWidth: 1.5,
-    borderColor: "#fff",
-    paddingVertical: 16,
-    borderRadius: 16,
-    alignItems: "center",
-  },
-
-  buttonTextOutline: {
-    color: "#fff",
-    fontWeight: "700",
-    fontSize: 16,
-  },
+  buttonText: { color: "#fff", fontWeight: "600", fontSize: 16 },
 });

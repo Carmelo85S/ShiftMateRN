@@ -1,4 +1,3 @@
-// app/auth/login.tsx
 import { Colors } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { supabase } from "@/lib/supabase";
@@ -11,6 +10,9 @@ import {
   Text,
   TextInput,
   View,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
 } from "react-native";
 
 export default function Login() {
@@ -30,14 +32,12 @@ export default function Login() {
 
     setLoading(true);
     try {
-      // Login tramite Supabase Auth
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
       if (error) throw error;
 
-      // Recupero profilo utente
       const { data: profileData, error: profileError } = await supabase
         .from("profiles")
         .select("*")
@@ -46,13 +46,13 @@ export default function Login() {
 
       if (profileError) throw profileError;
 
-      // Solo worker
-      if (profileData.role !== "worker") {
-        Alert.alert("Error", "Only workers can login here");
-        return;
+      if (profileData.role === "manager") {
+        router.replace("/(manager)/(tabs)/dashboard");
+      } else if (profileData.role === "worker") {
+        router.replace("/(worker)/(tabs)/shifts");
+      } else {
+        Alert.alert("Error", "Unknown role");
       }
-
-      router.push("/(tabs)/shifts");
     } catch (error: any) {
       Alert.alert("Error", error.message);
     } finally {
@@ -62,61 +62,89 @@ export default function Login() {
 
   return (
     <>
-      <Stack.Screen
-        options={{
-          title: "Login",
-          headerShown: true,
-        }}
-      />
-      <View style={[styles.container, { backgroundColor: theme.background }]}>
-        <Text style={[styles.title, { color: theme.text }]}>Login</Text>
-
-        <TextInput
-          placeholder="Email"
-          placeholderTextColor={theme.icon}
-          value={email}
-          onChangeText={setEmail}
-          keyboardType="email-address"
-          autoCapitalize="none"
-          style={[styles.input, { color: theme.text, borderColor: theme.tint }]}
-        />
-        <TextInput
-          placeholder="Password"
-          placeholderTextColor={theme.icon}
-          value={password}
-          onChangeText={setPassword}
-          secureTextEntry
-          style={[styles.input, { color: theme.text, borderColor: theme.tint }]}
-        />
-
-        <Pressable
-          style={[styles.button, { backgroundColor: theme.tint }]}
-          onPress={handleLogin}
-          disabled={loading}
+      <Stack.Screen options={{ headerShown: false }} />
+      <KeyboardAvoidingView
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        style={{ flex: 1 }}
+      >
+        <ScrollView
+          contentContainerStyle={[styles.container, { backgroundColor: theme.background }]}
+          keyboardShouldPersistTaps="handled"
         >
-          <Text style={styles.buttonText}>
-            {loading ? "Loading..." : "Login"}
-          </Text>
-        </Pressable>
-      </View>
+          <View style={styles.bottomContainer}>
+            <Text style={[styles.title, { color: theme.text }]}>Welcome Back</Text>
+
+            <TextInput
+              placeholder="Email"
+              placeholderTextColor={theme.icon}
+              value={email}
+              onChangeText={setEmail}
+              keyboardType="email-address"
+              autoCapitalize="none"
+              style={[styles.input, { color: theme.text, borderColor: theme.tint }]}
+            />
+            <TextInput
+              placeholder="Password"
+              placeholderTextColor={theme.icon}
+              value={password}
+              onChangeText={setPassword}
+              secureTextEntry
+              style={[styles.input, { color: theme.text, borderColor: theme.tint }]}
+            />
+
+            <Pressable
+              style={[styles.button, { backgroundColor: theme.tint }]}
+              onPress={handleLogin}
+              disabled={loading}
+            >
+              <Text style={styles.buttonText}>
+                {loading ? "Loading..." : "Login"}
+              </Text>
+            </Pressable>
+          </View>
+        </ScrollView>
+      </KeyboardAvoidingView>
     </>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 24, justifyContent: "center" },
+  container: {
+    flexGrow: 1,
+    justifyContent: "flex-end",
+    padding: 24,
+  },
+  bottomContainer: {
+    width: "100%",
+  },
   title: {
-    fontSize: 28,
+    fontSize: 32,
     fontWeight: "bold",
     marginBottom: 24,
     textAlign: "center",
   },
-  input: { borderWidth: 1, borderRadius: 8, padding: 12, marginBottom: 12 },
+  input: {
+    width: "100%",
+    borderWidth: 1,
+    borderRadius: 12,
+    padding: 14,
+    marginBottom: 16,
+    fontSize: 16,
+  },
   button: {
+    width: "100%",
     padding: 16,
     borderRadius: 12,
     alignItems: "center",
-    marginTop: 12,
+    shadowColor: "#000",
+    shadowOpacity: 0.2,
+    shadowOffset: { width: 0, height: 4 },
+    shadowRadius: 8,
+    elevation: 4,
   },
-  buttonText: { color: "#fff", fontWeight: "600", fontSize: 16 },
+  buttonText: {
+    color: "#fff",
+    fontWeight: "600",
+    fontSize: 16,
+  },
 });
