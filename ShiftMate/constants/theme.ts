@@ -7,23 +7,25 @@ const tintColorDark = "#0FF0FC";  // Neon azzurro acceso
 export const Colors = {
   light: {
     text: "#1F2937",        // Testo principale grigio scuro elegante
-    background: "#F3F4F6",  // Sfondo chiaro morbido, meno aggressivo
-    tint: tintColorLight,    // Colore primario pulsanti e highlights
-    delete: "#EF4444",       // Rosso brillante per delete
+    background: "#F3F4F6",  // Sfondo chiaro morbido
+    tint: tintColorLight,    // Colore primario
+    delete: "#EF4444",       // Rosso brillante
     icon: "#6B7280",         // Icone secondarie
-    tabIconDefault: "#D1D5DB",  // Tab non selezionata
-    tabIconSelected: tintColorLight, // Tab selezionata
+    tabIconDefault: "#D1D5DB",  
+    tabIconSelected: tintColorLight, 
     card: "#FFFFFF",         // Card chiara
+    border: "#E5E7EB",       // <--- Grigio chiarissimo per bordi e divider (Light)
   },
   dark: {
-    text: "#E5E7EB",         // Testo chiaro, leggibile su scuro
-    background: "#1F2937",   // Sfondo scuro elegante
-    tint: tintColorDark,     // Colore primario neon
-    delete: "#F87171",       // Rosso delete leggermente più soft
-    icon: "#9CA3AF",         // Icone secondarie
-    tabIconDefault: "#6B7280",  // Tab non selezionata
-    tabIconSelected: tintColorDark,  // Tab selezionata
-    card: "#111827",         // Card scura
+    text: "#E5E7EB",         
+    background: "#1F2937",   
+    tint: tintColorDark,     
+    delete: "#F87171",       
+    icon: "#9CA3AF",         
+    tabIconDefault: "#6B7280",  
+    tabIconSelected: tintColorDark,  
+    card: "#111827",         
+    border: "#374151",       // <--- Grigio scuro/bluastro per bordi (Dark)
   },
 };
 

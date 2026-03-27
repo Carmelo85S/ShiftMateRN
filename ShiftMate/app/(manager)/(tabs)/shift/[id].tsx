@@ -50,7 +50,7 @@ export default function ShiftDetail() {
   const [applications, setApplications] = useState<Application[]>([]);
   const [loadingApplications, setLoadingApplications] = useState(true);
 
-  // 1. Load shift details
+  // 1. Carica i dettagli del turno
   useEffect(() => {
     const fetchShift = async () => {
       setLoading(true);
@@ -72,7 +72,7 @@ export default function ShiftDetail() {
     if (id) fetchShift();
   }, [id]);
 
-  // 2. Load applications with profile data
+  // 2. Carica le candidature con dati profilo
   useEffect(() => {
     if (!shift?.id) return;
 
@@ -116,24 +116,6 @@ export default function ShiftDetail() {
     fetchApplications();
   }, [shift?.id]);
 
-  // 3. Update application status
-  const handleUpdateStatus = async (appId: string, newStatus: "accepted" | "rejected") => {
-    try {
-      const { error } = await supabase
-        .from("applications")
-        .update({ status: newStatus })
-        .eq("id", appId);
-
-      if (error) throw error;
-
-      setApplications((prev) =>
-        prev.map((app) => (app.id === appId ? { ...app, status: newStatus } : app))
-      );
-    } catch (err: any) {
-      Alert.alert("Error", "Unable to update application status.");
-    }
-  };
-
   if (loading) {
     return (
       <View style={[styles.center, { backgroundColor: theme.background }]}>
@@ -163,12 +145,7 @@ export default function ShiftDetail() {
           {shift.image_url ? (
             <Image source={{ uri: shift.image_url }} style={styles.coverImage} resizeMode="cover" />
           ) : (
-            <View
-              style={[
-                styles.coverImage,
-                { backgroundColor: theme.tint + "20", justifyContent: "center", alignItems: "center" },
-              ]}
-            >
+            <View style={[styles.coverImage, { backgroundColor: theme.tint + "20", justifyContent: "center", alignItems: "center" }]}>
               <Ionicons name="image-outline" size={48} color={theme.tint} />
             </View>
           )}
@@ -178,24 +155,14 @@ export default function ShiftDetail() {
         <View style={styles.headerRow}>
           <View style={{ flex: 1 }}>
             <Text style={[styles.title, { color: theme.text }]}>{shift.title}</Text>
-            <View
-              style={[
-                styles.statusBadge,
-                { backgroundColor: shift.status === "open" ? "#E0F7FA" : "#F5F5F5" },
-              ]}
-            >
-              <Text
-                style={[
-                  styles.statusText,
-                  { color: shift.status === "open" ? "#00796B" : "#666" },
-                ]}
-              >
+            <View style={[styles.statusBadge, { backgroundColor: shift.status === "open" ? "#E0F7FA" : "#F5F5F5" }]}>
+              <Text style={[styles.statusText, { color: shift.status === "open" ? "#00796B" : "#666" }]}>
                 {shift.status.toUpperCase()}
               </Text>
             </View>
           </View>
           <Pressable
-            onPress={() => router.push({ pathname: `/shift/editShift`, params: { id: shift.id } })}
+            onPress={() => router.push({ pathname: "/(manager)/(tabs)/shift/editShift", params: { id: shift.id } })}
             style={({ pressed }) => [styles.editIcon, { backgroundColor: theme.tint + "15", opacity: pressed ? 0.7 : 1 }]}
           >
             <Ionicons name="pencil" size={20} color={theme.tint} />
@@ -204,16 +171,12 @@ export default function ShiftDetail() {
 
         <Text style={[styles.description, { color: theme.text }]}>{shift.description}</Text>
 
-        {/* Date & Time Card */}
-        <View style={[styles.infoCard, { backgroundColor: theme.card }]}>
+        {/* Info Card Date/Time */}
+        <View style={[styles.infoCard, { backgroundColor: theme.card, borderColor: theme.border }]}>
           <View style={styles.infoRow}>
             <Ionicons name="calendar-outline" size={18} color={theme.tint} />
             <Text style={[styles.infoText, { color: theme.text }]}>
-              {new Date(shift.shift_date).toLocaleDateString("en-GB", {
-                weekday: "short",
-                day: "numeric",
-                month: "long",
-              })}
+              {new Date(shift.shift_date).toLocaleDateString("it-IT", { weekday: "short", day: "numeric", month: "long" })}
             </Text>
           </View>
           <View style={[styles.infoRow, { marginTop: 10 }]}>
@@ -224,7 +187,7 @@ export default function ShiftDetail() {
           </View>
         </View>
 
-        {/* Applications Horizontal Scroll */}
+        {/* Sezione Candidati Orizzontale */}
         <View style={{ marginTop: 32 }}>
           <Text style={[styles.sectionTitle, { color: theme.text }]}>
             Applications ({applications.length})
@@ -233,17 +196,26 @@ export default function ShiftDetail() {
           {loadingApplications ? (
             <ActivityIndicator color={theme.tint} style={{ marginTop: 20 }} />
           ) : applications.length === 0 ? (
-            <Text style={{ color: theme.text, opacity: 0.6, fontStyle: "italic" }}>
-              No applicants yet.
-            </Text>
+            <Text style={{ color: theme.text, opacity: 0.6, fontStyle: "italic" }}>No applicants yet.</Text>
           ) : (
             <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginTop: 12 }}>
               {applications.map((app) => (
-                <View
+                <Pressable
                   key={app.id}
-                  style={[
+                  onPress={() =>
+                    router.push({
+                      pathname: "/(manager)/(tabs)/profile/[id]",
+                      params: { id: app.profile_id },
+                    })
+                  }
+                  style={({ pressed }) => [
                     styles.appHorizontalCard,
-                    { backgroundColor: theme.card },
+                    { 
+                      backgroundColor: theme.card, 
+                      borderColor: theme.border,
+                      opacity: pressed ? 0.8 : 1,
+                      transform: [{ scale: pressed ? 0.98 : 1 }] 
+                    },
                   ]}
                 >
                   {/* Avatar */}
@@ -251,48 +223,16 @@ export default function ShiftDetail() {
                     <Image source={{ uri: app.profile.avatar_url }} style={styles.avatarHorizontal} />
                   ) : (
                     <View style={[styles.avatarHorizontal, styles.avatarPlaceholder]}>
-                      <Text style={styles.avatarInitial}>
-                        {app.profile?.name?.[0] || "?"}
-                      </Text>
+                      <Text style={styles.avatarInitial}>{app.profile?.name?.[0] || "?"}</Text>
                     </View>
                   )}
 
-                  <Text style={[styles.applicantNameHorizontal, { color: theme.text }]} numberOfLines={1}>
+                  <Text style={[styles.applicantNameHorizontal, { color: theme.text }]} numberOfLines={2}>
                     {app.profile?.name} {app.profile?.surname}
                   </Text>
 
-                  <View
-                    style={[
-                      styles.statusDotHorizontal,
-                      {
-                        backgroundColor:
-                          app.status === "accepted"
-                            ? "#4CAF50"
-                            : app.status === "rejected"
-                            ? "#F44336"
-                            : "#FF9800",
-                      },
-                    ]}
-                  />
-
-                  {/* Action Buttons */}
-                  {app.status === "pending" && (
-                    <View style={styles.actionRowHorizontal}>
-                      <Pressable
-                        onPress={() => handleUpdateStatus(app.id, "accepted")}
-                        style={styles.actionBtnHorizontal}
-                      >
-                        <Ionicons name="checkmark-circle-outline" size={20} color="#4CAF50" />
-                      </Pressable>
-                      <Pressable
-                        onPress={() => handleUpdateStatus(app.id, "rejected")}
-                        style={styles.actionBtnHorizontal}
-                      >
-                        <Ionicons name="close-circle-outline" size={20} color="#F44336" />
-                      </Pressable>
-                    </View>
-                  )}
-                </View>
+                  <View style={[styles.statusDotHorizontal, { backgroundColor: app.status === "accepted" ? "#4CAF50" : app.status === "rejected" ? "#F44336" : "#FF9800" }]} />
+                </Pressable>
               ))}
             </ScrollView>
           )}
@@ -305,15 +245,7 @@ export default function ShiftDetail() {
 const styles = StyleSheet.create({
   container: { flex: 1 },
   center: { flex: 1, justifyContent: "center", alignItems: "center" },
-  imageWrapper: {
-    borderRadius: 20,
-    overflow: "hidden",
-    marginBottom: 20,
-    elevation: 4,
-    shadowColor: "#000",
-    shadowOpacity: 0.1,
-    shadowRadius: 10,
-  },
+  imageWrapper: { borderRadius: 20, overflow: "hidden", marginBottom: 20, elevation: 4, shadowColor: "#000", shadowOpacity: 0.1, shadowRadius: 10 },
   coverImage: { width: "100%", height: 200 },
   headerRow: { flexDirection: "row", alignItems: "flex-start", marginBottom: 12 },
   title: { fontSize: 26, fontWeight: "800", marginBottom: 6 },
@@ -326,21 +258,18 @@ const styles = StyleSheet.create({
   infoText: { marginLeft: 10, fontWeight: "600", fontSize: 15 },
   sectionTitle: { fontWeight: "800", fontSize: 20, marginBottom: 16 },
   appHorizontalCard: {
-    width: 110,
-    height: 150,
+    width: 115,
+    height: 160,
     borderRadius: 16,
-    padding: 10,
+    padding: 12,
     marginRight: 12,
     alignItems: "center",
-    justifyContent: "flex-start",
+    justifyContent: "center",
     borderWidth: 1,
-    overflow: "hidden",
   },
-  avatarHorizontal: { width: 50, height: 50, borderRadius: 25, marginBottom: 6 },
+  avatarHorizontal: { width: 56, height: 56, borderRadius: 28, marginBottom: 8 },
   avatarPlaceholder: { backgroundColor: "#E1E1E1", justifyContent: "center", alignItems: "center" },
-  avatarInitial: { fontWeight: "700", color: "#666", fontSize: 18 },
-  applicantNameHorizontal: { fontWeight: "700", fontSize: 14, textAlign: "center" },
-  statusDotHorizontal: { width: 10, height: 10, borderRadius: 5, marginTop: 6 },
-  actionRowHorizontal: { flexDirection: "row", marginTop: 8, gap: 8 },
-  actionBtnHorizontal: { flex: 1, justifyContent: "center", alignItems: "center" },
+  avatarInitial: { fontWeight: "700", color: "#666", fontSize: 20 },
+  applicantNameHorizontal: { fontWeight: "700", fontSize: 13, textAlign: "center", height: 35 },
+  statusDotHorizontal: { width: 10, height: 10, borderRadius: 5, marginTop: 4 },
 });

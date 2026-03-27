@@ -20,6 +20,13 @@ export default function ProfileLayout() {
           headerTitle: "Edit Profile",
         }}
       />
+      <Stack.Screen
+        name="[id]"
+        options={{
+          headerShown: true,
+          headerTitle: "Candidate Profile",
+        }}
+      />
     </Stack>
   );
 }
