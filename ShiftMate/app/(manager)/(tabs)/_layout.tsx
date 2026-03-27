@@ -14,43 +14,42 @@ export default function TabLayout() {
       screenOptions={{
         tabBarActiveTintColor: theme.tint,
         tabBarButton: HapticTab,
-        headerShown: true,
+        headerShown: false,
       }}
     >
       <Tabs.Screen
         name="dashboard"
         options={{
           title: "Dashboard",
-          tabBarIcon: ({ color }) => (
-            <IconSymbol size={28} name="speedometer" color={color} />
-          ),
+          tabBarIcon: ({ color }) => <IconSymbol size={28} name="speedometer" color={color} />,
+          headerShown: true,
         }}
       />
+
+      {/* Shift Tab punta allo stack interno */}
       <Tabs.Screen
         name="shift"
         options={{
           title: "Shifts",
-          tabBarIcon: ({ color }) => (
-            <IconSymbol size={28} name="calendar" color={color} />
-          ),
+          tabBarIcon: ({ color }) => <IconSymbol size={28} name="calendar" color={color} />,
         }}
       />
+
       <Tabs.Screen
         name="createShift"
         options={{
           title: "Create Shift",
-          tabBarIcon: ({ color }) => (
-            <IconSymbol size={28} name="plus.circle" color={color} />
-          ),
+          tabBarIcon: ({ color }) => <IconSymbol size={28} name="plus.circle" color={color} />,
+          headerShown: true,
         }}
       />
+
       <Tabs.Screen
         name="profile"
         options={{
           title: "Profile",
-          tabBarIcon: ({ color }) => (
-            <IconSymbol size={28} name="person.fill" color={color} />
-          ),
+          tabBarIcon: ({ color }) => <IconSymbol size={28} name="person.fill" color={color} />,
+          headerShown: false,
         }}
       />
     </Tabs>

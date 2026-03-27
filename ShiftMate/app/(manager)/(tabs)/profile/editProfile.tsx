@@ -2,7 +2,7 @@ import AvatarUploader from "@/components/imagePicker/imagePicker";
 import { Colors } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { supabase } from "@/lib/supabase";
-import { useRouter } from "expo-router";
+import { Stack, useRouter } from "expo-router";
 import { useEffect, useState } from "react";
 import {
   Alert,
@@ -123,78 +123,86 @@ export default function EditProfileScreen() {
         contentContainerStyle={[styles.container, { backgroundColor: theme.background }]}
         keyboardShouldPersistTaps="handled"
       >
-        <Text style={[styles.title, { color: theme.text }]}>Edit Profile</Text>
+        {/* Avatar */}
+        <View style={[styles.card, { alignItems: "center" }]}>
+          <AvatarUploader
+            initialUrl={avatar}
+            onUpload={(url) => setAvatar(`${url}?t=${Date.now()}`)}
+          />
+        </View>
 
-        {/* Avatar Uploader */}
-        <AvatarUploader
-          initialUrl={avatar}
-          onUpload={(url) => setAvatar(`${url}?t=${Date.now()}`)}
-        />
+        {/* Name & Surname */}
+        <View style={styles.card}>
+          <Text style={[styles.label, { color: theme.text }]}>Name</Text>
+          <TextInput
+            value={name}
+            onChangeText={setName}
+            placeholder="Name"
+            placeholderTextColor="#999"
+            style={[styles.input, { color: theme.text }]}
+          />
 
-        {/* Name */}
-        <Text style={[styles.label, { color: theme.text }]}>Name</Text>
-        <TextInput
-          value={name}
-          onChangeText={setName}
-          placeholder="Name"
-          placeholderTextColor="#999"
-          style={[styles.input, { borderColor: theme.tint, color: theme.text }]}
-        />
-
-        {/* Surname */}
-        <Text style={[styles.label, { color: theme.text }]}>Surname</Text>
-        <TextInput
-          value={surname}
-          onChangeText={setSurname}
-          placeholder="Surname"
-          placeholderTextColor="#999"
-          style={[styles.input, { borderColor: theme.tint, color: theme.text }]}
-        />
+          <Text style={[styles.label, { color: theme.text }]}>Surname</Text>
+          <TextInput
+            value={surname}
+            onChangeText={setSurname}
+            placeholder="Surname"
+            placeholderTextColor="#999"
+            style={[styles.input, { color: theme.text }]}
+          />
+        </View>
 
         {/* Job Role */}
-        <Text style={[styles.label, { color: theme.text }]}>Job Role</Text>
-          <View
-            style={[
-              styles.pickerWrapper,
-              { borderColor: theme.tint, backgroundColor: theme.card, height: 140 },
-            ]}
-          >
-          <Picker
-            selectedValue={jobRole}
-            onValueChange={setJobRole}
-            style={{ height: 140, fontSize: 14 }}
-          >
-            <Picker.Item label="Receptionist" value="Receptionist" />
-            <Picker.Item label="Housekeeping" value="Housekeeping" />
-            <Picker.Item label="Front Desk Manager" value="Front Desk Manager" />
-            <Picker.Item label="Concierge" value="Concierge" />
-            <Picker.Item label="Hotel Manager" value="Hotel Manager" />
-            <Picker.Item label="Restaurant Manager" value="Restaurant Manager" />
-            <Picker.Item label="Event Coordinator" value="Event Coordinator" />
-            <Picker.Item label="Maintenance" value="Maintenance" />
-            <Picker.Item label="Other" value="Other" />
-          </Picker>
+        <View style={styles.card}>
+          <Text style={[styles.label, { color: theme.text }]}>Job Role</Text>
+          <View style={[styles.pickerWrapper, { backgroundColor: theme.card }]}>
+            <Picker selectedValue={jobRole} onValueChange={setJobRole}>
+              <Picker.Item label="Receptionist" value="Receptionist" />
+              <Picker.Item label="Housekeeping" value="Housekeeping" />
+              <Picker.Item label="Front Desk Manager" value="Front Desk Manager" />
+              <Picker.Item label="Concierge" value="Concierge" />
+              <Picker.Item label="Hotel Manager" value="Hotel Manager" />
+              <Picker.Item label="Restaurant Manager" value="Restaurant Manager" />
+              <Picker.Item label="Event Coordinator" value="Event Coordinator" />
+              <Picker.Item label="Maintenance" value="Maintenance" />
+              <Picker.Item label="Other" value="Other" />
+            </Picker>
+          </View>
         </View>
 
         {/* Bio */}
-        <Text style={[styles.label, { color: theme.text }]}>Bio</Text>
-        <TextInput
-          value={bio}
-          onChangeText={setBio}
-          placeholder="Short bio about yourself"
-          placeholderTextColor="#999"
-          style={[styles.textArea, { borderColor: theme.tint, color: theme.text }]}
-          multiline
-          numberOfLines={4}
-        />
+        <View style={styles.card}>
+          <Text style={[styles.label, { color: theme.text }]}>Bio</Text>
+          <TextInput
+            value={bio}
+            onChangeText={setBio}
+            placeholder="Short bio about yourself"
+            placeholderTextColor="#999"
+            style={[styles.textarea, { color: theme.text }]}
+            multiline
+            numberOfLines={4}
+          />
+        </View>
 
         {/* Buttons */}
-        <View style={styles.buttonContainer}>
-          <Pressable onPress={handleSave} style={[styles.button, { backgroundColor: theme.tint }]}>
+        <View style={styles.card}>
+          <Pressable
+            onPress={handleSave}
+            style={({ pressed }) => [
+              styles.button,
+              { backgroundColor: theme.tint, opacity: pressed ? 0.85 : 1 },
+            ]}
+          >
             <Text style={styles.buttonText}>Save</Text>
           </Pressable>
 
-          <Pressable onPress={handleDelete} style={[styles.button, { backgroundColor: "#e53935" }]}>
+          <Pressable
+            onPress={handleDelete}
+            style={({ pressed }) => [
+              styles.button,
+              { backgroundColor: "#e53935", opacity: pressed ? 0.85 : 1 },
+            ]}
+          >
             <Text style={styles.buttonText}>Delete Profile</Text>
           </Pressable>
         </View>
@@ -204,14 +212,60 @@ export default function EditProfileScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flexGrow: 1, padding: 16, marginTop: 55 },
+  container: { flexGrow: 1, padding: 20 },
+
+  card: {
+    borderRadius: 18,
+    padding: 16,
+    marginBottom: 16,
+    backgroundColor: "#fff",
+    elevation: 2,
+  },
+
+  label: {
+    fontSize: 13,
+    marginBottom: 6,
+    opacity: 0.7,
+  },
+
+  input: {
+    borderWidth: 1,
+    borderColor: "#ddd",
+    borderRadius: 12,
+    padding: 14,
+    fontSize: 15,
+    marginBottom: 12,
+  },
+
+  textarea: {
+    borderWidth: 1,
+    borderColor: "#ddd",
+    borderRadius: 12,
+    padding: 14,
+    fontSize: 15,
+    minHeight: 100,
+    textAlignVertical: "top",
+  },
+
+  pickerWrapper: {
+    borderWidth: 1,
+    borderColor: "#ddd",
+    borderRadius: 12,
+    overflow: "hidden",
+  },
+
+  button: {
+    padding: 16,
+    borderRadius: 16,
+    alignItems: "center",
+    marginTop: 12,
+  },
+
+  buttonText: {
+    color: "#fff",
+    fontWeight: "700",
+    fontSize: 16,
+  },
+
   center: { flex: 1, justifyContent: "center", alignItems: "center" },
-  title: { fontSize: 22, fontWeight: "bold", marginBottom: 16, textAlign: "center" },
-  label: { marginTop: 8, marginBottom: 4, fontSize: 13, fontWeight: "500" },
-  input: { borderWidth: 1, padding: 10, borderRadius: 12, fontSize: 14, marginBottom: 8 },
-  textArea: { borderWidth: 1, padding: 10, borderRadius: 12, fontSize: 14, marginBottom: 8, height: 80, textAlignVertical: "top" },
-  pickerWrapper: { borderWidth: 1, borderRadius: 12, marginBottom: 8, overflow: "hidden" },
-  buttonContainer: { marginTop: 16, gap: 12 },
-  button: { padding: 12, borderRadius: 12, alignItems: "center" },
-  buttonText: { color: "white", fontWeight: "bold", fontSize: 14 },
 });

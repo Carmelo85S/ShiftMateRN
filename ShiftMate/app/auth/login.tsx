@@ -60,6 +60,10 @@ export default function Login() {
     }
   };
 
+  const handleRegister = () => {
+    router.replace("/auth/register")
+  }
+
   return (
     <>
       <Stack.Screen options={{ headerShown: false }} />
@@ -99,6 +103,11 @@ export default function Login() {
             >
               <Text style={styles.buttonText}>
                 {loading ? "Loading..." : "Login"}
+              </Text>
+            </Pressable>
+            <Pressable onPress={handleRegister} disabled={loading}>
+              <Text style={[styles.linkText, { color: theme.tint }]}>
+                {loading ? "Loading..." : "Register"}
               </Text>
             </Pressable>
           </View>
@@ -147,4 +156,11 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     fontSize: 16,
   },
+  linkText: {
+    fontSize: 16,
+    fontWeight: "600",
+    textAlign: "center",
+    textDecorationLine: "underline",
+    paddingVertical: 20
+  }
 });

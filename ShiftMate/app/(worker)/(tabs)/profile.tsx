@@ -5,6 +5,7 @@ import { useRouter } from "expo-router";
 import { useEffect, useState } from "react";
 import { Alert, Pressable, StyleSheet, Text, View, Image } from "react-native";
 
+
 type Profile = {
   id: string;
   name: string | null;
@@ -102,7 +103,9 @@ export default function ProfileScreen() {
 
       {/* Action Buttons */}
       <Pressable
-        onPress={() => router.push("/profile/editProfile")}
+        onPress={() => router.push({
+        pathname: "/(worker)/profile/editProfile"
+      })}
         style={[styles.button, { backgroundColor: theme.tint }]}
       >
         <Text style={styles.buttonText}>Edit Profile</Text>
