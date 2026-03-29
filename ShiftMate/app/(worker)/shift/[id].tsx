@@ -1,5 +1,4 @@
 import { Colors } from "@/constants/theme";
-import { useColorScheme } from "@/hooks/use-color-scheme";
 import { supabase } from "@/lib/supabase";
 import { Stack, useLocalSearchParams } from "expo-router";
 import { useEffect, useState } from "react";
@@ -21,8 +20,7 @@ type Shift = {
 
 export default function ShiftDetail() {
   const { id } = useLocalSearchParams();
-  const colorScheme = useColorScheme();
-  const theme = Colors[colorScheme ?? "light"];
+  const theme = Colors.light;
 
   const [shift, setShift] = useState<Shift | null>(null);
   const [loading, setLoading] = useState(true);

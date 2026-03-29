@@ -6,7 +6,6 @@ import {
   ActivityIndicator,
 } from "react-native";
 import { Colors } from "@/constants/theme";
-import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useFocusEffect } from "expo-router";
 import { useCallback, useState } from "react";
 import { supabase } from "@/lib/supabase";
@@ -27,8 +26,7 @@ type Shift = {
 };
 
 export default function Dashboard() {
-  const colorScheme = useColorScheme();
-  const theme = Colors[colorScheme ?? "light"];
+  const theme = Colors.light;
 
   const [stats, setStats] = useState<Stats | null>(null);
   const [nextShift, setNextShift] = useState<Shift | null>(null);

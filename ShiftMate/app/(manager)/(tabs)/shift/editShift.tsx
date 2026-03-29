@@ -1,6 +1,5 @@
 // /(manager)/(tabs)/shift/[id]/editShift.tsx
 import { Colors } from "@/constants/theme";
-import { useColorScheme } from "@/hooks/use-color-scheme";
 import { supabase } from "@/lib/supabase";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { useState, useEffect } from "react";
@@ -18,8 +17,7 @@ import DateTimePicker from "@react-native-community/datetimepicker";
 import ShiftUploader from "@/components/imagePicker/imagePickerShift";
 
 export default function EditShift() {
-  const colorScheme = useColorScheme();
-  const theme = Colors[colorScheme ?? "light"];
+  const theme = Colors.light;
   const router = useRouter();
   const { id } = useLocalSearchParams<{ id: string }>();
 

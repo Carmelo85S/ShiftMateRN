@@ -1,5 +1,4 @@
 import { Colors } from "@/constants/theme";
-import { useColorScheme } from "@/hooks/use-color-scheme";
 import { supabase } from "@/lib/supabase";
 import { useRouter, useFocusEffect } from "expo-router";
 import React, { useState, useCallback } from "react";
@@ -15,8 +14,7 @@ type Profile = {
 };
 
 export default function ProfileManager() {
-  const colorScheme = useColorScheme();
-  const theme = Colors[colorScheme ?? "light"];
+  const theme = Colors.light;
   const router = useRouter();
 
   const [profile, setProfile] = useState<Profile | null>(null);

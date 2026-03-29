@@ -1,5 +1,4 @@
 import { Colors } from "@/constants/theme";
-import { useColorScheme } from "@/hooks/use-color-scheme";
 import { supabase } from "@/lib/supabase";
 import { Stack, useRouter } from "expo-router";
 import { useState } from "react";
@@ -16,9 +15,8 @@ import {
 } from "react-native";
 
 export default function Register() {
+  const theme = Colors.light;
   const router = useRouter();
-  const colorScheme = useColorScheme();
-  const theme = Colors[colorScheme ?? "light"];
 
   const [name, setName] = useState("");
   const [surname, setSurname] = useState("");

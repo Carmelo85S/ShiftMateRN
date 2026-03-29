@@ -2,12 +2,10 @@
 import { View, Text, Pressable, StyleSheet, ImageBackground } from "react-native";
 import { useRouter } from "expo-router";
 import { Colors } from "@/constants/theme";
-import { useColorScheme } from "@/hooks/use-color-scheme";
 
 export default function AuthChoice() {
+  const theme = Colors.light;
   const router = useRouter();
-  const colorScheme = useColorScheme();
-  const theme = Colors[colorScheme ?? "light"];
 
   return (
       <View style={styles.overlay}>

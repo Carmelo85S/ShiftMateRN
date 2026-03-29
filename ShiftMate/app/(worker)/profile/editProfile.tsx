@@ -1,6 +1,5 @@
 import AvatarUploader from "@/components/imagePicker/imagePicker";
 import { Colors } from "@/constants/theme";
-import { useColorScheme } from "@/hooks/use-color-scheme";
 import { supabase } from "@/lib/supabase";
 import { useRouter } from "expo-router";
 import { useEffect, useState } from "react";
@@ -23,8 +22,7 @@ type Profile = {
 };
 
 export default function EditProfileScreen() {
-  const colorScheme = useColorScheme();
-  const theme = Colors[colorScheme ?? "light"];
+  const theme = Colors.light;
   const router = useRouter();
 
   const [profile, setProfile] = useState<Profile | null>(null);

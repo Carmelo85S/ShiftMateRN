@@ -7,12 +7,11 @@ import {
   Image,
   Pressable,
   ActivityIndicator,
-  Alert,
+  RefreshControl,
 } from "react-native";
-import { useColorScheme } from "@/hooks/use-color-scheme";
 import { Colors } from "@/constants/theme";
-import { useLocalSearchParams, useRouter, Stack } from "expo-router";
-import { useEffect, useState } from "react";
+import { useLocalSearchParams, useRouter, Stack, useFocusEffect } from "expo-router";
+import { useState, useCallback } from "react";
 import { supabase } from "@/lib/supabase";
 import { Ionicons } from "@expo/vector-icons";
 
@@ -40,81 +39,80 @@ type Application = {
 };
 
 export default function ShiftDetail() {
-  const colorScheme = useColorScheme();
-  const theme = Colors[colorScheme ?? "light"];
+  const theme = Colors.light;  
   const router = useRouter();
   const { id } = useLocalSearchParams();
 
   const [shift, setShift] = useState<Shift | null>(null);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [applications, setApplications] = useState<Application[]>([]);
   const [loadingApplications, setLoadingApplications] = useState(true);
 
-  // 1. Carica i dettagli del turno
-  useEffect(() => {
-    const fetchShift = async () => {
-      setLoading(true);
-      try {
-        const { data, error } = await supabase
-          .from("shifts")
-          .select("*")
-          .eq("id", id)
-          .single();
+  // Funzione centralizzata per il caricamento dati
+  const loadAllData = useCallback(async () => {
+    if (!id) return;
+    
+    try {
+      // 1. Fetch Shift
+      const { data: shiftData, error: shiftError } = await supabase
+        .from("shifts")
+        .select("*")
+        .eq("id", id)
+        .single();
 
-        if (error) throw error;
-        setShift(data as Shift);
-      } catch (err) {
-        console.error("Error fetching shift:", err);
-      } finally {
-        setLoading(false);
-      }
-    };
-    if (id) fetchShift();
+      if (shiftError) throw shiftError;
+      setShift(shiftData as Shift);
+
+      // 2. Fetch Applications
+      setLoadingApplications(true);
+      const { data: appsData, error: appsError } = await supabase
+        .from("applications")
+        .select(`
+          id,
+          profile_id,
+          status,
+          applied_at,
+          profiles!inner (
+            name,
+            surname,
+            avatar_url
+          )
+        `)
+        .eq("shift_id", id)
+        .order("applied_at", { ascending: true });
+
+      if (appsError) throw appsError;
+
+      const formattedApps: Application[] = (appsData as any[]).map((app) => ({
+        id: app.id,
+        profile_id: app.profile_id,
+        status: app.status,
+        applied_at: app.applied_at,
+        profile: app.profiles,
+      }));
+
+      setApplications(formattedApps);
+    } catch (err) {
+      console.error("Error loading shift detail data:", err);
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+      setLoadingApplications(false);
+    }
   }, [id]);
 
-  // 2. Carica le candidature con dati profilo
-  useEffect(() => {
-    if (!shift?.id) return;
+  // useFocusEffect ricarica i dati ogni volta che la pagina torna visibile
+  useFocusEffect(
+    useCallback(() => {
+      loadAllData();
+    }, [loadAllData])
+  );
 
-    const fetchApplications = async () => {
-      setLoadingApplications(true);
-      try {
-        const { data, error } = await supabase
-          .from("applications")
-          .select(`
-            id,
-            profile_id,
-            status,
-            applied_at,
-            profiles!inner (
-              name,
-              surname,
-              avatar_url
-            )
-          `)
-          .eq("shift_id", shift.id)
-          .order("applied_at", { ascending: true });
-
-        if (error) throw error;
-
-        const apps: Application[] = (data as any[]).map((app) => ({
-          id: app.id,
-          profile_id: app.profile_id,
-          status: app.status,
-          applied_at: app.applied_at,
-          profile: app.profiles,
-        }));
-
-        setApplications(apps);
-      } catch (err: any) {
-        console.error("Error fetching applications:", err.message);
-      } finally {
-        setLoadingApplications(false);
-      }
-    };
-
-    fetchApplications();
-  }, [shift?.id]);
+  const onRefresh = () => {
+    setRefreshing(true);
+    loadAllData();
+  };
 
   if (loading) {
     return (
@@ -134,16 +132,28 @@ export default function ShiftDetail() {
 
   return (
     <>
-      <Stack.Screen options={{ title: "Shift Detail" }} />
+      <Stack.Screen options={{ 
+          title: "Shift Detail", 
+          headerShown: true,
+          headerBackTitle: "", 
+        }}
+       />
       <ScrollView
         style={[styles.container, { backgroundColor: theme.background }]}
         contentContainerStyle={{ padding: 20 }}
         showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={theme.tint} />
+        }
       >
-        {/* Cover Image */}
+        {/* Cover Image con Cache Buster */}
         <View style={styles.imageWrapper}>
           {shift.image_url ? (
-            <Image source={{ uri: shift.image_url }} style={styles.coverImage} resizeMode="cover" />
+            <Image 
+              source={{ uri: `${shift.image_url}?t=${new Date().getTime()}` }} 
+              style={styles.coverImage} 
+              resizeMode="cover" 
+            />
           ) : (
             <View style={[styles.coverImage, { backgroundColor: theme.tint + "20", justifyContent: "center", alignItems: "center" }]}>
               <Ionicons name="image-outline" size={48} color={theme.tint} />
@@ -187,7 +197,7 @@ export default function ShiftDetail() {
           </View>
         </View>
 
-        {/* Sezione Candidati Orizzontale */}
+        {/* Sezione Candidati */}
         <View style={{ marginTop: 32 }}>
           <Text style={[styles.sectionTitle, { color: theme.text }]}>
             Applications ({applications.length})
@@ -204,8 +214,11 @@ export default function ShiftDetail() {
                   key={app.id}
                   onPress={() =>
                     router.push({
-                      pathname: "/(manager)/(tabs)/profile/[id]",
-                      params: { id: app.profile_id },
+                      pathname: "/(manager)/(tabs)/shift/candidate/[id]",
+                      params: { 
+                        id: app.profile_id, 
+                        shiftId: id 
+                      },
                     })
                   }
                   style={({ pressed }) => [
@@ -218,7 +231,6 @@ export default function ShiftDetail() {
                     },
                   ]}
                 >
-                  {/* Avatar */}
                   {app.profile?.avatar_url ? (
                     <Image source={{ uri: app.profile.avatar_url }} style={styles.avatarHorizontal} />
                   ) : (

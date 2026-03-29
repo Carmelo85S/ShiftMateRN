@@ -1,9 +1,13 @@
+// app/(manager)/(tabs)/profile/_layout.tsx
 import { Stack } from "expo-router";
 
 export default function ProfileLayout() {
   return (
-    <Stack>
-      {/* Schermata principale del profilo */}
+    <Stack
+      screenOptions={{
+        headerBackTitle: "", 
+      }}
+    >
       <Stack.Screen
         name="index"
         options={{
@@ -11,8 +15,6 @@ export default function ProfileLayout() {
           headerTitle: "Profile",
         }}
       />
-
-      {/* Schermata di modifica profilo */}
       <Stack.Screen
         name="editProfile"
         options={{
@@ -24,7 +26,8 @@ export default function ProfileLayout() {
         name="[id]"
         options={{
           headerShown: true,
-          headerTitle: "Candidate Profile",
+          headerTitle: "Profile",
+          headerBackVisible: false, 
         }}
       />
     </Stack>
