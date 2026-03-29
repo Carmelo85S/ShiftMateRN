@@ -1,55 +1,39 @@
 import { Tabs } from "expo-router";
-import React from "react";
-import { Colors } from "@/constants/theme";
-import { HapticTab } from "@/components/haptic-tab";
-import { IconSymbol } from "@/components/ui/icon-symbol";
+import { IconSymbol } from "@/components/ui/icon-symbol"; 
 
 export default function TabLayout() {
-  const theme = Colors.light;  
-
-
   return (
-    <Tabs
-      screenOptions={{
-        tabBarActiveTintColor: theme.tint,
-        tabBarButton: HapticTab,
-        headerShown: false,
-      }}
-    >
-      <Tabs.Screen
-        name="dashboard"
-        options={{
-          title: "Dashboard",
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="speedometer" color={color} />,
-          headerShown: true,
-        }}
+    <Tabs screenOptions={{ 
+      headerShown: false, // Lascialo false: l'header lo mettono gli Stack interni
+      tabBarActiveTintColor: '#000' 
+    }}>
+      <Tabs.Screen 
+        name="dashboard" // Deve esserci la cartella dashboard/ con _layout.tsx
+        options={{ 
+          title: "Home", 
+          tabBarIcon: ({color}) => <IconSymbol name="speedometer" color={color} /> 
+        }} 
       />
-
-      {/* Shift Tab punta allo stack interno */}
-      <Tabs.Screen
-        name="shift"
-        options={{
-          title: "Shifts",
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="calendar" color={color} />,
-        }}
+      <Tabs.Screen 
+        name="shift" // Deve esserci la cartella shift/ con _layout.tsx
+        options={{ 
+          title: "Shifts", 
+          tabBarIcon: ({color}) => <IconSymbol name="calendar" color={color} /> 
+        }} 
       />
-
-      <Tabs.Screen
-        name="createShift"
-        options={{
-          title: "Create Shift",
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="plus.circle" color={color} />,
-          headerShown: true,
-        }}
+      <Tabs.Screen 
+        name="createShift" // Deve esserci la cartella createShift/ con _layout.tsx
+        options={{ 
+          title: "Post", 
+          tabBarIcon: ({color}) => <IconSymbol name="plus.circle" color={color} /> 
+        }} 
       />
-
-      <Tabs.Screen
-        name="profile"
-        options={{
-          title: "Profile",
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="person.fill" color={color} />,
-          headerShown: false,
-        }}
+      <Tabs.Screen 
+        name="profile" // Deve esserci la cartella profile/ con _layout.tsx
+        options={{ 
+          title: "Account", 
+          tabBarIcon: ({color}) => <IconSymbol name="person.fill" color={color} /> 
+        }} 
       />
     </Tabs>
   );

@@ -1,12 +1,12 @@
 import { Stack } from "expo-router";
 
-export default function ProfileStackLayout() {
+export default function CandidateStackLayout() {
   return (
     <Stack screenOptions={{ 
       headerShown: true,
       headerShadowVisible: false,
     }}>
-      <Stack.Screen name="index" options={{ title: "Profile" }} />
+      <Stack.Screen name="index" options={{ title: "Candidate" }} />
     </Stack>
   );
 }

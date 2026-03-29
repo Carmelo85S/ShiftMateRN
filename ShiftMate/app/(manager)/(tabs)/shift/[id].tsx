@@ -172,8 +172,11 @@ export default function ShiftDetail() {
             </View>
           </View>
           <Pressable
-            onPress={() => router.push({ pathname: "/(manager)/(tabs)/shift/editShift", params: { id: shift.id } })}
-            style={({ pressed }) => [styles.editIcon, { backgroundColor: theme.tint + "15", opacity: pressed ? 0.7 : 1 }]}
+            onPress={() => router.push({ 
+              pathname: "/(manager)/(tabs)/shift/editShift", 
+              params: { id: shift.id } 
+            })}   
+           style={({ pressed }) => [styles.editIcon, { backgroundColor: theme.tint + "15", opacity: pressed ? 0.7 : 1 }]}
           >
             <Ionicons name="pencil" size={20} color={theme.tint} />
           </Pressable>
@@ -214,7 +217,7 @@ export default function ShiftDetail() {
                   key={app.id}
                   onPress={() =>
                     router.push({
-                      pathname: "/(manager)/(tabs)/shift/candidate/[id]",
+                      pathname: "/(manager)/candidate/[id]",
                       params: { 
                         id: app.profile_id, 
                         shiftId: id 

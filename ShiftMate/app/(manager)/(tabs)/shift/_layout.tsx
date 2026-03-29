@@ -1,35 +1,63 @@
 import { Stack } from "expo-router";
-import React from "react";
+import { useColorScheme } from "react-native";
+import { Colors } from "@/constants/theme";
 
 export default function ShiftStackLayout() {
+  const colorScheme = useColorScheme();
+  const theme = Colors[colorScheme ?? "light"];
+
   return (
     <Stack
       screenOptions={{
-        headerBackTitle: "",
+        // ✅ Abilita la barra in alto su tutte le pagine della cartella
+        headerShown: true, 
+        
+        // ✅ Testo del tasto "Indietro" (molto utile su iOS)
+        headerBackTitle: "Indietro", 
+        
+        // ✅ Colore della freccia e dei testi nell'header
+        headerTintColor: theme.tint, 
+        
+        // ✅ Stile della barra (sfondo)
+        headerStyle: {
+          backgroundColor: theme.background,
+        },
+        
+        // ✅ Stile del titolo (Grassetto)
+        headerTitleStyle: {
+          fontWeight: "bold",
+          color: theme.text,
+        },
+        
+        // ✅ Toglie la linea di separazione per un look più moderno
+        headerShadowVisible: false, 
       }}
     >
-      <Stack.Screen
-        name="index"
+      {/* 1. La pagina principale (Lista dei Turni) */}
+      <Stack.Screen 
+        name="index" 
         options={{ 
-          title: "Shifts",
-          headerShown: true,
-        }}
+          title: "I Miei Turni" 
+        }} 
       />
-      <Stack.Screen
-        name="[id]"
+
+      {/* 2. La pagina di Dettaglio (Dinamica) */}
+      <Stack.Screen 
+        name="[id]" 
         options={{ 
-          title: "Shift Detail",
-          headerBackTitle: "", 
-          headerShown: true,
-        }}        
+          title: "Dettaglio Turno",
+          // Puoi anche rendere l'header trasparente qui se hai una bella immagine di copertina
+          // headerTransparent: true, 
+        }} 
       />
-      <Stack.Screen
-        name="candidate/[id]"
-        options={{
-          headerShown: true,
-          headerTitle: "Candidate Profile",
-          headerBackTitle: "", 
-        }}
+
+      {/* 3. La pagina di Modifica */}
+      <Stack.Screen 
+        name="editShift" 
+        options={{ 
+          title: "Modifica Turno",
+          presentation: "card", // Navigazione standard laterale
+        }} 
       />
     </Stack>
   );
