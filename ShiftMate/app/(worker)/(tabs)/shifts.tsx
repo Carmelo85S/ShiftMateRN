@@ -1,8 +1,18 @@
 import { Colors } from "@/constants/theme";
 import { supabase } from "@/lib/supabase";
 import { useRouter } from "expo-router";
-import { useEffect, useState } from "react";
-import { FlatList, Pressable, StyleSheet, Text, View, ActivityIndicator } from "react-native";
+import { useEffect, useState, useCallback } from "react";
+import { 
+  FlatList, 
+  StyleSheet, 
+  Text, 
+  View, 
+  ActivityIndicator, 
+  RefreshControl 
+} from "react-native";
+import { Ionicons } from "@expo/vector-icons";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { ShiftCard } from "@/components/shiftCard/ShiftCard"; // Importiamo il componente unico
 
 type Shift = {
   id: string;
@@ -10,88 +20,85 @@ type Shift = {
   shift_date: string;
   start_time: string;
   end_time: string;
+  image_url: string | null;
 };
 
-export default function Shifts() {
+export default function WorkerShifts() {
   const theme = Colors.light;
   const router = useRouter();
+  const insets = useSafeAreaInsets();
 
   const [shifts, setShifts] = useState<Shift[]>([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
 
-  useEffect(() => {
-    const fetchShifts = async () => {
-      setLoading(true);
-      try {
-        const { data, error } = await supabase
-          .from("shifts")
-          .select("id, title, shift_date, start_time, end_time")
-          .eq("status", "open")
-          .gte("shift_date", new Date().toISOString().split("T")[0]) // only upcoming
-          .order("shift_date", { ascending: true });
+  const fetchShifts = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("shifts")
+        .select("id, title, shift_date, start_time, end_time, image_url")
+        .eq("status", "open")
+        .gte("shift_date", new Date().toISOString().split("T")[0])
+        .order("shift_date", { ascending: true });
 
-        if (error) throw error;
-        setShifts(data as Shift[]);
-      } catch (err: any) {
-        console.error("Error fetching shifts:", err.message);
-      } finally {
-        setLoading(false);
-      }
-    };
+      if (error) throw error;
+      setShifts(data as Shift[]);
+    } catch (err: any) {
+      console.error("Error:", err.message);
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  };
 
+  useEffect(() => { fetchShifts(); }, []);
+
+  const onRefresh = useCallback(() => {
+    setRefreshing(true);
     fetchShifts();
   }, []);
 
-  const formatDate = (date: string) => {
-    const d = new Date(date);
-    return d.toLocaleDateString("en-GB", {
-      weekday: "short",
-      day: "numeric",
-      month: "short",
-    });
-  };
-
-const renderShift = ({ item }: { item: Shift }) => (
-  <Pressable
-    style={({ pressed }) => [
-      styles.shiftCard,
-      { backgroundColor: theme.card, opacity: pressed ? 0.85 : 1 },
-    ]}
-    onPress={() =>
-      router.push({
-        pathname: "/(worker)/shift/[id]",
-        params: { id: item.id },
-      })
-    }
-  >
-    <View style={styles.cardHeader}>
-      <Text style={[styles.shiftTitle, { color: theme.text }]}>{item.title}</Text>
-      <View style={[styles.badge, { backgroundColor: theme.tint }]}>
-        <Text style={styles.badgeText}>OPEN</Text>
-      </View>
-    </View>
-    <Text style={[styles.date, { color: theme.text }]}>{formatDate(item.shift_date)}</Text>
-    <Text style={[styles.time, { color: theme.text }]}>
-      {item.start_time.slice(0, 5)} - {item.end_time.slice(0, 5)}
-    </Text>
-  </Pressable>
-);
-
   return (
-    <View style={[styles.container, { backgroundColor: theme.background }]}>
-      <Text style={[styles.title, { color: theme.text }]}>Available Shifts</Text>
+    <View style={[styles.container, { backgroundColor: theme.background, paddingTop: insets.top + 20 }]}>
+      {/* HEADER BOLD - Stile Worker */}
+      <View style={styles.headerArea}>
+        <Text style={[styles.kpi, { color: theme.tint }]}>AVAILABLE NOW</Text>
+        <Text style={[styles.title, { color: theme.text }]}>Find Work</Text>
+      </View>
 
-      {loading ? (
-        <ActivityIndicator size="large" color={theme.tint} style={{ marginTop: 50 }} />
-      ) : shifts.length === 0 ? (
-        <Text style={[styles.emptyText, { color: theme.text }]}>No shifts available</Text>
+      {loading && !refreshing ? (
+        <View style={styles.center}>
+          <ActivityIndicator size="small" color={theme.text} />
+        </View>
       ) : (
         <FlatList
           data={shifts}
           keyExtractor={(item) => item.id}
-          renderItem={renderShift}
+          // USIAMO IL COMPONENTE CONDIVISO
+          renderItem={({ item }) => (
+            <ShiftCard 
+              item={item} 
+              variant="worker" 
+              onPress={() => router.push(`/(worker)/shift/${item.id}`)} 
+            />
+          )}
           showsVerticalScrollIndicator={false}
-          contentContainerStyle={{ paddingBottom: 30 }}
+          contentContainerStyle={{ paddingBottom: 120 }}
+          refreshControl={
+            <RefreshControl 
+              refreshing={refreshing} 
+              onRefresh={onRefresh} 
+              tintColor={theme.tint} 
+            />
+          }
+          ListEmptyComponent={() => (
+            <View style={styles.emptyContainer}>
+              <Ionicons name="search-outline" size={48} color={theme.icon} style={{ opacity: 0.2 }} />
+              <Text style={[styles.emptyText, { color: theme.secondaryText }]}>
+                No shifts available at the moment
+              </Text>
+            </View>
+          )}
         />
       )}
     </View>
@@ -99,32 +106,11 @@ const renderShift = ({ item }: { item: Shift }) => (
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 20 },
-
-  title: { fontSize: 26, fontWeight: "700", marginBottom: 20 },
-
-  shiftCard: {
-    padding: 18,
-    borderRadius: 16,
-    marginBottom: 16,
-    shadowColor: "#000",
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 4 },
-    elevation: 3,
-  },
-
-  cardHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
-
-  shiftTitle: { fontSize: 18, fontWeight: "600" },
-
-  date: { marginTop: 8, fontSize: 15, opacity: 0.8 },
-
-  time: { marginTop: 4, fontSize: 16, fontWeight: "500" },
-
-  badge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8 },
-
-  badgeText: { color: "#fff", fontSize: 11, fontWeight: "700" },
-
-  emptyText: { textAlign: "center", marginTop: 60, fontSize: 16, opacity: 0.7 },
+  container: { flex: 1, paddingHorizontal: 20 },
+  center: { marginTop: 50, alignItems: 'center' },
+  headerArea: { marginBottom: 30 },
+  kpi: { fontSize: 11, fontWeight: "900", letterSpacing: 2, marginBottom: 4 },
+  title: { fontSize: 42, fontWeight: "900", letterSpacing: -2 },
+  emptyContainer: { alignItems: 'center', marginTop: 100, gap: 15 },
+  emptyText: { fontSize: 16, fontWeight: "600", textAlign: 'center', width: '80%' },
 });

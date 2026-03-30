@@ -1,277 +1,183 @@
-import { Colors } from "@/constants/theme";
-import { supabase } from "@/lib/supabase";
-import { useRouter } from "expo-router";
-import { useState } from "react";
+import React, { useState } from "react";
 import {
-  Alert,
-  Pressable,
-  ScrollView,
   StyleSheet,
+  View,
   Text,
   TextInput,
-  View,
+  ScrollView,
+  Pressable,
+  ActivityIndicator,
+  Alert,
+  KeyboardAvoidingView,
+  Platform,
+  useColorScheme,
 } from "react-native";
-import DateTimePicker from "@react-native-community/datetimepicker";
-import ShiftUploader from "@/components/imagePicker/imagePickerShift";
+import { supabase } from "@/lib/supabase";
+import { Colors } from "@/constants/theme";
+import { Ionicons } from "@expo/vector-icons";
+import { useRouter } from "expo-router";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 export default function CreateShift() {
-  const theme = Colors.light;
   const router = useRouter();
+  const insets = useSafeAreaInsets();
+  const colorScheme = useColorScheme();
+  const theme = Colors[colorScheme ?? "light"];
 
-  const [title, setTitle] = useState("");
-  const [description, setDescription] = useState("");
-  const [shiftDate, setShiftDate] = useState(new Date());
-  const [startTime, setStartTime] = useState(new Date());
-  const [endTime, setEndTime] = useState(new Date());
-  const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [form, setForm] = useState({
+    title: "",
+    description: "",
+    date: new Date().toISOString().split("T")[0],
+    startTime: "09:00",
+    endTime: "17:00",
+  });
 
-  const handleSave = async () => {
-    if (!title) {
-      Alert.alert("Validation", "Title is required");
-      return;
-    }
-
-    if (description.length > 300) {
-      Alert.alert("Validation", "Max 300 characters");
+  const handleCreate = async () => {
+    if (!form.title || !form.date || !form.startTime || !form.endTime) {
+      Alert.alert("Missing Info", "Please fill in all required fields marked with *");
       return;
     }
 
     setLoading(true);
-
     try {
-      const { data: userData } = await supabase.auth.getUser();
-      if (!userData.user) throw new Error("Not logged in");
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("No user found");
 
       const { error } = await supabase.from("shifts").insert([
         {
-          title,
-          description,
-          shift_date: shiftDate.toISOString().split("T")[0],
-          start_time: startTime.toTimeString().split(" ")[0],
-          end_time: endTime.toTimeString().split(" ")[0],
-          created_by: userData.user.id,
-          manager_id: userData.user.id,
-          image_url: imageUrl,
+          manager_id: user.id,
+          title: form.title,
+          description: form.description,
+          shift_date: form.date,
+          start_time: form.startTime,
+          end_time: form.endTime,
           status: "open",
         },
       ]);
 
       if (error) throw error;
 
-      Alert.alert("Success", "Shift created");
-      router.back();
+      Alert.alert("Success", "Shift posted successfully!", [
+        { text: "View Shifts", onPress: () => router.push("/(manager)/(tabs)/shift") },
+      ]);
+      
+      setForm({ title: "", description: "", date: form.date, startTime: "09:00", endTime: "17:00" });
     } catch (err) {
       console.error(err);
-      Alert.alert("Error", "Failed to create shift");
+      Alert.alert("Error", "Could not create shift. Please try again.");
     } finally {
       setLoading(false);
     }
   };
 
-  return (
-    <ScrollView
-      showsVerticalScrollIndicator={false}
-      contentContainerStyle={[
-        styles.container,
-        { backgroundColor: theme.background },
-      ]}
-    >
-      {/* HEADER */}
-      <Text style={[styles.subtitle, { color: theme.text }]}>
-        Publish a new job opportunity
-      </Text>
-
-      {/* IMAGE */}
-      <View style={styles.card}>
-        <Text style={[styles.sectionTitle, { color: theme.text }]}>
-          Cover Image
-        </Text>
-        <ShiftUploader
-          initialUrl={imageUrl}
-          onUpload={(url) => setImageUrl(`${url}?t=${Date.now()}`)}
-        />
+  const renderInput = (label: string, icon: string, key: keyof typeof form, placeholder: string, multiLine = false) => (
+    <View style={styles.inputWrapper}>
+      <View style={styles.labelRow}>
+        <Ionicons name={icon as any} size={16} color={theme.text} style={{ opacity: 0.5 }} />
+        <Text style={[styles.label, { color: theme.text }]}>{label}</Text>
       </View>
-
-      {/* DETAILS */}
-      <View style={styles.card}>
-        <Text style={[styles.sectionTitle, { color: theme.text }]}>
-          Details
-        </Text>
-
-        <Text style={[styles.label, { color: theme.text }]}>Title</Text>
-        <TextInput
-          value={title}
-          onChangeText={setTitle}
-          placeholder="e.g. Bartender night shift"
-          placeholderTextColor="#999"
-          style={[styles.input, { color: theme.text }]}
-        />
-
-        <Text style={[styles.label, { color: theme.text }]}>
-          Description
-        </Text>
-        <TextInput
-          value={description}
-          onChangeText={setDescription}
-          placeholder="Describe tasks, requirements, notes..."
-          placeholderTextColor="#999"
-          multiline
-          maxLength={300}
-          style={[styles.textarea, { color: theme.text }]}
-        />
-
-        {/* CHARACTER COUNT */}
-        <Text style={styles.counter}>
-          {description.length}/300
-        </Text>
-      </View>
-
-      {/* SCHEDULE */}
-      <View style={styles.card}>
-        <Text style={[styles.sectionTitle, { color: theme.text }]}>
-          Schedule
-        </Text>
-
-        <View style={styles.row}>
-          <Text style={[styles.rowLabel, { color: theme.text }]}>
-            Date
-          </Text>
-          <DateTimePicker
-            value={shiftDate}
-            mode="date"
-            onChange={(_, d) => d && setShiftDate(d)}
-          />
-        </View>
-
-        <View style={styles.row}>
-          <Text style={[styles.rowLabel, { color: theme.text }]}>
-            Start
-          </Text>
-          <DateTimePicker
-            value={startTime}
-            mode="time"
-            onChange={(_, d) => d && setStartTime(d)}
-          />
-        </View>
-
-        <View style={styles.row}>
-          <Text style={[styles.rowLabel, { color: theme.text }]}>
-            End
-          </Text>
-          <DateTimePicker
-            value={endTime}
-            mode="time"
-            onChange={(_, d) => d && setEndTime(d)}
-          />
-        </View>
-      </View>
-
-      {/* CTA */}
-      <Pressable
-        onPress={handleSave}
-        style={({ pressed }) => [
-          styles.button,
-          {
-            backgroundColor: theme.tint,
-            opacity: pressed ? 0.85 : 1,
-          },
+      <TextInput
+        style={[
+          styles.input,
+          { backgroundColor: theme.card, color: theme.text, borderColor: theme.text + "10" },
+          multiLine && styles.textArea
         ]}
-        disabled={loading}
+        placeholder={placeholder}
+        placeholderTextColor={theme.text + "40"}
+        value={form[key]}
+        onChangeText={(text) => setForm({ ...form, [key]: text })}
+        multiline={multiLine}
+      />
+    </View>
+  );
+
+  return (
+    <KeyboardAvoidingView 
+      behavior={Platform.OS === "ios" ? "padding" : "height"} 
+      style={{ flex: 1, backgroundColor: theme.background }}
+    >
+      <ScrollView 
+        contentContainerStyle={[styles.scrollContent, { paddingTop: insets.top + 20, paddingBottom: 120 }]}
+        showsVerticalScrollIndicator={false}
       >
-        <Text style={styles.buttonText}>
-          {loading ? "Creating..." : "Publish Shift"}
-        </Text>
-      </Pressable>
-    </ScrollView>
+        <View style={styles.header}>
+          <Text style={[styles.title, { color: theme.text }]}>Create New Shift</Text>
+          <Text style={[styles.subtitle, { color: theme.text }]}>Fill in the details to find the best workers.</Text>
+        </View>
+
+        {renderInput("Job Title *", "briefcase-outline", "title", "e.g. Head Waiter")}
+        {renderInput("Description", "document-text-outline", "description", "Describe tasks, dress code, etc.", true)}
+
+        <View style={styles.row}>
+          <View style={{ flex: 1 }}>
+            {renderInput("Date *", "calendar-outline", "date", "YYYY-MM-DD")}
+          </View>
+        </View>
+
+        <View style={styles.row}>
+          <View style={{ flex: 1, marginRight: 12 }}>
+            {renderInput("Start Time *", "time-outline", "startTime", "09:00")}
+          </View>
+          <View style={{ flex: 1 }}>
+            {renderInput("End Time *", "log-out-outline", "endTime", "17:00")}
+          </View>
+        </View>
+
+        <Pressable
+          style={({ pressed }) => [
+            styles.submitButton,
+            { backgroundColor: theme.text, opacity: pressed || loading ? 0.8 : 1 }
+          ]}
+          onPress={handleCreate}
+          disabled={loading}
+        >
+          {loading ? (
+            <ActivityIndicator color={theme.background} />
+          ) : (
+            <>
+              <Text style={[styles.submitText, { color: theme.background }]}>Post Shift</Text>
+              <Ionicons name="sparkles" size={18} color={theme.background} />
+            </>
+          )}
+        </Pressable>
+      </ScrollView>
+    </KeyboardAvoidingView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flexGrow: 1,
-    padding: 20,
-  },
-
-  title: {
-    fontSize: 28,
-    fontWeight: "700",
-  },
-
-  subtitle: {
-    fontSize: 14,
-    opacity: 0.7,
-    marginBottom: 20,
-  },
-
-  card: {
-    borderRadius: 18,
-    padding: 16,
-    marginBottom: 16,
-    backgroundColor: "#fff",
-    elevation: 2,
-  },
-
-  sectionTitle: {
-    fontSize: 16,
-    fontWeight: "600",
-    marginBottom: 12,
-  },
-
-  label: {
-    fontSize: 13,
-    marginBottom: 6,
-    opacity: 0.7,
-  },
-
+  scrollContent: { paddingHorizontal: 24 },
+  header: { marginBottom: 32 },
+  title: { fontSize: 32, fontWeight: "800", letterSpacing: -1 },
+  subtitle: { fontSize: 16, opacity: 0.5, marginTop: 4, fontWeight: "500" },
+  
+  inputWrapper: { marginBottom: 20 },
+  labelRow: { flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 10, marginLeft: 4 },
+  label: { fontSize: 14, fontWeight: "700", opacity: 0.8 },
   input: {
-    borderWidth: 1,
-    borderColor: "#ddd",
-    borderRadius: 12,
-    padding: 14,
-    fontSize: 15,
-    marginBottom: 12,
-  },
-
-  textarea: {
-    borderWidth: 1,
-    borderColor: "#ddd",
-    borderRadius: 12,
-    padding: 14,
-    fontSize: 15,
-    minHeight: 100,
-    textAlignVertical: "top",
-  },
-
-  counter: {
-    textAlign: "right",
-    fontSize: 12,
-    color: "#999",
-    marginTop: 4,
-  },
-
-  row: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 12,
-  },
-
-  rowLabel: {
-    fontSize: 14,
-    fontWeight: "500",
-  },
-
-  button: {
-    marginTop: 10,
     padding: 18,
-    borderRadius: 16,
-    alignItems: "center",
-  },
-
-  buttonText: {
-    color: "#fff",
-    fontWeight: "700",
+    borderRadius: 20,
     fontSize: 16,
+    fontWeight: "500",
+    borderWidth: 1,
   },
+  textArea: { height: 120, textAlignVertical: "top" },
+  row: { flexDirection: "row", justifyContent: "space-between" },
+  
+  submitButton: {
+    marginTop: 20,
+    height: 64,
+    borderRadius: 22,
+    flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "center",
+    gap: 10,
+    shadowColor: "#000",
+    shadowOpacity: 0.1,
+    shadowRadius: 15,
+    shadowOffset: { width: 0, height: 8 },
+    elevation: 5,
+  },
+  submitText: { fontSize: 18, fontWeight: "800" },
 });

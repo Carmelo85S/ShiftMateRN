@@ -1,49 +1,55 @@
+import React, { useState, useCallback } from "react";
+import {
+  Alert,
+  Pressable,
+  StyleSheet,
+  Text,
+  View,
+  Image,
+  ScrollView,
+  ActivityIndicator,
+} from "react-native";
 import { Colors } from "@/constants/theme";
 import { supabase } from "@/lib/supabase";
-import { useRouter } from "expo-router";
-import { useEffect, useState } from "react";
-import { Alert, Pressable, StyleSheet, Text, View, Image } from "react-native";
-
-
-type Profile = {
-  id: string;
-  name: string | null;
-  surname: string | null;
-  job_role: string | null;
-  bio: string | null;
-  avatar_url: string | null;
-};
+import { useRouter, useFocusEffect } from "expo-router";
+import { Ionicons } from "@expo/vector-icons";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 export default function ProfileScreen() {
   const theme = Colors.light;
   const router = useRouter();
+  const insets = useSafeAreaInsets();
 
-  const [profile, setProfile] = useState<Profile | null>(null);
+  const [profile, setProfile] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    fetchProfile();
+  // Funzione per recuperare i dati dal database
+  const fetchProfile = useCallback(async () => {
+    try {
+      const { data: userData } = await supabase.auth.getUser();
+      if (!userData.user) return;
+
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("id, name, surname, job_role, bio, avatar_url")
+        .eq("id", userData.user.id)
+        .single();
+
+      if (error) throw error;
+      if (data) setProfile(data);
+    } catch (err) {
+      console.error("Error fetching profile:", err);
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
-  const fetchProfile = async () => {
-    const { data: userData } = await supabase.auth.getUser();
-    if (!userData.user) return;
-
-    const { data, error } = await supabase
-      .from("profiles")
-      .select("id, name, surname, job_role, bio, avatar_url")
-      .eq("id", userData.user.id)
-      .single();
-
-    if (error) {
-      console.error(error);
-      Alert.alert("Error", "Failed to load profile");
-    } else if (data) {
-      setProfile(data);
-    }
-
-    setLoading(false);
-  };
+  // Questo hook fa scattare il refresh ogni volta che la tab torna in primo piano
+  useFocusEffect(
+    useCallback(() => {
+      fetchProfile();
+    }, [fetchProfile])
+  );
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
@@ -53,7 +59,7 @@ export default function ProfileScreen() {
   if (loading) {
     return (
       <View style={[styles.center, { backgroundColor: theme.background }]}>
-        <Text style={{ color: theme.text }}>Loading...</Text>
+        <ActivityIndicator size="small" color={theme.text} />
       </View>
     );
   }
@@ -66,105 +72,179 @@ export default function ProfileScreen() {
     );
   }
 
-  const displayName =
-    profile.name || profile.surname
-      ? `${profile.name ?? ""} ${profile.surname ?? ""}`.trim()
-      : "User";
-
   return (
-    <View style={[styles.container, { backgroundColor: theme.background }]}>
-      {/* Avatar */}
-      <View style={[styles.avatarWrapper, { shadowColor: theme.tint }]}>
-        {profile.avatar_url ? (
-          <Image
-            source={{ uri: profile.avatar_url }}
-            style={styles.avatarImage}
-            resizeMode="cover"
-          />
-        ) : (
-          <Text style={{ color: theme.text, fontSize: 36 }}>👤</Text>
+    <ScrollView
+      style={{ flex: 1, backgroundColor: theme.background }}
+      contentContainerStyle={{
+        paddingTop: insets.top + 20,
+        paddingHorizontal: 25,
+        paddingBottom: 50,
+      }}
+      showsVerticalScrollIndicator={false}
+    >
+      {/* HEADER TITOLO */}
+      <View style={styles.headerArea}>
+        <Text style={[styles.kpi, { color: theme.tint }]}>MY IDENTITY</Text>
+        <Text style={[styles.title, { color: theme.text }]}>Profile</Text>
+      </View>
+
+      {/* CARD IDENTITÀ (Stile Badge Digitale) */}
+      <View
+        style={[
+          styles.identityCard,
+          { backgroundColor: theme.card, borderColor: theme.border },
+        ]}
+      >
+        <View style={styles.avatarRow}>
+          <View
+            style={[
+              styles.avatarCircle,
+              { backgroundColor: theme.background, borderColor: theme.border },
+            ]}
+          >
+            {profile?.avatar_url ? (
+              <Image
+                key={profile.avatar_url} // Forza il refresh dell'immagine se l'URL cambia (cache busting)
+                source={{ uri: profile.avatar_url }}
+                style={styles.avatarImage}
+                resizeMode="cover"
+              />
+            ) : (
+              <Ionicons name="person-sharp" size={40} color={theme.text} />
+            )}
+          </View>
+          <View style={styles.nameSection}>
+            <Text style={[styles.nameText, { color: theme.text }]} numberOfLines={1}>
+              {profile?.name} {profile?.surname}
+            </Text>
+            <View style={[styles.roleBadge, { backgroundColor: theme.text }]}>
+              <Text style={[styles.roleText, { color: theme.background }]}>
+                {profile?.job_role?.toUpperCase() || "GENERAL WORKER"}
+              </Text>
+            </View>
+          </View>
+        </View>
+
+        {profile?.bio && (
+          <View style={styles.bioSection}>
+            <Text style={[styles.bioLabel, { color: theme.secondaryText }]}>
+              BIO / EXPERIENCE
+            </Text>
+            <Text style={[styles.bioText, { color: theme.text }]}>
+              {profile.bio}
+            </Text>
+          </View>
         )}
       </View>
 
-      {/* Name & Job Role */}
-      <Text style={[styles.name, { color: theme.text }]}>{displayName}</Text>
-      {profile.job_role && (
-        <Text style={[styles.jobRole, { color: theme.tint }]}>{profile.job_role}</Text>
-      )}
-
-      {/* Bio Card */}
-      {profile.bio && (
-        <View style={[styles.bioCard, { backgroundColor: theme.card }]}>
-          <Text style={[styles.bio, { color: theme.text }]}>{profile.bio}</Text>
-        </View>
-      )}
-
-      {/* Action Buttons */}
-      <Pressable
-        onPress={() => router.push({
-        pathname: "/(worker)/profile/editProfile"
-      })}
-        style={[styles.button, { backgroundColor: theme.tint }]}
-      >
-        <Text style={styles.buttonText}>Edit Profile</Text>
-      </Pressable>
-
-      <Pressable
-        onPress={handleLogout}
-        style={[styles.button, { backgroundColor: theme.delete }]}
-      >
-        <Text style={styles.buttonText}>Logout</Text>
-      </Pressable>
-    </View>
+      {/* MENU AZIONI (Lista di pulsanti pulita) */}
+      <View style={styles.menuSection}>
+        <MenuButton
+          icon="pencil-sharp"
+          label="Edit Profile"
+          onPress={() => router.push("/(worker)/profile/editProfile")}
+          theme={theme}
+        />
+        <MenuButton
+          icon="settings-sharp"
+          label="App Settings"
+          onPress={() => router.push("/(worker)/settingWorker/settingWorker")}
+          theme={theme}
+        />
+        <MenuButton
+          icon="log-out-sharp"
+          label="Logout"
+          onPress={handleLogout}
+          theme={theme}
+          isDelete
+        />
+      </View>
+    </ScrollView>
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    alignItems: "center",
-    padding: 24,
-  },
-  center: { flex: 1, justifyContent: "center", alignItems: "center" },
+const MenuButton = ({ icon, label, onPress, theme, isDelete }: any) => (
+  <Pressable
+    onPress={onPress}
+    style={({ pressed }) => [
+      styles.menuBtn,
+      { borderBottomColor: theme.border, opacity: pressed ? 0.6 : 1 },
+    ]}
+  >
+    <View style={styles.menuLeft}>
+      <Ionicons
+        name={icon}
+        size={22}
+        color={isDelete ? "#FF3B30" : theme.text}
+      />
+      <Text
+        style={[
+          styles.menuLabel,
+          { color: isDelete ? "#FF3B30" : theme.text },
+        ]}
+      >
+        {label}
+      </Text>
+    </View>
+    <Ionicons name="chevron-forward" size={18} color={theme.border} />
+  </Pressable>
+);
 
-  avatarWrapper: {
-    width: 140,
-    height: 140,
-    borderRadius: 70,
-    overflow: "hidden",
-    marginBottom: 16,
-    borderWidth: 2,
-    borderColor: "#ccc",
+const styles = StyleSheet.create({
+  center: { flex: 1, justifyContent: "center", alignItems: "center" },
+  headerArea: { marginBottom: 30 },
+  kpi: { fontSize: 11, fontWeight: "900", letterSpacing: 2, marginBottom: 4 },
+  title: { fontSize: 42, fontWeight: "900", letterSpacing: -2 },
+
+  identityCard: {
+    padding: 24,
+    borderRadius: 28,
+    borderWidth: 1,
+    marginBottom: 40,
+    shadowColor: "#000",
+    shadowOpacity: 0.02,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 4 },
+  },
+  avatarRow: { flexDirection: "row", alignItems: "center", gap: 20 },
+  avatarCircle: {
+    width: 80,
+    height: 80,
+    borderRadius: 30,
+    borderWidth: 1,
     justifyContent: "center",
     alignItems: "center",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 6,
-    elevation: 6,
+    overflow: "hidden",
   },
   avatarImage: { width: "100%", height: "100%" },
 
-  name: { fontSize: 24, fontWeight: "bold", marginBottom: 4 },
-  jobRole: { fontSize: 16, fontWeight: "500", opacity: 0.9, marginBottom: 8 },
-
-  bioCard: {
-    width: "85%",
-    borderRadius: 14,
-    padding: 16,
-    marginBottom: 20,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.15,
-    shadowRadius: 5,
-    elevation: 3,
+  nameSection: { flex: 1, gap: 6 },
+  nameText: { fontSize: 24, fontWeight: "800", letterSpacing: -0.5 },
+  roleBadge: {
+    alignSelf: "flex-start",
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 8,
   },
-  bio: { fontSize: 15, textAlign: "center", lineHeight: 22 },
+  roleText: { fontSize: 10, fontWeight: "900", letterSpacing: 0.5 },
 
-  button: {
-    width: "70%",
-    padding: 16,
-    borderRadius: 14,
+  bioSection: {
+    marginTop: 20,
+    paddingTop: 20,
+    borderTopWidth: 1,
+    borderTopColor: "#F3F4F6",
+  },
+  bioLabel: { fontSize: 10, fontWeight: "800", marginBottom: 8, letterSpacing: 1 },
+  bioText: { fontSize: 15, lineHeight: 22, fontWeight: "500" },
+
+  menuSection: { gap: 5 },
+  menuBtn: {
+    flexDirection: "row",
     alignItems: "center",
-    marginTop: 12,
+    justifyContent: "space-between",
+    paddingVertical: 20,
+    borderBottomWidth: 1,
   },
-  buttonText: { color: "white", fontWeight: "bold", fontSize: 16 },
+  menuLeft: { flexDirection: "row", alignItems: "center", gap: 15 },
+  menuLabel: { fontSize: 16, fontWeight: "700" },
 });

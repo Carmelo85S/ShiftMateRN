@@ -1,4 +1,3 @@
-// /(manager)/(tabs)/shift/[id].tsx
 import {
   ScrollView,
   StyleSheet,
@@ -8,283 +7,188 @@ import {
   Pressable,
   ActivityIndicator,
   RefreshControl,
+  useColorScheme,
+  Dimensions,
 } from "react-native";
 import { Colors } from "@/constants/theme";
 import { useLocalSearchParams, useRouter, Stack, useFocusEffect } from "expo-router";
 import { useState, useCallback } from "react";
 import { supabase } from "@/lib/supabase";
 import { Ionicons } from "@expo/vector-icons";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-type Shift = {
-  id: string;
-  title: string;
-  description: string | null;
-  shift_date: string;
-  start_time: string;
-  end_time: string;
-  status: string;
-  image_url: string | null;
-};
-
-type Application = {
-  id: string;
-  profile_id: string;
-  status: "pending" | "accepted" | "rejected" | string;
-  applied_at: string;
-  profile?: {
-    name: string | null;
-    surname: string | null;
-    avatar_url: string | null;
-  };
-};
+const { width } = Dimensions.get("window");
 
 export default function ShiftDetail() {
-  const theme = Colors.light;  
+  const colorScheme = useColorScheme();
+  const theme = Colors[colorScheme ?? "light"];
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const { id } = useLocalSearchParams();
 
-  const [shift, setShift] = useState<Shift | null>(null);
+  const [shift, setShift] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [applications, setApplications] = useState<Application[]>([]);
-  const [loadingApplications, setLoadingApplications] = useState(true);
+  const [applications, setApplications] = useState<any[]>([]);
+  const [loadingApps, setLoadingApps] = useState(true);
 
-  // Funzione centralizzata per il caricamento dati
-  const loadAllData = useCallback(async () => {
+  const loadData = useCallback(async () => {
     if (!id) return;
-    
     try {
-      // 1. Fetch Shift
-      const { data: shiftData, error: shiftError } = await supabase
-        .from("shifts")
-        .select("*")
-        .eq("id", id)
-        .single();
+      const { data: shiftData } = await supabase.from("shifts").select("*").eq("id", id).single();
+      setShift(shiftData);
 
-      if (shiftError) throw shiftError;
-      setShift(shiftData as Shift);
-
-      // 2. Fetch Applications
-      setLoadingApplications(true);
-      const { data: appsData, error: appsError } = await supabase
+      setLoadingApps(true);
+      const { data: appsData } = await supabase
         .from("applications")
-        .select(`
-          id,
-          profile_id,
-          status,
-          applied_at,
-          profiles!inner (
-            name,
-            surname,
-            avatar_url
-          )
-        `)
-        .eq("shift_id", id)
-        .order("applied_at", { ascending: true });
-
-      if (appsError) throw appsError;
-
-      const formattedApps: Application[] = (appsData as any[]).map((app) => ({
-        id: app.id,
-        profile_id: app.profile_id,
-        status: app.status,
-        applied_at: app.applied_at,
-        profile: app.profiles,
-      }));
-
-      setApplications(formattedApps);
+        .select(`id, status, profile_id, profiles(name, surname, avatar_url)`)
+        .eq("shift_id", id);
+      
+      setApplications(appsData || []);
     } catch (err) {
-      console.error("Error loading shift detail data:", err);
+      console.error(err);
     } finally {
       setLoading(false);
       setRefreshing(false);
-      setLoadingApplications(false);
+      setLoadingApps(false);
     }
   }, [id]);
 
-  // useFocusEffect ricarica i dati ogni volta che la pagina torna visibile
-  useFocusEffect(
-    useCallback(() => {
-      loadAllData();
-    }, [loadAllData])
+  useFocusEffect(useCallback(() => { loadData(); }, [loadData]));
+
+  if (loading) return (
+    <View style={[styles.center, { backgroundColor: theme.background }]}>
+      <ActivityIndicator size="small" color={theme.text} />
+    </View>
   );
 
-  const onRefresh = () => {
-    setRefreshing(true);
-    loadAllData();
-  };
-
-  if (loading) {
-    return (
-      <View style={[styles.center, { backgroundColor: theme.background }]}>
-        <ActivityIndicator size="large" color={theme.tint} />
-      </View>
-    );
-  }
-
-  if (!shift) {
-    return (
-      <View style={[styles.center, { backgroundColor: theme.background }]}>
-        <Text style={{ color: theme.text }}>Shift not found</Text>
-      </View>
-    );
-  }
-
   return (
-    <>
+    <View style={{ flex: 1, backgroundColor: theme.background }}>
       <Stack.Screen options={{ 
-          title: "Shift Detail", 
-          headerShown: true,
-          headerBackTitle: "", 
-        }}
-       />
+        headerTitle: "", 
+        headerTransparent: true,
+        headerTintColor: "#FFF", 
+      }} />
+
       <ScrollView
-        style={[styles.container, { backgroundColor: theme.background }]}
-        contentContainerStyle={{ padding: 20 }}
         showsVerticalScrollIndicator={false}
-        refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={theme.tint} />
-        }
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); loadData(); }} />}
       >
-        {/* Cover Image con Cache Buster */}
-        <View style={styles.imageWrapper}>
-          {shift.image_url ? (
-            <Image 
-              source={{ uri: `${shift.image_url}?t=${new Date().getTime()}` }} 
-              style={styles.coverImage} 
-              resizeMode="cover" 
-            />
+        {/* HERO IMAGE SECTION */}
+        <View style={styles.heroContainer}>
+          {shift?.image_url ? (
+            <Image source={{ uri: shift.image_url }} style={styles.heroImage} />
           ) : (
-            <View style={[styles.coverImage, { backgroundColor: theme.tint + "20", justifyContent: "center", alignItems: "center" }]}>
-              <Ionicons name="image-outline" size={48} color={theme.tint} />
-            </View>
+            <View style={[styles.heroImage, { backgroundColor: theme.text + "10" }]} />
           )}
+          <View style={styles.heroOverlay} />
+          <View style={[styles.heroContent, { paddingBottom: 30 }]}>
+             <View style={[styles.badge, { backgroundColor: theme.tint }]}>
+                <Text style={styles.badgeText}>{shift?.status?.toUpperCase()}</Text>
+             </View>
+             <Text style={styles.heroTitle}>{shift?.title}</Text>
+          </View>
         </View>
 
-        {/* Shift Header */}
-        <View style={styles.headerRow}>
-          <View style={{ flex: 1 }}>
-            <Text style={[styles.title, { color: theme.text }]}>{shift.title}</Text>
-            <View style={[styles.statusBadge, { backgroundColor: shift.status === "open" ? "#E0F7FA" : "#F5F5F5" }]}>
-              <Text style={[styles.statusText, { color: shift.status === "open" ? "#00796B" : "#666" }]}>
-                {shift.status.toUpperCase()}
+        <View style={[styles.mainContent, { backgroundColor: theme.background }]}>
+          {/* INFO CHIPS */}
+          <View style={styles.chipRow}>
+            <View style={[styles.chip, { backgroundColor: theme.card }]}>
+              <Ionicons name="calendar" size={16} color={theme.tint} />
+              <Text style={[styles.chipText, { color: theme.text }]}>
+                {new Date(shift?.shift_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+              </Text>
+            </View>
+            <View style={[styles.chip, { backgroundColor: theme.card }]}>
+              <Ionicons name="time" size={16} color={theme.tint} />
+              <Text style={[styles.chipText, { color: theme.text }]}>
+                {shift?.start_time?.slice(0,5)} - {shift?.end_time?.slice(0,5)}
               </Text>
             </View>
           </View>
-          <Pressable
-            onPress={() => router.push({ 
-              pathname: "/(manager)/(tabs)/shift/editShift", 
-              params: { id: shift.id } 
-            })}   
-           style={({ pressed }) => [styles.editIcon, { backgroundColor: theme.tint + "15", opacity: pressed ? 0.7 : 1 }]}
-          >
-            <Ionicons name="pencil" size={20} color={theme.tint} />
-          </Pressable>
-        </View>
 
-        <Text style={[styles.description, { color: theme.text }]}>{shift.description}</Text>
+          {/* DESCRIPTION */}
+          <Text style={[styles.sectionTitle, { color: theme.text }]}>Description</Text>
+          <Text style={[styles.description, { color: theme.text }]}>{shift?.description || "No description provided."}</Text>
 
-        {/* Info Card Date/Time */}
-        <View style={[styles.infoCard, { backgroundColor: theme.card, borderColor: theme.border }]}>
-          <View style={styles.infoRow}>
-            <Ionicons name="calendar-outline" size={18} color={theme.tint} />
-            <Text style={[styles.infoText, { color: theme.text }]}>
-              {new Date(shift.shift_date).toLocaleDateString("it-IT", { weekday: "short", day: "numeric", month: "long" })}
-            </Text>
+          {/* APPLICANTS SECTION */}
+          <View style={styles.sectionHeader}>
+            <Text style={[styles.sectionTitle, { color: theme.text }]}>Applicants</Text>
+            <View style={[styles.countBadge, { backgroundColor: theme.text + "10" }]}>
+              <Text style={{ color: theme.text, fontWeight: "700" }}>{applications.length}</Text>
+            </View>
           </View>
-          <View style={[styles.infoRow, { marginTop: 10 }]}>
-            <Ionicons name="time-outline" size={18} color={theme.tint} />
-            <Text style={[styles.infoText, { color: theme.text }]}>
-              {shift.start_time.slice(0, 5)} - {shift.end_time.slice(0, 5)}
-            </Text>
-          </View>
-        </View>
 
-        {/* Sezione Candidati */}
-        <View style={{ marginTop: 32 }}>
-          <Text style={[styles.sectionTitle, { color: theme.text }]}>
-            Applications ({applications.length})
-          </Text>
-
-          {loadingApplications ? (
-            <ActivityIndicator color={theme.tint} style={{ marginTop: 20 }} />
+          {loadingApps ? (
+            <ActivityIndicator size="small" color={theme.tint} />
           ) : applications.length === 0 ? (
-            <Text style={{ color: theme.text, opacity: 0.6, fontStyle: "italic" }}>No applicants yet.</Text>
+            <View style={styles.emptyApps}>
+              <Text style={{ color: theme.text, opacity: 0.4 }}>No applications yet</Text>
+            </View>
           ) : (
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginTop: 12 }}>
+            <View style={styles.appsGrid}>
               {applications.map((app) => (
                 <Pressable
                   key={app.id}
-                  onPress={() =>
-                    router.push({
-                      pathname: "/(manager)/candidate/[id]",
-                      params: { 
-                        id: app.profile_id, 
-                        shiftId: id 
-                      },
-                    })
-                  }
-                  style={({ pressed }) => [
-                    styles.appHorizontalCard,
-                    { 
-                      backgroundColor: theme.card, 
-                      borderColor: theme.border,
-                      opacity: pressed ? 0.8 : 1,
-                      transform: [{ scale: pressed ? 0.98 : 1 }] 
-                    },
-                  ]}
+                  onPress={() => router.push({ pathname: "/(manager)/candidate/[id]", params: { id: app.profile_id, shiftId: id }})}
+                  style={[styles.appCard, { backgroundColor: theme.card }]}
                 >
-                  {app.profile?.avatar_url ? (
-                    <Image source={{ uri: app.profile.avatar_url }} style={styles.avatarHorizontal} />
-                  ) : (
-                    <View style={[styles.avatarHorizontal, styles.avatarPlaceholder]}>
-                      <Text style={styles.avatarInitial}>{app.profile?.name?.[0] || "?"}</Text>
-                    </View>
-                  )}
-
-                  <Text style={[styles.applicantNameHorizontal, { color: theme.text }]} numberOfLines={2}>
-                    {app.profile?.name} {app.profile?.surname}
+                  <Image 
+                    source={app.profiles?.avatar_url ? { uri: app.profiles.avatar_url } : require("@/assets/images/icon.png")} 
+                    style={styles.appAvatar} 
+                  />
+                  <Text style={[styles.appName, { color: theme.text }]} numberOfLines={1}>
+                    {app.profiles?.name}
                   </Text>
-
-                  <View style={[styles.statusDotHorizontal, { backgroundColor: app.status === "accepted" ? "#4CAF50" : app.status === "rejected" ? "#F44336" : "#FF9800" }]} />
+                  <View style={[styles.statusDot, { 
+                    backgroundColor: app.status === 'accepted' ? '#4CAF50' : app.status === 'rejected' ? '#FF3B30' : '#FFCC00' 
+                  }]} />
                 </Pressable>
               ))}
-            </ScrollView>
+            </View>
           )}
         </View>
       </ScrollView>
-    </>
+
+      {/* FLOATING ACTION BUTTON (EDIT) */}
+      <Pressable 
+        onPress={() => router.push({ pathname: "/(manager)/(tabs)/shift/editShift", params: { id: shift.id } })}
+        style={[styles.fab, { backgroundColor: theme.text, bottom: insets.bottom + 20 }]}
+      >
+        <Ionicons name="pencil" size={24} color={theme.background} />
+      </Pressable>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1 },
   center: { flex: 1, justifyContent: "center", alignItems: "center" },
-  imageWrapper: { borderRadius: 20, overflow: "hidden", marginBottom: 20, elevation: 4, shadowColor: "#000", shadowOpacity: 0.1, shadowRadius: 10 },
-  coverImage: { width: "100%", height: 200 },
-  headerRow: { flexDirection: "row", alignItems: "flex-start", marginBottom: 12 },
-  title: { fontSize: 26, fontWeight: "800", marginBottom: 6 },
-  editIcon: { padding: 10, borderRadius: 12 },
-  description: { fontSize: 16, lineHeight: 24, opacity: 0.7, marginBottom: 20 },
-  statusBadge: { alignSelf: "flex-start", paddingVertical: 4, paddingHorizontal: 10, borderRadius: 8 },
-  statusText: { fontWeight: "700", fontSize: 11 },
-  infoCard: { padding: 16, borderRadius: 16, borderWidth: 1, marginBottom: 10 },
-  infoRow: { flexDirection: "row", alignItems: "center" },
-  infoText: { marginLeft: 10, fontWeight: "600", fontSize: 15 },
-  sectionTitle: { fontWeight: "800", fontSize: 20, marginBottom: 16 },
-  appHorizontalCard: {
-    width: 115,
-    height: 160,
-    borderRadius: 16,
-    padding: 12,
-    marginRight: 12,
-    alignItems: "center",
-    justifyContent: "center",
-    borderWidth: 1,
-  },
-  avatarHorizontal: { width: 56, height: 56, borderRadius: 28, marginBottom: 8 },
-  avatarPlaceholder: { backgroundColor: "#E1E1E1", justifyContent: "center", alignItems: "center" },
-  avatarInitial: { fontWeight: "700", color: "#666", fontSize: 20 },
-  applicantNameHorizontal: { fontWeight: "700", fontSize: 13, textAlign: "center", height: 35 },
-  statusDotHorizontal: { width: 10, height: 10, borderRadius: 5, marginTop: 4 },
+  heroContainer: { height: 350, width: '100%' },
+  heroImage: { width: '100%', height: '100%' },
+  heroOverlay: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.4)' },
+  heroContent: { position: 'absolute', bottom: 0, left: 24, right: 24, paddingBottom: 40 },
+  heroTitle: { color: '#FFF', fontSize: 32, fontWeight: '800', letterSpacing: -0.5 },
+  badge: { alignSelf: 'flex-start', paddingHorizontal: 12, paddingVertical: 4, borderRadius: 8, marginBottom: 12 },
+  badgeText: { color: '#FFF', fontSize: 10, fontWeight: '800' },
+  
+  mainContent: { flex: 1, marginTop: -30, borderTopLeftRadius: 32, borderTopRightRadius: 32, padding: 24 },
+  chipRow: { flexDirection: 'row', gap: 12, marginBottom: 32 },
+  chip: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 16, paddingVertical: 10, borderRadius: 16 },
+  chipText: { fontSize: 14, fontWeight: '600' },
+  
+  sectionTitle: { fontSize: 20, fontWeight: '800', marginBottom: 12, letterSpacing: -0.5 },
+  description: { fontSize: 16, lineHeight: 24, opacity: 0.6, marginBottom: 32 },
+  
+  sectionHeader: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 20 },
+  countBadge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 10 },
+  
+  appsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
+  appCard: { width: (width - 72) / 3, padding: 12, borderRadius: 20, alignItems: 'center', shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 10, elevation: 2 },
+  appAvatar: { width: 50, height: 50, borderRadius: 25, marginBottom: 8 },
+  appName: { fontSize: 12, fontWeight: '700' },
+  statusDot: { width: 8, height: 8, borderRadius: 4, marginTop: 6 },
+  
+  emptyApps: { padding: 40, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderStyle: 'dashed', borderColor: '#CCC', borderRadius: 20 },
+  
+  fab: { position: 'absolute', right: 24, width: 60, height: 60, borderRadius: 30, justifyContent: 'center', alignItems: 'center', shadowColor: '#000', shadowOpacity: 0.2, shadowRadius: 10, elevation: 5 }
 });

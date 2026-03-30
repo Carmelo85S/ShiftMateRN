@@ -4,11 +4,16 @@ import {
   Text,
   View,
   ActivityIndicator,
+  useColorScheme,
+  Pressable,
 } from "react-native";
 import { Colors } from "@/constants/theme";
-import { useFocusEffect } from "expo-router";
+import { useFocusEffect, useRouter } from "expo-router";
 import { useCallback, useState } from "react";
 import { supabase } from "@/lib/supabase";
+import { Ionicons } from "@expo/vector-icons";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { ShiftCard } from "@/components/shiftCard/ShiftCard";
 
 type Stats = {
   totalWorkers: number;
@@ -16,177 +21,208 @@ type Stats = {
   openShifts: number;
 };
 
-type Shift = {
-  id: string;
-  title: string;
-  shift_date: string;
-  start_time: string;
-  end_time: string;
-  status: string;
-};
-
 export default function Dashboard() {
-  const theme = Colors.light;
+  const colorScheme = useColorScheme();
+  const theme = Colors[colorScheme ?? "light"];
+  const insets = useSafeAreaInsets();
+  const router = useRouter();
 
   const [stats, setStats] = useState<Stats | null>(null);
-  const [nextShift, setNextShift] = useState<Shift | null>(null);
+  const [upcomingShifts, setUpcomingShifts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [userName, setUserName] = useState("Manager");
 
-  useFocusEffect(
-    useCallback(() => {
-      const fetchData = async () => {
-        setLoading(true);
-        try {
-          const { data: userData } = await supabase.auth.getUser();
-          const user = userData.user;
-          if (!user) return;
+  const fetchData = useCallback(async () => {
+    setLoading(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
 
-          // --- STATISTICS ---
-          const { count: workersCount } = await supabase
-            .from("profiles")
-            .select("id", { count: "exact" })
-            .eq("role", "worker");
+      // 1. Fetch Profile Name
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("name")
+        .eq("id", user.id)
+        .single();
+      if (profile?.name) setUserName(profile.name);
 
-          const { count: shiftsCount } = await supabase
-            .from("shifts")
-            .select("id", { count: "exact" })
-            .eq("manager_id", user.id);
+      // 2. Fetch Statistics
+      const [workers, shifts, open] = await Promise.all([
+        supabase.from("profiles").select("id", { count: "exact", head: true }).eq("role", "worker"),
+        supabase.from("shifts").select("id", { count: "exact", head: true }).eq("manager_id", user.id),
+        supabase.from("shifts").select("id", { count: "exact", head: true }).eq("manager_id", user.id).eq("status", "open")
+      ]);
 
-          const { count: openShiftsCount } = await supabase
-            .from("shifts")
-            .select("id", { count: "exact" })
-            .eq("manager_id", user.id)
-            .eq("status", "open");
+      setStats({
+        totalWorkers: workers.count || 0,
+        totalShifts: shifts.count || 0,
+        openShifts: open.count || 0,
+      });
 
-          setStats({
-            totalWorkers: workersCount || 0,
-            totalShifts: shiftsCount || 0,
-            openShifts: openShiftsCount || 0,
-          });
+      // 3. Fetch Next 3 Upcoming Shifts
+      const today = new Date().toISOString().split("T")[0];
+      const { data: shiftsData } = await supabase
+        .from("shifts")
+        .select("*")
+        .eq("manager_id", user.id)
+        .gte("shift_date", today)
+        .order("shift_date", { ascending: true })
+        .limit(3);
 
-          // --- NEXT SHIFT ---
-          const today = new Date().toISOString().split("T")[0];
-          const { data: shiftData, error } = await supabase
-            .from("shifts")
-            .select("id, title, shift_date, start_time, end_time, status")
-            .eq("manager_id", user.id)
-            .gte("shift_date", today)
-            .order("shift_date", { ascending: true })
-            .limit(1)
-            .single();
+      setUpcomingShifts(shiftsData || []);
+    } catch (error) {
+      console.error("Dashboard error:", error);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
-          if (!error && shiftData) {
-            setNextShift(shiftData);
-          }
-        } catch (error) {
-          console.error("Error fetching dashboard data:", error);
-        } finally {
-          setLoading(false);
-        }
-      };
-
-      fetchData();
-    }, [])
-  );
+  useFocusEffect(useCallback(() => { fetchData(); }, [fetchData]));
 
   if (loading) {
     return (
       <View style={[styles.center, { backgroundColor: theme.background }]}>
-        <ActivityIndicator size="large" color={theme.tint} />
+        <ActivityIndicator size="small" color={theme.text} />
       </View>
     );
   }
 
+
   return (
-    <ScrollView
-      style={[styles.container, { backgroundColor: theme.background }]}
-      contentContainerStyle={{ padding: 20 }}
-      showsVerticalScrollIndicator={false}
-    >
-
-      {/* STAT CARDS */}
-      <View style={[styles.card, { backgroundColor: theme.tint + "11" }]}>
-        <Text style={[styles.cardTitle, { color: theme.text }]}>
-          Total Workers
-        </Text>
-        <Text style={[styles.cardValue, { color: theme.tint }]}>
-          {stats?.totalWorkers}
-        </Text>
-      </View>
-
-      <View style={[styles.card, { backgroundColor: theme.tint + "11" }]}>
-        <Text style={[styles.cardTitle, { color: theme.text }]}>
-          Total Shifts
-        </Text>
-        <Text style={[styles.cardValue, { color: theme.tint }]}>
-          {stats?.totalShifts}
-        </Text>
-      </View>
-
-      <View style={[styles.card, { backgroundColor: theme.tint + "11" }]}>
-        <Text style={[styles.cardTitle, { color: theme.text }]}>Open Shifts</Text>
-        <Text style={[styles.cardValue, { color: theme.tint }]}>
-          {stats?.openShifts}
-        </Text>
-      </View>
-
-      {/* NEXT SHIFT */}
-      <Text style={[styles.sectionTitle, { color: theme.text, marginTop: 20 }]}>
-        Next Shift
-      </Text>
-      {nextShift ? (
-        <View style={[styles.shiftCard, { backgroundColor: theme.card }]}>
-          <Text style={[styles.shiftTitle, { color: theme.text }]}>
-            {nextShift.title}
-          </Text>
-          <Text style={{ color: theme.text, opacity: 0.7 }}>
-            {nextShift.shift_date} | {nextShift.start_time} - {nextShift.end_time}
-          </Text>
-          <Text
-            style={{ color: theme.tint, fontWeight: "600", marginTop: 4 }}
+    <View style={{ flex: 1, backgroundColor: theme.background }}>
+      <ScrollView
+        style={styles.container}
+        contentContainerStyle={{ 
+          paddingHorizontal: 20, 
+          paddingTop: insets.top + 10, 
+          paddingBottom: 100 
+        }}
+        showsVerticalScrollIndicator={false}
+      >
+        {/* HEADER MINIMALE ED ELEGANTE */}
+        <View style={styles.topBar}>
+          <View>
+            <Text style={[styles.dateText, { color: theme.secondaryText }]}>
+              {new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric' }).toUpperCase()}
+            </Text>
+            <Text style={[styles.userName, { color: theme.text }]}>Hello, {userName}</Text>
+          </View>
+          <Pressable 
+            onPress={() => router.push("/profile")}
+            style={[styles.profileButton, { backgroundColor: theme.card, borderColor: theme.border }]}
           >
-            {nextShift.status}
-          </Text>
+            <Ionicons name="person" size={20} color={theme.text} />
+          </Pressable>
         </View>
-      ) : (
-        <Text style={{ color: theme.text, opacity: 0.7, marginTop: 10 }}>
-          No upcoming shifts
-        </Text>
-      )}
-    </ScrollView>
+
+        {/* STATS: Layout Orizzontale Pulito */}
+        <View style={styles.metricsRow}>
+          <View style={[styles.metricBox, { borderRightWidth: 1, borderColor: theme.border }]}>
+            <Text style={[styles.metricLabel, { color: theme.secondaryText }]}>WORKERS</Text>
+            <Text style={[styles.metricValue, { color: theme.text }]}>{stats?.totalWorkers || 0}</Text>
+          </View>
+          <View style={[styles.metricBox, { borderRightWidth: 1, borderColor: theme.border }]}>
+            <Text style={[styles.metricLabel, { color: theme.secondaryText }]}>TOTAL SHIFTS</Text>
+            <Text style={[styles.metricValue, { color: theme.text }]}>{stats?.totalShifts || 0}</Text>
+          </View>
+          <View style={styles.metricBox}>
+            <Text style={[styles.metricLabel, { color: theme.tint }]}>OPEN</Text>
+            <Text style={[styles.metricValue, { color: theme.tint }]}>{stats?.openShifts || 0}</Text>
+          </View>
+        </View>
+
+        {/* QUICK ACTIONS: Il cuore della produttività */}
+        <View style={styles.actionGrid}>
+          <QuickAction 
+            title="Create Shift" 
+            icon="add-circle" 
+            onPress={() => router.push("/createShift")} 
+            theme={theme} 
+          />
+          <QuickAction 
+            title="Manage Team" 
+            icon="people-sharp" 
+            onPress={() => {}} 
+            theme={theme} 
+          />
+        </View>
+
+        {/* SEZIONE PROSSIMI TURNI */}
+        <View style={styles.sectionHeader}>
+          <View>
+            <Text style={[styles.sectionTitle, { color: theme.text }]}>Upcoming Shifts</Text>
+            <Text style={[styles.sectionSubtitle, { color: theme.secondaryText }]}>Your schedule for the next days</Text>
+          </View>
+          <Pressable onPress={() => router.push("/(manager)/(tabs)/shift")}>
+             <Ionicons name="arrow-forward-circle" size={32} color={theme.text} />
+          </Pressable>
+        </View>
+
+        <View style={styles.shiftsList}>
+          {upcomingShifts.length > 0 ? (
+            upcomingShifts.map((shift) => (
+              <ShiftCard 
+                key={shift.id}
+                item={shift} 
+                variant="manager"
+                onPress={() => router.push(`/(manager)/(tabs)/shift/${shift.id}`)} 
+              />
+            ))
+          ) : (
+            <View style={[styles.emptyBox, { backgroundColor: theme.card, borderColor: theme.border }]}>
+              <Text style={[styles.emptyText, { color: theme.secondaryText }]}>No shifts scheduled</Text>
+            </View>
+          )}
+        </View>
+      </ScrollView>
+    </View>
   );
 }
 
+// Sottocomponente per azioni rapide
+const QuickAction = ({ title, icon, onPress, theme }: any) => (
+  <Pressable 
+    onPress={onPress}
+    style={({ pressed }) => [
+      styles.actionBtn, 
+      { backgroundColor: theme.card, borderColor: theme.border, opacity: pressed ? 0.7 : 1 }
+    ]}
+  >
+    <Ionicons name={icon} size={22} color={theme.text} />
+    <Text style={[styles.actionBtnText, { color: theme.text }]}>{title}</Text>
+  </Pressable>
+);
+
 const styles = StyleSheet.create({
   container: { flex: 1 },
+  topBar: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 40 },
+  dateText: { fontSize: 11, fontWeight: "800", letterSpacing: 1.5 },
+  userName: { fontSize: 28, fontWeight: "900", letterSpacing: -1 },
+  profileButton: { width: 48, height: 48, borderRadius: 16, borderWidth: 1, justifyContent: 'center', alignItems: 'center' },
+
+  metricsRow: { 
+    flexDirection: 'row', 
+    backgroundColor: '#FFF', // Usiamo White per farla staccare dal Neutral_100
+    borderRadius: 24, 
+    paddingVertical: 20, 
+    marginBottom: 25,
+    borderWidth: 1,
+    borderColor: '#E5E7EB'
+  },
+  metricBox: { flex: 1, alignItems: 'center', gap: 4 },
+  metricLabel: { fontSize: 10, fontWeight: "800", letterSpacing: 1 },
+  metricValue: { fontSize: 22, fontWeight: "900" },
+
+  actionGrid: { flexDirection: 'row', gap: 12, marginBottom: 40 },
+  actionBtn: { flex: 1, height: 56, borderRadius: 18, borderWidth: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10 },
+  actionBtnText: { fontSize: 15, fontWeight: "700" },
+
+  sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 },
+  sectionTitle: { fontSize: 22, fontWeight: "900", letterSpacing: -0.5 },
+  sectionSubtitle: { fontSize: 14, fontWeight: "500", marginTop: 2 },
+  
+  shiftsList: { gap: 12 },
+  emptyBox: { height: 100, borderRadius: 24, borderWidth: 1, borderStyle: 'dashed', justifyContent: 'center', alignItems: 'center' },
+  emptyText: { fontSize: 14, fontWeight: "600" },
   center: { flex: 1, justifyContent: "center", alignItems: "center" },
-
-  title: { fontSize: 28, fontWeight: "700", marginBottom: 24 },
-
-  card: {
-    padding: 20,
-    borderRadius: 20,
-    marginBottom: 16,
-    shadowColor: "#000",
-    shadowOpacity: 0.05,
-    shadowRadius: 12,
-    shadowOffset: { width: 0, height: 4 },
-    elevation: 3,
-  },
-  cardTitle: { fontSize: 16, fontWeight: "600", marginBottom: 8 },
-  cardValue: { fontSize: 28, fontWeight: "700" },
-
-  sectionTitle: { fontSize: 18, fontWeight: "700", marginBottom: 12 },
-
-  shiftCard: {
-    padding: 16,
-    borderRadius: 16,
-    marginBottom: 12,
-    shadowColor: "#000",
-    shadowOpacity: 0.03,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 2 },
-    elevation: 2,
-  },
-  shiftTitle: { fontSize: 16, fontWeight: "600", marginBottom: 4 },
 });

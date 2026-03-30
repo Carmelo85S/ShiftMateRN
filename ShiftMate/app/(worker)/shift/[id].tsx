@@ -1,6 +1,6 @@
 import { Colors } from "@/constants/theme";
 import { supabase } from "@/lib/supabase";
-import { Stack, useLocalSearchParams } from "expo-router";
+import { router, Stack, useLocalSearchParams } from "expo-router";
 import { useEffect, useState } from "react";
 import {
   ActivityIndicator,
@@ -9,23 +9,16 @@ import {
   Text,
   View,
 } from "react-native";
-
-type Shift = {
-  id: string;
-  title: string;
-  shift_date: string;
-  start_time: string;
-  end_time: string;
-};
+import { Ionicons } from "@expo/vector-icons"; // Fondamentale per il look moderno
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 export default function ShiftDetail() {
   const { id } = useLocalSearchParams();
   const theme = Colors.light;
+  const insets = useSafeAreaInsets();
 
-  const [shift, setShift] = useState<Shift | null>(null);
+  const [shift, setShift] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-
-  // 👇 null = non ancora verificato
   const [applied, setApplied] = useState<boolean | null>(null);
 
   useEffect(() => {
@@ -102,6 +95,7 @@ export default function ShiftDetail() {
     // 👇 update immediato UI (optimistic)
     setApplied(true);
     console.log("Application sent!");
+    router.push(`/(worker)/(tabs)/shifts`);
   };
 
   if (loading) {
@@ -120,120 +114,124 @@ export default function ShiftDetail() {
     );
   }
 
-  return (
-    <>
-      <Stack.Screen
-        options={{
-          title: "Shift Details",
-          headerShown: true,
-        }}
-      />
+    return (
+        <View style={{ flex: 1, backgroundColor: theme.background, paddingTop: insets.top  }}>
 
-      <View style={[styles.container, { backgroundColor: theme.background }]}>
-        <View style={[styles.card, { backgroundColor: theme.card }]}>
-          <Text style={[styles.title, { color: theme.text }]}>
-            {shift.title}
-          </Text>
+          <View style={[styles.container, { paddingTop: insets.top + 40, paddingBottom: insets.bottom + 20 }]}>
+            
+            {/* HEADER AREA */}
+            <View style={styles.header}>
+              <Text style={[styles.kpi, { color: theme.tint }]}>AVAILABLE POSITION</Text>
+              <Text style={[styles.title, { color: theme.text }]}>{shift?.title}</Text>
+            </View>
 
-          <View style={styles.infoRow}>
-            <Text style={[styles.label, { color: theme.text }]}>Date</Text>
-            <Text style={[styles.value, { color: theme.text }]}>
-              {formatDate(shift.shift_date)}
-            </Text>
-          </View>
+            {/* INFO GRID - Stile Moderno Flat */}
+            <View style={styles.detailsBox}>
+              <DetailRow 
+                icon="calendar-outline" 
+                label="Date" 
+                value={formatDate(shift?.shift_date)} 
+                theme={theme} 
+              />
+              <DetailRow 
+                icon="time-outline" 
+                label="Schedule" 
+                value={`${shift?.start_time.slice(0, 5)} — ${shift?.end_time.slice(0, 5)}`} 
+                theme={theme} 
+              />
+              <DetailRow 
+                icon="location-outline" 
+                label="Location" 
+                value="On-site HQ" 
+                theme={theme} 
+              />
+            </View>
 
-          <View style={styles.infoRow}>
-            <Text style={[styles.label, { color: theme.text }]}>Time</Text>
-            <Text style={[styles.value, { color: theme.text }]}>
-              {shift.start_time.slice(0, 5)} -{" "}
-              {shift.end_time.slice(0, 5)}
-            </Text>
+            <View style={{ flex: 1 }} />
+
+            {/* BOTTONE D'AZIONE - Stile Solid Brand */}
+            <Pressable
+              disabled={applied === null || applied}
+              onPress={handleApply}
+              style={({ pressed }) => [
+                styles.applyButton,
+                {
+                  backgroundColor: applied ? theme.secondaryText : theme.text,
+                  opacity: pressed ? 0.8 : 1,
+                  transform: [{ scale: pressed ? 0.98 : 1 }]
+                },
+              ]}
+            >
+              {applied ? (
+                <View style={styles.btnContent}>
+                  <Ionicons name="checkmark-circle" size={20} color={theme.background} />
+                  <Text style={[styles.applyText, { color: theme.background }]}>APPLICATION SENT</Text>
+                </View>
+              ) : (
+                <Text style={[styles.applyText, { color: theme.background }]}>APPLY NOW</Text>
+              )}
+            </Pressable>
           </View>
         </View>
+      );
+    }
 
-        <Pressable
-          disabled={applied === null || applied}
-          onPress={handleApply}
-          style={[
-            styles.applyButton,
-            {
-              backgroundColor:
-                applied === null
-                  ? "#ccc"
-                  : applied
-                  ? "#999"
-                  : theme.tint,
-            },
-          ]}
-        >
-          <Text style={styles.applyText}>
-            {applied === null
-              ? "Checking..."
-              : applied
-              ? "Applied ✓"
-              : "Apply for this shift"}
-          </Text>
-        </Pressable>
-      </View>
-    </>
-  );
-}
+const DetailRow = ({ icon, label, value, theme }: any) => (
+  <View style={[styles.detailRow, { borderBottomColor: theme.border }]}>
+    <View style={[styles.iconBox, { backgroundColor: theme.card }]}>
+      <Ionicons name={icon} size={22} color={theme.text} />
+    </View>
+    <View>
+      <Text style={[styles.detailLabel, { color: theme.secondaryText }]}>{label.toUpperCase()}</Text>
+      <Text style={[styles.detailValue, { color: theme.text }]}>{value}</Text>
+    </View>
+  </View>
+);
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    padding: 24,
-    justifyContent: "space-between",
+  backButton: {
+  marginLeft: 10,
+  width: 40,
+  height: 40,
+  justifyContent: 'center',
+  alignItems: 'center',
+},
+  container: { flex: 1, paddingHorizontal: 25 },
+  header: { marginBottom: 40 },
+  kpi: { fontSize: 11, fontWeight: "900", letterSpacing: 2, marginBottom: 8 },
+  title: { fontSize: 42, fontWeight: "900", letterSpacing: -2, lineHeight: 45 },
+  center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+
+  detailsBox: { gap: 0 },
+  detailRow: { 
+    flexDirection: 'row', 
+    alignItems: 'center', 
+    paddingVertical: 20, 
+    borderBottomWidth: 1,
+    gap: 16 
   },
-
-  center: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
+  iconBox: { 
+    width: 48, 
+    height: 48, 
+    borderRadius: 16, 
+    justifyContent: 'center', 
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#E5E7EB'
   },
-
-  card: {
-    padding: 24,
-    borderRadius: 18,
-
-    shadowColor: "#000",
-    shadowOpacity: 0.08,
-    shadowRadius: 12,
-    shadowOffset: { width: 0, height: 4 },
-
-    elevation: 4,
-  },
-
-  title: {
-    fontSize: 26,
-    fontWeight: "700",
-    marginBottom: 20,
-  },
-
-  infoRow: {
-    marginBottom: 16,
-  },
-
-  label: {
-    fontSize: 13,
-    opacity: 0.6,
-    marginBottom: 4,
-  },
-
-  value: {
-    fontSize: 17,
-    fontWeight: "600",
-  },
+  detailLabel: { fontSize: 10, fontWeight: "800", letterSpacing: 1 },
+  detailValue: { fontSize: 18, fontWeight: "700" },
 
   applyButton: {
-    padding: 18,
-    borderRadius: 14,
-    alignItems: "center",
+    height: 64,
+    borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.1,
+    shadowRadius: 20,
   },
-
-  applyText: {
-    color: "white",
-    fontWeight: "700",
-    fontSize: 16,
-  },
+  btnContent: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  applyText: { fontSize: 16, fontWeight: "900", letterSpacing: 1 },
 });

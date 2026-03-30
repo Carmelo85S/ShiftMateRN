@@ -35,6 +35,9 @@ export default function TabLayout() {
           tabBarIcon: ({color}) => <IconSymbol name="person.fill" color={color} /> 
         }} 
       />
+      <Tabs.Screen name="profile/editProfile" options={{ 
+        href: null, // Nasconde il tasto editProfile dalla barra dei tab se necessario
+      }} />
     </Tabs>
   );
 }

@@ -7,6 +7,7 @@ export default function ProfileStackLayout() {
       headerShadowVisible: false,
     }}>
       <Stack.Screen name="index" options={{ title: "Profile" }} />
-    </Stack>
+        <Stack.Screen name="editProfile" options={{title: "Edit account", headerBackVisible: true, headerBackButtonDisplayMode: "minimal"}} />
+     </Stack>
   );
 }

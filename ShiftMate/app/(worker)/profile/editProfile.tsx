@@ -6,6 +6,7 @@ import { useEffect, useState } from "react";
 import {
   Alert,
   Pressable,
+  ScrollView,
   StyleSheet,
   Text,
   TextInput,
@@ -119,12 +120,20 @@ export default function EditProfileScreen() {
       </View>
     );
   }
+// ... (manteniamo i tuoi import e la logica fetch/save)
 
   return (
-    <View style={[styles.container, { backgroundColor: theme.background }]}>
-      <Text style={[styles.title, { color: theme.text }]}>Edit Profile</Text>
+    <ScrollView 
+      style={{ flex: 1, backgroundColor: theme.background }}
+      contentContainerStyle={{ paddingTop: 20, paddingHorizontal: 25, paddingBottom: 60 }}
+    >
+      <View style={styles.headerArea}>
+        <Text style={[styles.kpi, { color: theme.tint }]}>SETTINGS</Text>
+        <Text style={[styles.title, { color: theme.text }]}>Edit Profile</Text>
+      </View>
 
-      {/* Avatar Uploader */}
+      {/* Avatar Uploader - Centrato ma pulito */}
+      <View style={styles.uploaderWrapper}>
         <AvatarUploader
           initialUrl={avatar}
           onUpload={(url) => {
@@ -132,98 +141,103 @@ export default function EditProfileScreen() {
             setAvatar(cacheBusted);
           }}
         />
+        <Text style={[styles.uploaderHint, { color: theme.secondaryText }]}>Tap to change photo</Text>
+      </View>
 
-      {/* Name */}
-      <Text style={[styles.label, { color: theme.text }]}>Name</Text>
-      <TextInput
-        value={name}
-        onChangeText={setName}
-        placeholder="Name"
-        placeholderTextColor="#999"
-        style={[styles.input, { borderColor: theme.tint, color: theme.text }]}
-      />
+      <View style={styles.form}>
+        <CustomInput label="FIRST NAME" value={name} onChange={setName} theme={theme} />
+        <CustomInput label="LAST NAME" value={surname} onChange={setSurname} theme={theme} />
+        <CustomInput 
+          label="JOB ROLE" 
+          value={jobRole} 
+          onChange={setJobRole} 
+          placeholder="e.g. Receptionist" 
+          theme={theme} 
+        />
+        
+        <Text style={[styles.label, { color: theme.secondaryText }]}>BIO / EXPERIENCE</Text>
+        <TextInput
+          value={bio}
+          onChangeText={setBio}
+          placeholder="Tell us about your skills..."
+          placeholderTextColor="#999"
+          multiline
+          style={[styles.textArea, { backgroundColor: theme.card, color: theme.text, borderColor: theme.border }]}
+        />
+      </View>
 
-      {/* Surname */}
-      <Text style={[styles.label, { color: theme.text }]}>Surname</Text>
-      <TextInput
-        value={surname}
-        onChangeText={setSurname}
-        placeholder="Surname"
-        placeholderTextColor="#999"
-        style={[styles.input, { borderColor: theme.tint, color: theme.text }]}
-      />
-
-      {/* Job Role */}
-      <Text style={[styles.label, { color: theme.text }]}>Job Role</Text>
-      <TextInput
-        value={jobRole}
-        onChangeText={setJobRole}
-        placeholder="Receptionist, Housekeeping..."
-        placeholderTextColor="#999"
-        style={[styles.input, { borderColor: theme.tint, color: theme.text }]}
-      />
-
-      {/* Bio */}
-      <Text style={[styles.label, { color: theme.text }]}>Bio</Text>
-      <TextInput
-        value={bio}
-        onChangeText={setBio}
-        placeholder="Short bio about yourself"
-        placeholderTextColor="#999"
-        style={[
-          styles.textArea,
-          { borderColor: theme.tint, color: theme.text },
-        ]}
-        multiline
-        numberOfLines={4}
-      />
-
-      {/* Buttons */}
-      <View style={styles.buttonContainer}>
+      {/* Action Buttons - Uno primario, uno ghost per il delete */}
+      <View style={styles.footer}>
         <Pressable
           onPress={handleSave}
-          style={[styles.button, { backgroundColor: theme.tint }]}
+          style={({ pressed }) => [
+            styles.saveButton,
+            { backgroundColor: theme.text, opacity: pressed ? 0.8 : 1 }
+          ]}
         >
-          <Text style={styles.buttonText}>Save</Text>
+          <Text style={[styles.saveButtonText, { color: theme.background }]}>SAVE CHANGES</Text>
         </Pressable>
 
-        <Pressable
-          onPress={handleDelete}
-          style={[styles.button, { backgroundColor: "#e53935" }]}
-        >
-          <Text style={styles.buttonText}>Delete Profile</Text>
+        <Pressable onPress={handleDelete} style={styles.deleteButton}>
+          <Text style={[styles.deleteButtonText, { color: theme.delete }]}>Delete Account</Text>
         </Pressable>
       </View>
-    </View>
+    </ScrollView>
   );
 }
 
+// Sottocomponente per Input coerente
+const CustomInput = ({ label, value, onChange, placeholder, theme }: any) => (
+  <View style={styles.inputWrapper}>
+    <Text style={[styles.label, { color: theme.secondaryText }]}>{label}</Text>
+    <TextInput
+      value={value}
+      onChangeText={onChange}
+      placeholder={placeholder}
+      placeholderTextColor="#BBB"
+      style={[styles.input, { backgroundColor: theme.card, color: theme.text, borderColor: theme.border }]}
+    />
+  </View>
+);
+
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 24 },
   center: { flex: 1, justifyContent: "center", alignItems: "center" },
-  title: { fontSize: 26, fontWeight: "bold", marginBottom: 24 },
-  label: { marginTop: 12, marginBottom: 4, fontSize: 14, fontWeight: "500" },
+  headerArea: { marginBottom: 30, marginVertical: 110 },
+  kpi: { fontSize: 11, fontWeight: "900", letterSpacing: 2, marginBottom: 4 },
+  title: { fontSize: 42, fontWeight: "900", letterSpacing: -2 },
+
+  uploaderWrapper: { alignItems: 'center', marginBottom: 30 },
+  uploaderHint: { fontSize: 12, fontWeight: "600", marginTop: 10, opacity: 0.6 },
+
+  form: { gap: 20 },
+  inputWrapper: { gap: 8 },
+  label: { fontSize: 10, fontWeight: "800", letterSpacing: 1.5 },
   input: {
+    height: 56,
     borderWidth: 1,
-    padding: 14,
-    borderRadius: 12,
+    borderRadius: 16,
+    paddingHorizontal: 16,
     fontSize: 16,
-    marginBottom: 8,
+    fontWeight: "600",
   },
   textArea: {
+    height: 120,
     borderWidth: 1,
-    padding: 14,
-    borderRadius: 12,
-    fontSize: 16,
-    marginBottom: 8,
-    height: 100,
-    textAlignVertical: "top",
-  },
-  buttonContainer: { marginTop: 24, gap: 12 },
-  button: {
+    borderRadius: 16,
     padding: 16,
-    borderRadius: 12,
-    alignItems: "center",
+    fontSize: 16,
+    fontWeight: "600",
+    textAlignVertical: 'top',
   },
-  buttonText: { color: "white", fontWeight: "bold", fontSize: 16 },
+
+  footer: { marginTop: 40, gap: 15 },
+  saveButton: {
+    height: 64,
+    borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  saveButtonText: { fontSize: 16, fontWeight: "900", letterSpacing: 1 },
+  deleteButton: { paddingVertical: 10, alignItems: 'center' },
+  deleteButtonText: { fontSize: 14, fontWeight: "700", opacity: 0.8 },
 });
