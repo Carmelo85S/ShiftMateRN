@@ -13,6 +13,7 @@ import {
   Platform,
   ScrollView,
 } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 
 export default function Login() {
   const theme = Colors.light;
@@ -30,10 +31,7 @@ export default function Login() {
 
     setLoading(true);
     try {
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
+      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
       if (error) throw error;
 
       const { data: profileData, error: profileError } = await supabase
@@ -44,68 +42,86 @@ export default function Login() {
 
       if (profileError) throw profileError;
 
+      // Routing basato sul ruolo
       if (profileData.role === "manager") {
         router.replace("/(manager)/(tabs)/dashboard");
       } else if (profileData.role === "worker") {
         router.replace("/(worker)/(tabs)/shifts");
       } else {
-        Alert.alert("Error", "Unknown role");
+        Alert.alert("Error", "Unknown role assigned to this account.");
       }
     } catch (error: any) {
-      Alert.alert("Error", error.message);
+      Alert.alert("Login Failed", error.message);
     } finally {
       setLoading(false);
     }
   };
-
-  const handleRegister = () => {
-    router.replace("/auth/register")
-  }
 
   return (
     <>
       <Stack.Screen options={{ headerShown: false }} />
       <KeyboardAvoidingView
         behavior={Platform.OS === "ios" ? "padding" : "height"}
-        style={{ flex: 1 }}
+        style={{ flex: 1, backgroundColor: theme.background }}
       >
         <ScrollView
-          contentContainerStyle={[styles.container, { backgroundColor: theme.background }]}
+          contentContainerStyle={styles.container}
           keyboardShouldPersistTaps="handled"
         >
-          <View style={styles.bottomContainer}>
-            <Text style={[styles.title, { color: theme.text }]}>Welcome Back</Text>
+          {/* HEADER SECTION */}
+          <View style={styles.header}>
+            <Text style={[styles.kpi, { color: theme.tint }]}>INTERNAL ACCESS</Text>
+            <Text style={[styles.title, { color: theme.text }]}>Welcome{"\n"}Back</Text>
+          </View>
 
-            <TextInput
-              placeholder="Email"
-              placeholderTextColor={theme.icon}
-              value={email}
-              onChangeText={setEmail}
-              keyboardType="email-address"
-              autoCapitalize="none"
-              style={[styles.input, { color: theme.text, borderColor: theme.tint }]}
-            />
-            <TextInput
-              placeholder="Password"
-              placeholderTextColor={theme.icon}
-              value={password}
-              onChangeText={setPassword}
-              secureTextEntry
-              style={[styles.input, { color: theme.text, borderColor: theme.tint }]}
-            />
+          {/* FORM SECTION */}
+          <View style={styles.form}>
+            <View style={styles.inputWrapper}>
+              <Text style={styles.inputLabel}>EMAIL ADDRESS</Text>
+              <TextInput
+                placeholder="name@company.com"
+                placeholderTextColor="#999"
+                value={email}
+                onChangeText={setEmail}
+                keyboardType="email-address"
+                autoCapitalize="none"
+                style={[styles.input, { color: theme.text, borderColor: theme.text }]}
+              />
+            </View>
+
+            <View style={styles.inputWrapper}>
+              <Text style={styles.inputLabel}>PASSWORD</Text>
+              <TextInput
+                placeholder="••••••••"
+                placeholderTextColor="#999"
+                value={password}
+                onChangeText={setPassword}
+                secureTextEntry
+                style={[styles.input, { color: theme.text, borderColor: theme.text }]}
+              />
+            </View>
 
             <Pressable
-              style={[styles.button, { backgroundColor: theme.tint }]}
+              style={({ pressed }) => [
+                styles.button,
+                { backgroundColor: theme.text, opacity: (loading || pressed) ? 0.8 : 1 }
+              ]}
               onPress={handleLogin}
               disabled={loading}
             >
-              <Text style={styles.buttonText}>
-                {loading ? "Loading..." : "Login"}
+              <Text style={[styles.buttonText, { color: theme.background }]}>
+                {loading ? "AUTHENTICATING..." : "LOGIN TO DASHBOARD"}
               </Text>
+              {!loading && <Ionicons name="arrow-forward" size={20} color={theme.background} />}
             </Pressable>
-            <Pressable onPress={handleRegister} disabled={loading}>
-              <Text style={[styles.linkText, { color: theme.tint }]}>
-                {loading ? "Loading..." : "Register"}
+
+            <Pressable 
+              onPress={() => router.push("/auth/register")} 
+              style={styles.registerLink}
+              disabled={loading}
+            >
+              <Text style={styles.registerText}>
+                New here? <Text style={{ color: theme.tint, fontWeight: '900' }}>Request Access</Text>
               </Text>
             </Pressable>
           </View>
@@ -118,47 +134,66 @@ export default function Login() {
 const styles = StyleSheet.create({
   container: {
     flexGrow: 1,
-    justifyContent: "flex-end",
-    padding: 24,
+    padding: 30,
+    justifyContent: "center",
   },
-  bottomContainer: {
-    width: "100%",
+  header: {
+    marginBottom: 50,
+  },
+  kpi: {
+    fontSize: 12,
+    fontWeight: "900",
+    letterSpacing: 2,
+    marginBottom: 8,
   },
   title: {
-    fontSize: 32,
-    fontWeight: "bold",
-    marginBottom: 24,
-    textAlign: "center",
+    fontSize: 52,
+    fontWeight: "900",
+    lineHeight: 52,
+    letterSpacing: -2,
+  },
+  form: {
+    gap: 20,
+  },
+  inputWrapper: {
+    gap: 8,
+  },
+  inputLabel: {
+    fontSize: 10,
+    fontWeight: "800",
+    letterSpacing: 1,
+    marginLeft: 4,
   },
   input: {
     width: "100%",
-    borderWidth: 1,
-    borderRadius: 12,
-    padding: 14,
-    marginBottom: 16,
+    borderWidth: 2, // Più spesso per il look Brutalist
+    borderRadius: 16,
+    padding: 18,
     fontSize: 16,
+    fontWeight: "600",
   },
   button: {
     width: "100%",
-    padding: 16,
-    borderRadius: 12,
+    padding: 20,
+    borderRadius: 16,
+    flexDirection: "row",
     alignItems: "center",
-    shadowColor: "#000",
-    shadowOpacity: 0.2,
-    shadowOffset: { width: 0, height: 4 },
-    shadowRadius: 8,
-    elevation: 4,
+    justifyContent: "center",
+    gap: 10,
+    marginTop: 10,
   },
   buttonText: {
-    color: "#fff",
-    fontWeight: "600",
+    fontWeight: "900",
     fontSize: 16,
+    letterSpacing: 1,
   },
-  linkText: {
-    fontSize: 16,
+  registerLink: {
+    marginTop: 20,
+    alignItems: "center",
+  },
+  registerText: {
+    fontSize: 14,
     fontWeight: "600",
-    textAlign: "center",
-    textDecorationLine: "underline",
-    paddingVertical: 20
-  }
+    color: "#666",
+  },
 });

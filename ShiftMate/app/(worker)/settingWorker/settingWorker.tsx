@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { View, Text, StyleSheet, ScrollView, Switch, Pressable, Platform } from "react-native";
 import { Colors } from "@/constants/theme";
 import { Ionicons } from "@expo/vector-icons";
-import { Stack } from "expo-router";
+import { router, Stack } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 export default function WorkerSettingsScreen() {
@@ -11,7 +11,7 @@ export default function WorkerSettingsScreen() {
 
   // Stati per gli switch (da collegare poi a Supabase o Local Storage)
   const [notifications, setNotifications] = useState(true);
-  const [preciseLocation, setPreciseLocation] = useState(false);
+  const [newShiftAlerts, setNewShiftAlerts] = useState(true);
   const [darkMode, setDarkMode] = useState(false);
 
   return (
@@ -44,8 +44,8 @@ export default function WorkerSettingsScreen() {
         <SettingSwitch 
           icon="flash-sharp" 
           label="New Shift Alerts" 
-          value={true} 
-          onValueChange={() => {}} 
+          value={newShiftAlerts} 
+          onValueChange={setNewShiftAlerts} 
           theme={theme} 
         />
       </View>
@@ -53,17 +53,10 @@ export default function WorkerSettingsScreen() {
       {/* SEZIONE: PRIVACY & POSIZIONE */}
       <View style={styles.section}>
         <Text style={[styles.sectionLabel, { color: theme.secondaryText }]}>PRIVACY</Text>
-        <SettingSwitch 
-          icon="location-sharp" 
-          label="Precise Location" 
-          value={preciseLocation} 
-          onValueChange={setPreciseLocation} 
-          theme={theme} 
-        />
         <SettingRow 
           icon="shield-checkmark-sharp" 
           label="Data Privacy Policy" 
-          onPress={() => {}} 
+          onPress={() => router.push("/(worker)/dataPrivacyPolicy/dataPrivacyPolicy")} 
           theme={theme} 
         />
       </View>
@@ -74,7 +67,7 @@ export default function WorkerSettingsScreen() {
         <SettingRow 
           icon="help-circle-sharp" 
           label="Help Center" 
-          onPress={() => {}} 
+          onPress={() => router.push("/(worker)/helpCenter/helpCenter")}
           theme={theme} 
         />
         <SettingRow 
