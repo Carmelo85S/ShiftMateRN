@@ -120,7 +120,6 @@ export default function EditProfileScreen() {
       </View>
     );
   }
-// ... (manteniamo i tuoi import e la logica fetch/save)
 
   return (
     <ScrollView 

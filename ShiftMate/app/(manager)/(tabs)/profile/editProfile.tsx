@@ -128,6 +128,12 @@ export default function EditProfileScreen() {
               Alert.alert("Job Role", "Select your position", [
                 { text: "Hotel Manager", onPress: () => setForm({...form, job_role: "Hotel Manager"}) },
                 { text: "Restaurant Manager", onPress: () => setForm({...form, job_role: "Restaurant Manager"}) },
+                { text: "Breakfast Manager", onPress: () => setForm({...form, job_role: "Breakfast Manager"}) },
+                { text: "Kitchen Manager", onPress: () => setForm({...form, job_role: "Kitchen Manager"}) },
+                { text: "Event Coordinator", onPress: () => setForm({...form, job_role: "Event Coordinator"}) },
+                { text: "Bar Manager", onPress: () => setForm({...form, job_role: "Bar Manager"}) },
+                { text: "Housekeeping Manager", onPress: () => setForm({...form, job_role: "Housekeeping Manager"}) },
+                { text: "Front Desk Manager", onPress: () => setForm({...form, job_role: "Front Desk Manager"}) },
                 { text: "Cancel", style: "cancel" }
               ]);
             }}

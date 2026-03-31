@@ -65,7 +65,7 @@ export default function ShiftDetail() {
   return (
     <View style={{ flex: 1, backgroundColor: theme.background }}>
       <Stack.Screen options={{ 
-        headerTitle: "", 
+        headerTitle: "Shift details", 
         headerTransparent: true,
         headerTintColor: "#FFF", 
       }} />

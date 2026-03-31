@@ -1,78 +1,132 @@
-// app/auth/choice.tsx
-import { View, Text, Pressable, StyleSheet, ImageBackground } from "react-native";
+import { View, Text, Pressable, StyleSheet, ImageBackground, Dimensions } from "react-native";
 import { useRouter } from "expo-router";
 import { Colors } from "@/constants/theme";
+import { StatusBar } from "expo-status-bar";
+
+const { height } = Dimensions.get("window");
 
 export default function AuthChoice() {
   const theme = Colors.light;
   const router = useRouter();
 
   return (
-      <View style={styles.overlay}>
-        {/* Hero e sub-hero */}
-        <View style={styles.heroContainer}>
-          <Text style={[styles.heroTitle, { color: theme.text }]}>
-            ShiftMate
-          </Text>
-          <Text style={[styles.heroSubtitle, { color: theme.text }]}>
-            Manage, assign, and claim extra shifts effortlessly
+    <View style={[styles.container, { backgroundColor: '#000' }]}>
+      <StatusBar style="light" />
+      
+      {/* HERO IMAGE SECTION */}
+      <ImageBackground 
+        source={require("../assets/images/heroImage.png")} 
+        style={styles.heroImage}
+        resizeMode="cover"
+      />
+
+      {/* INTERACTIVE CONTENT CARD */}
+      <View style={[styles.contentCard, { backgroundColor: theme.background }]}>
+        <View style={styles.dragIndicator} />
+        
+        <View style={styles.textSection}>
+          <Text style={[styles.brandName, { color: theme.text }]}>ShiftMate</Text>
+          <Text style={[styles.tagline, { color: theme.secondaryText }]}>
+            Streamline scheduling, assign shifts, and claim opportunities. Your unified workflow, simplified.
           </Text>
         </View>
 
-        {/* Pulsanti in basso */}
-        <View style={styles.buttonsContainer}>
+        <View style={styles.buttonSection}>
           <Pressable
-            style={[styles.button, { backgroundColor: theme.tint }]}
+            style={[styles.primaryBtn, { backgroundColor: theme.text }]}
             onPress={() => router.push("/auth/login")}
           >
-            <Text style={styles.buttonText}>Login</Text>
+            <Text style={[styles.primaryBtnText, { color: theme.background }]}>
+              Sign In
+            </Text>
           </Pressable>
 
           <Pressable
-            style={[styles.button, { backgroundColor: theme.tint }]}
+            style={[styles.secondaryBtn, { borderColor: theme.border }]}
             onPress={() => router.push("/auth/register")}
           >
-            <Text style={styles.buttonText}>Crea Account</Text>
+            <Text style={[styles.secondaryBtnText, { color: theme.text }]}>
+              Create Account
+            </Text>
           </Pressable>
         </View>
+
+        <Text style={styles.footerNote}>© 2026 ShitMate Operations Platform</Text>
       </View>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  background: { flex: 1 },
-  overlay: { 
-    flex: 1, 
-    justifyContent: "flex-end", 
-    padding: 24, 
-    backgroundColor: "rgba(0,0,0,0.25)" 
+  container: { flex: 1 },
+  heroImage: { 
+    width: '100%', 
+    height: height * 0.6, 
   },
-  heroContainer: {
-    position: "absolute",
-    top: 100, // distanza dall'alto
-    left: 24,
-    right: 24,
-    alignItems: "center",
+  contentCard: {
+    position: 'absolute',
+    bottom: 0,
+    width: '100%',
+    height: height * 0.48, 
+    borderTopLeftRadius: 32,
+    borderTopRightRadius: 32,
+    padding: 30,
+    alignItems: 'center',
+    // Elevation for the "floating card" effect
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: -10 },
+    shadowOpacity: 0.1,
+    shadowRadius: 15,
+    elevation: 20,
   },
-  heroTitle: {
-    fontSize: 36,
-    fontWeight: "bold",
-    textAlign: "center",
-    marginBottom: 12,
+  dragIndicator: {
+    width: 40,
+    height: 5,
+    backgroundColor: '#E5E5E5',
+    borderRadius: 10,
+    marginBottom: 25
   },
-  heroSubtitle: {
-    fontSize: 18,
-    textAlign: "center",
+  textSection: {
+    alignItems: 'center',
+    marginBottom: 35,
+  },
+  brandName: { 
+    fontSize: 34, 
+    fontWeight: "900", 
+    letterSpacing: -1,
+    marginBottom: 12 
+  },
+  tagline: { 
+    fontSize: 16, 
+    textAlign: 'center', 
     lineHeight: 24,
+    fontWeight: "500",
+    paddingHorizontal: 15
   },
-  buttonsContainer: {
-    marginBottom: 60,
+  buttonSection: {
+    width: '100%',
+    gap: 12,
   },
-  button: {
-    padding: 16,
-    borderRadius: 12,
-    alignItems: "center",
-    marginBottom: 16,
+  primaryBtn: { 
+    paddingVertical: 18, 
+    borderRadius: 16, 
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  buttonText: { color: "#fff", fontWeight: "600", fontSize: 16 },
+  primaryBtnText: { fontSize: 16, fontWeight: "800", letterSpacing: 0.5 },
+  secondaryBtn: { 
+    paddingVertical: 18, 
+    borderRadius: 16, 
+    alignItems: 'center', 
+    borderWidth: 1.5,
+  },
+  secondaryBtnText: { fontSize: 16, fontWeight: "700" },
+  footerNote: {
+    marginTop: 30,
+    fontSize: 11,
+    color: '#CCCCCC',
+    fontWeight: '700',
+    letterSpacing: 1,
+    textTransform: 'uppercase'
+  }
 });

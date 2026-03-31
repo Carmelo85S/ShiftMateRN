@@ -268,7 +268,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
     paddingTop: 20,
     borderTopWidth: 1,
-    borderTopColor: 'rgba(0,0,0,0.05)', // Minimalist separator
+    borderTopColor: 'rgba(0,0,0,0.05)',
   },
   actionRow: { flexDirection: 'row', justifyContent: 'space-between', gap: 12 },
   button: {

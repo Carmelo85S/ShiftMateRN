@@ -23,7 +23,7 @@ export default function DashboardLayout() {
       <Stack.Screen 
         name="index" 
         options={{ 
-          title: "Dashboard" // Il titolo che vedrai in alto
+          title: "Dashboard"
         }} 
       />
     </Stack>

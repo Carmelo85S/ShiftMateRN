@@ -90,7 +90,7 @@ export default function ProfileManager() {
           </Text>
         </View>
 
-        {/* MENU: Righe eleganti con icone a sinistra */}
+        {/* MENU */}
         <View style={styles.menuList}>
           <MenuRow 
             label="Edit Details" 
@@ -111,12 +111,20 @@ export default function ProfileManager() {
             theme={theme}
           />
           
+          {/* LOGOUT INTEGRATO NEL MENU */}
           <Pressable 
             onPress={() => supabase.auth.signOut().then(() => router.replace("/auth/login"))}
-            style={styles.logoutBtn}
+            style={({ pressed }) => [
+              styles.menuRow, 
+              { borderBottomWidth: 0, marginTop: 10, opacity: pressed ? 0.6 : 1 }
+            ]}
           >
-            <Ionicons name="log-out-outline" size={20} color={theme.delete} />
-            <Text style={[styles.logoutText, { color: theme.delete }]}>Sign Out</Text>
+            <View style={styles.menuLeft}>
+              <View style={[styles.iconCircle, { backgroundColor: '#FFF5F5' }]}>
+                <Ionicons name="log-out-outline" size={20} color={theme.delete} />
+              </View>
+              <Text style={[styles.menuLabel, { color: theme.delete }]}>Sign Out</Text>
+            </View>
           </Pressable>
         </View>
       </ScrollView>
@@ -159,16 +167,23 @@ const styles = StyleSheet.create({
   statusDot: { width: 8, height: 8, borderRadius: 4 },
   statusText: { fontSize: 14, fontWeight: "700" },
 
-  bioSection: { marginBottom: 40 },
+  bioSection: { marginBottom: 10 },
   sectionTitle: { fontSize: 18, fontWeight: "800", marginBottom: 8 },
   bioDescription: { fontSize: 15, lineHeight: 22, fontWeight: "500" },
 
-  menuList: { gap: 5 },
-  menuRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 16, borderBottomWidth: 1 },
+ menuList: { 
+    marginTop: 10,
+    gap: 2 // Ridotto il gap per rendere il menu più compatto
+  },
+  menuRow: { 
+    flexDirection: 'row', 
+    alignItems: 'center', 
+    justifyContent: 'space-between', 
+    paddingVertical: 16, 
+    borderBottomWidth: 1 
+  },
   menuLeft: { flexDirection: 'row', alignItems: 'center', gap: 14 },
   iconCircle: { width: 40, height: 40, borderRadius: 12, justifyContent: 'center', alignItems: 'center' },
   menuLabel: { fontSize: 16, fontWeight: "600" },
 
-  logoutBtn: { flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 40, alignSelf: 'center' },
-  logoutText: { fontSize: 16, fontWeight: "700" },
 });

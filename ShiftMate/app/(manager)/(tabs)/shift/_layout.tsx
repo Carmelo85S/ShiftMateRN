@@ -11,10 +11,9 @@ export default function ShiftStackLayout() {
       screenOptions={{
         // ✅ Abilita la barra in alto su tutte le pagine della cartella
         headerShown: true, 
-        
-        // ✅ Testo del tasto "Indietro" (molto utile su iOS)
-        headerBackTitle: "Indietro", 
-        
+
+        headerBackButtonDisplayMode: "minimal",
+
         // ✅ Colore della freccia e dei testi nell'header
         headerTintColor: theme.tint, 
         
@@ -37,7 +36,10 @@ export default function ShiftStackLayout() {
       <Stack.Screen 
         name="index" 
         options={{ 
-          title: "I Miei Turni" 
+          title: "My shifts",
+          headerStyle: {
+          backgroundColor: theme.background,
+        },
         }} 
       />
 
@@ -45,9 +47,11 @@ export default function ShiftStackLayout() {
       <Stack.Screen 
         name="[id]" 
         options={{ 
-          title: "Dettaglio Turno",
-          // Puoi anche rendere l'header trasparente qui se hai una bella immagine di copertina
-          // headerTransparent: true, 
+          title: "Shift Details",
+          headerStyle: {
+            backgroundColor: theme.background,
+          },
+          
         }} 
       />
 
@@ -55,8 +59,11 @@ export default function ShiftStackLayout() {
       <Stack.Screen 
         name="editShift" 
         options={{ 
-          title: "Modifica Turno",
-          presentation: "card", // Navigazione standard laterale
+          title: "Edit shift",
+          presentation: "card",
+          headerStyle: {
+          backgroundColor: theme.background,
+        },
         }} 
       />
     </Stack>
