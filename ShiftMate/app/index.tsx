@@ -15,7 +15,7 @@ export default function AuthChoice() {
       
       {/* HERO IMAGE SECTION */}
       <ImageBackground 
-        source={require("../assets/images/heroImage.png")} 
+        source={require("../assets/images/hero.webp")} 
         style={styles.heroImage}
         resizeMode="cover"
       />
@@ -51,7 +51,7 @@ export default function AuthChoice() {
           </Pressable>
         </View>
 
-        <Text style={styles.footerNote}>© 2026 ShitMate Operations Platform</Text>
+        <Text style={styles.footerNote}>© 2026 ShiftMate Operations Platform</Text>
       </View>
     </View>
   );

@@ -12,6 +12,7 @@ import {
   KeyboardAvoidingView,
   Platform,
   ScrollView,
+  ActivityIndicator,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 
@@ -131,69 +132,81 @@ export default function Login() {
   );
 }
 
+// Modifica queste parti nel tuo componente
 const styles = StyleSheet.create({
   container: {
     flexGrow: 1,
-    padding: 30,
+    paddingHorizontal: 32,
+    paddingTop: 80,
+    paddingBottom: 40,
     justifyContent: "center",
   },
   header: {
-    marginBottom: 50,
+    marginBottom: 45,
+    alignItems: 'flex-start',
   },
   kpi: {
-    fontSize: 12,
-    fontWeight: "900",
-    letterSpacing: 2,
+    fontSize: 13,
+    fontWeight: "700",
+    letterSpacing: 0.5,
     marginBottom: 8,
+    opacity: 0.8,
   },
   title: {
-    fontSize: 52,
-    fontWeight: "900",
-    lineHeight: 52,
-    letterSpacing: -2,
+    fontSize: 38,
+    fontWeight: "800",
+    lineHeight: 42,
+    letterSpacing: -1,
   },
   form: {
-    gap: 20,
+    gap: 24,
   },
   inputWrapper: {
-    gap: 8,
+    gap: 10,
   },
   inputLabel: {
-    fontSize: 10,
-    fontWeight: "800",
-    letterSpacing: 1,
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#1A1D1E",
     marginLeft: 4,
+    opacity: 0.7,
   },
   input: {
     width: "100%",
-    borderWidth: 2, // Più spesso per il look Brutalist
-    borderRadius: 16,
+    backgroundColor: "#F1F3F5", 
+    borderRadius: 20,
     padding: 18,
     fontSize: 16,
-    fontWeight: "600",
+    borderWidth: 1,
+    borderColor: "rgba(0,0,0,0.05)",
   },
   button: {
     width: "100%",
-    padding: 20,
-    borderRadius: 16,
+    padding: 18,
+    borderRadius: 22,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    gap: 10,
+    gap: 12,
     marginTop: 10,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.1,
+    shadowRadius: 15,
+    elevation: 5,
   },
   buttonText: {
-    fontWeight: "900",
+    fontWeight: "700",
     fontSize: 16,
-    letterSpacing: 1,
+    letterSpacing: 0.2,
   },
   registerLink: {
-    marginTop: 20,
+    marginTop: 25,
     alignItems: "center",
   },
   registerText: {
-    fontSize: 14,
-    fontWeight: "600",
-    color: "#666",
+    fontSize: 15,
+    color: "#8E8E93",
+    fontWeight: "500",
   },
 });

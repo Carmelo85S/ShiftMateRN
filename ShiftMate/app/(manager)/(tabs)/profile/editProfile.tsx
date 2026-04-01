@@ -201,41 +201,121 @@ const styles = StyleSheet.create({
   avatarUnderlay: { position: 'absolute', top: 20, width: 100, height: 100, borderRadius: 50, backgroundColor: '#000', opacity: 0.05, transform: [{ scale: 1.1 }] },
   avatarContainer: { width: 120, height: 120, borderRadius: 60, borderWidth: 4, overflow: 'hidden', zIndex: 1 },
   cameraBadge: { position: 'absolute', bottom: 5, right: '35%', width: 32, height: 32, borderRadius: 16, justifyContent: 'center', alignItems: 'center', zIndex: 2, borderBottomWidth: 0 },
-
-  formSection: { width: '100%' },
-  sectionLabel: { fontSize: 13, fontWeight: "800", letterSpacing: 1, textTransform: 'uppercase', marginBottom: 12, opacity: 0.6, marginLeft: 4 },
+formSection: { 
+    width: '100%', 
+    marginBottom: 20 
+  },
+  sectionLabel: { 
+    fontSize: 12, 
+    fontWeight: "600", 
+    letterSpacing: 0.5, 
+    textTransform: 'uppercase', 
+    marginBottom: 12, 
+    opacity: 0.4, // Molto discreto
+    marginLeft: 8 
+  },
   
-  inputGroup: { borderRadius: 24, paddingVertical: 8, paddingHorizontal: 16, shadowColor: "#000", shadowOpacity: 0.03, shadowRadius: 10, elevation: 2 },
-  inputRow: { flexDirection: 'row', alignItems: 'center', height: 60, gap: 12 },
-  field: { flex: 1, fontSize: 16, fontWeight: "600" },
-  divider: { height: 1, width: '100%' },
+  // INPUT GROUP: Superficie scavata invece di ombre esterne
+  inputGroup: { 
+    borderRadius: 24, 
+    paddingVertical: 4, 
+    paddingHorizontal: 16, 
+    backgroundColor: 'rgba(0,0,0,0.02)', // Soft background
+    borderWidth: 1,
+    borderColor: 'rgba(0,0,0,0.03)',
+  },
+  inputRow: { 
+    flexDirection: 'row', 
+    alignItems: 'center', 
+    height: 56, 
+    gap: 12 
+  },
+  field: { 
+    flex: 1, 
+    fontSize: 16, 
+    fontWeight: "500", // Più pulito del 600
+    letterSpacing: -0.2 
+  },
+  divider: { 
+    height: 1, 
+    width: '90%', 
+    alignSelf: 'center',
+    backgroundColor: 'rgba(0,0,0,0.05)' 
+  },
 
-  roleCard: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 16, borderRadius: 24, shadowColor: "#000", shadowOpacity: 0.03, shadowRadius: 10, elevation: 2 },
-  roleContent: { flexDirection: 'row', alignItems: 'center', gap: 16 },
-  roleIcon: { width: 44, height: 44, borderRadius: 14, justifyContent: 'center', alignItems: 'center' },
-  roleLabel: { fontSize: 12, fontWeight: "700", marginBottom: 2 },
-  roleValue: { fontSize: 16, fontWeight: "800" },
+  // ROLE CARD: Floating card con ombra diffusa
+  roleCard: { 
+    flexDirection: 'row', 
+    alignItems: 'center', 
+    justifyContent: 'space-between', 
+    padding: 16, 
+    borderRadius: 24, 
+    backgroundColor: '#FFF', // Stacca dal background grigio
+    shadowColor: "#000", 
+    shadowOpacity: 0.04, 
+    shadowRadius: 15, 
+    shadowOffset: { width: 0, height: 8 },
+    elevation: 3 
+  },
+  roleContent: { 
+    flexDirection: 'row', 
+    alignItems: 'center', 
+    gap: 16 
+  },
+  roleIcon: { 
+    width: 44, 
+    height: 44, 
+    borderRadius: 14, 
+    justifyContent: 'center', 
+    alignItems: 'center',
+    // backgroundColor impostato dinamicamente nel componente (tint + "15")
+  },
+  roleLabel: { 
+    fontSize: 11, 
+    fontWeight: "600", 
+    opacity: 0.5, 
+    marginBottom: 2 
+  },
+  roleValue: { 
+    fontSize: 16, 
+    fontWeight: "700" // Da 800 a 700
+  },
 
-  bioWrapper: { borderRadius: 24, padding: 20, minHeight: 140, shadowColor: "#000", shadowOpacity: 0.03, shadowRadius: 10, elevation: 2 },
-  bioField: { fontSize: 16, fontWeight: "600", lineHeight: 24, textAlignVertical: "top" },
+  // BIO: Textarea morbida
+  bioWrapper: { 
+    borderRadius: 24, 
+    padding: 20, 
+    minHeight: 140, 
+    backgroundColor: 'rgba(0,0,0,0.02)',
+    borderWidth: 1,
+    borderColor: 'rgba(0,0,0,0.03)'
+  },
+  bioField: { 
+    fontSize: 15, 
+    fontWeight: "500", 
+    lineHeight: 22, 
+    textAlignVertical: "top" 
+  },
+
   footer: {
     marginTop: 40,
     width: '100%',
+    paddingBottom: 20
   },
   saveBtn: {
-    height: 65,
-    borderRadius: 22, // Angoli smussati moderni
+    height: 60, // Leggermente più basso (da 65)
+    borderRadius: 20, 
     justifyContent: 'center',
     alignItems: 'center',
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.15,
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.1,
     shadowRadius: 12,
     elevation: 5,
   },
   saveBtnText: {
-    fontSize: 18,
-    fontWeight: "900", // Extra Bold come createEvent
-    letterSpacing: -0.5,
+    fontSize: 17,
+    fontWeight: "700", // Da 900 a 700: meno "urlo", più classe
+    letterSpacing: 0.2,
   },
 });

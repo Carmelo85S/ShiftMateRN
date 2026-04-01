@@ -192,44 +192,107 @@ const RoleCard = ({ label, selected, onPress, theme, icon }: any) => (
 );
 
 const styles = StyleSheet.create({
-  container: { padding: 25, paddingBottom: 50 },
-  header: { marginBottom: 30, marginTop: 20 },
-  backBtn: { marginBottom: 20, marginLeft: -5 },
-  kpi: { fontSize: 11, fontWeight: "900", letterSpacing: 2, marginBottom: 8 },
-  title: { fontSize: 48, fontWeight: "900", lineHeight: 48, letterSpacing: -2 },
+  container: { 
+    paddingHorizontal: 30, // Più spazio ai lati per centrare lo sguardo
+    paddingBottom: 60, 
+    paddingTop: 20 
+  },
+  header: { 
+    marginBottom: 40, 
+    marginTop: 10 
+  },
+  backBtn: { 
+    marginBottom: 20, 
+    marginLeft: -10, // Allineamento ottico con l'icona
+    width: 44, 
+    height: 44, 
+    justifyContent: 'center' 
+  },
+  kpi: { 
+    fontSize: 13, 
+    fontWeight: "700", 
+    letterSpacing: 0.5, // Ridotto lo spacing eccessivo
+    marginBottom: 8,
+    opacity: 0.6 
+  },
+  title: { 
+    fontSize: 36, // Da 48 a 36: più elegante
+    fontWeight: "800", 
+    lineHeight: 42, 
+    letterSpacing: -1 
+  },
   
-  roleWrapper: { marginBottom: 25 },
-  roleContainer: { flexDirection: "row", gap: 12, marginTop: 10 },
+  roleWrapper: { 
+    marginBottom: 32 
+  },
+  roleContainer: { 
+    flexDirection: "row", 
+    gap: 12, 
+    marginTop: 12,
+    backgroundColor: "#F1F3F5", // Sfondo comune per entrambi (stile iOS)
+    padding: 6,
+    borderRadius: 20,
+  },
   roleButton: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
-    padding: 16,
-    borderRadius: 16,
-    borderWidth: 2,
+    paddingVertical: 12, // Più sottile
+    borderRadius: 14,
+    borderWidth: 0, // Rimosso il bordo spesso 2px
   },
-  roleText: { fontWeight: "900", fontSize: 12, letterSpacing: 1 },
+  // Nota: per lo stato 'selected' userai un'ombra leggera e sfondo bianco puro
+  roleText: { 
+    fontWeight: "600", 
+    fontSize: 14, 
+    letterSpacing: 0 
+  },
 
-  form: { gap: 20 },
-  row: { flexDirection: 'row', gap: 12 },
-  inputWrapper: { gap: 8 },
-  inputLabel: { fontSize: 10, fontWeight: "800", letterSpacing: 1, marginLeft: 4 },
+  form: { 
+    gap: 24 
+  },
+  row: { 
+    flexDirection: 'row', 
+    gap: 16 
+  },
+  inputWrapper: { 
+    gap: 10 
+  },
+  inputLabel: { 
+    fontSize: 14, // Più leggibile (da 10)
+    fontWeight: "600", 
+    marginLeft: 4,
+    opacity: 0.8 
+  },
   input: {
     width: "100%",
-    borderWidth: 2,
-    borderRadius: 16,
+    backgroundColor: "#F1F3F5", // Sfondo soft invece del bordo nero
+    borderRadius: 18,
     padding: 16,
     fontSize: 16,
-    fontWeight: "600",
+    fontWeight: "500",
+    borderWidth: 1,
+    borderColor: "rgba(0,0,0,0.03)", // Bordo quasi impercettibile
   },
   button: {
     width: "100%",
-    padding: 20,
-    borderRadius: 16,
+    padding: 18,
+    borderRadius: 22,
     alignItems: "center",
-    marginTop: 10,
+    justifyContent: "center",
+    marginTop: 15,
+    // Soft Shadow per far risaltare l'azione principale
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 12,
+    elevation: 4,
   },
-  buttonText: { fontWeight: "900", fontSize: 16, letterSpacing: 1 },
+  buttonText: { 
+    fontWeight: "700", 
+    fontSize: 16, 
+    letterSpacing: 0.2 
+  },
 });

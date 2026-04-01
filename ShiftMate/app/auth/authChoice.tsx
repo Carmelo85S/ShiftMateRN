@@ -39,7 +39,7 @@ export default function AuthChoice() {
 const styles = StyleSheet.create({
   container: { flex: 1, justifyContent: "space-between", padding: 24 },
   heroContainer: { marginTop: 80 },
-  hero: { fontSize: 36, fontWeight: "bold", textAlign: "center", marginBottom: 16 },
+  hero: { fontSize: 36, fontWeight: "semibold", textAlign: "center", marginBottom: 16 },
   subHero: { fontSize: 18, textAlign: "center", lineHeight: 24 },
   buttonsContainer: { marginBottom: 40 },
   button: {

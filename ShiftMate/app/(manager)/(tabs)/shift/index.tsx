@@ -75,7 +75,6 @@ export default function ShiftsManager() {
       </View>
     );
   }
-// ... (import e logica Shift invariati)
 
   return (
     <View style={{ flex: 1, backgroundColor: theme.background }}>
@@ -144,37 +143,77 @@ export default function ShiftsManager() {
 
 const styles = StyleSheet.create({
   center: { flex: 1, justifyContent: "center", alignItems: "center" },
-  listContent: { paddingHorizontal: 20 },
+  listContent: { 
+    paddingHorizontal: 24, // Leggermente più largo per il respiro "soft"
+  },
   
-  // Header Snello
-  headerArea: { marginBottom: 25 },
-  titleRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end' },
-  kpiLabel: { fontSize: 10, fontWeight: "900", letterSpacing: 1.5, marginBottom: 2 },
-  headerTitle: { fontSize: 38, fontWeight: "900", letterSpacing: -1.5 },
+  // Header: Meno "Urlo", più "Aria"
+  headerArea: { 
+    marginBottom: 30,
+    marginTop: 15 
+  },
+  titleRow: { 
+    flexDirection: 'row', 
+    justifyContent: 'space-between', 
+    alignItems: 'center' // Allineamento centrato per eleganza
+  },
+  kpiLabel: { 
+    fontSize: 12, 
+    fontWeight: "700", // Da 900 a 700
+    letterSpacing: 0.5, 
+    marginBottom: 4,
+    opacity: 0.5 
+  },
+  headerTitle: { 
+    fontSize: 28, 
+    fontWeight: "700",
+    letterSpacing: -0.8 
+  },
   
-  countBadge: { paddingHorizontal: 10, height: 24, borderRadius: 8, justifyContent: 'center', alignItems: 'center' },
-  countText: { fontSize: 13, fontWeight: "800" },
+  countBadge: { 
+    paddingHorizontal: 12, 
+    height: 28, 
+    borderRadius: 12, // Più tondo
+    justifyContent: 'center', 
+    alignItems: 'center',
+    backgroundColor: 'rgba(0,0,0,0.03)', // Grigio quasi invisibile
+  },
+  countText: { 
+    fontSize: 14, 
+    fontWeight: "600",
+    opacity: 0.7 
+  },
 
-  // Empty State
-  emptyContainer: { marginTop: 80, alignItems: "center" },
-  emptyText: { marginTop: 12, fontSize: 15, fontWeight: "600", opacity: 0.3 },
+  // Empty State: Più delicato
+  emptyContainer: { 
+    marginTop: 100, 
+    alignItems: "center",
+    gap: 15 
+  },
+  emptyText: { 
+    fontSize: 16, 
+    fontWeight: "500", 
+    opacity: 0.4,
+    textAlign: 'center'
+  },
 
-  // FAB Circolare a lato
+  // FAB: L'unico elemento che mantiene un po' di "carattere"
   fabContainer: {
     position: 'absolute',
-    right: 20,
+    right: 24,
     zIndex: 10,
   },
   fab: {
-    width: 60,
-    height: 60,
-    borderRadius: 30, // Circolare perfetto
+    width: 52, // Leggermente più grande
+    height: 52,
+    borderRadius: 32, 
     justifyContent: "center",
     alignItems: "center",
+    // Ombra molto più diffusa (Soft Shadow)
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 8,
-    elevation: 5,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.12,
+    shadowRadius: 12,
+    elevation: 6,
   },
 });

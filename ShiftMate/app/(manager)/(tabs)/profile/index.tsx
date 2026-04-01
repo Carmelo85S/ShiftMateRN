@@ -152,38 +152,126 @@ const MenuRow = ({ label, icon, onPress, theme }: any) => (
 
 const styles = StyleSheet.create({
   center: { flex: 1, justifyContent: "center", alignItems: "center" },
-  headerRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 30 },
-  welcomeText: { fontSize: 16, fontWeight: "600", marginBottom: 2 },
-  nameTitle: { fontSize: 32, fontWeight: "800", letterSpacing: -1 },
-  avatarFrame: { width: 64, height: 64, borderRadius: 20, borderWidth: 1, justifyContent: 'center', alignItems: 'center', overflow: 'hidden' },
-  avatar: { width: '100%', height: '100%' },
+  
+  // HEADER: Più arioso e meno "bold"
+  headerRow: { 
+    flexDirection: 'row', 
+    alignItems: 'center', 
+    marginBottom: 40,
+    marginTop: 10 
+  },
+  welcomeText: { 
+    fontSize: 14, 
+    fontWeight: "600", 
+    opacity: 0.5,
+    letterSpacing: 0.5,
+    textTransform: 'uppercase' 
+  },
+  nameTitle: { 
+    fontSize: 30, 
+    fontWeight: "700", 
+    letterSpacing: -0.8 
+  },
+  avatarFrame: { 
+    width: 70, 
+    height: 70, 
+    borderRadius: 25, // Più "squircle" che cerchio
+    backgroundColor: '#FFF',
+    // Soft Shadow invece del bordo
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.08,
+    shadowRadius: 12,
+    elevation: 3,
+  },
+  avatar: { width: '100%', height: '100%', borderRadius: 25 },
 
-  infoCard: { flexDirection: 'row', borderRadius: 24, padding: 20, borderWidth: 1, marginBottom: 35 },
-  infoItem: { flex: 1, gap: 4 },
-  infoLabel: { fontSize: 10, fontWeight: "800", letterSpacing: 1 },
-  infoValue: { fontSize: 16, fontWeight: "700" },
-  verticalDivider: { width: 1, height: '100%', marginHorizontal: 15 },
-  statusBadge: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  statusDot: { width: 8, height: 8, borderRadius: 4 },
-  statusText: { fontSize: 14, fontWeight: "700" },
+  // INFO CARD: Effetto superficie morbida
+  infoCard: { 
+    flexDirection: 'row', 
+    borderRadius: 24, 
+    padding: 24, 
+    backgroundColor: '#FFF',
+    borderWidth: 0, // Via i bordi
+    marginBottom: 40,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.04,
+    shadowRadius: 20,
+    elevation: 2,
+  },
+  infoItem: { flex: 1, gap: 6 },
+  infoLabel: { 
+    fontSize: 11, 
+    fontWeight: "600", 
+    opacity: 0.4,
+    letterSpacing: 0.5 
+  },
+  infoValue: { 
+    fontSize: 16, 
+    fontWeight: "700" 
+  },
+  verticalDivider: { 
+    width: 1, 
+    height: '80%', 
+    alignSelf: 'center',
+    marginHorizontal: 20,
+    opacity: 0.1 // Quasi invisibile
+  },
+  statusBadge: { 
+    flexDirection: 'row', 
+    alignItems: 'center', 
+    gap: 6,
+    backgroundColor: 'rgba(52, 199, 89, 0.1)', // Verde chiarissimo di sfondo
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 10,
+    alignSelf: 'flex-start'
+  },
+  statusDot: { width: 6, height: 6, borderRadius: 3 },
+  statusText: { fontSize: 12, fontWeight: "700" },
 
-  bioSection: { marginBottom: 10 },
-  sectionTitle: { fontSize: 18, fontWeight: "800", marginBottom: 8 },
-  bioDescription: { fontSize: 15, lineHeight: 22, fontWeight: "500" },
+  // BIO
+  bioSection: { marginBottom: 30, paddingHorizontal: 4 },
+  sectionTitle: { 
+    fontSize: 18, 
+    fontWeight: "700", 
+    marginBottom: 10,
+    letterSpacing: -0.3 
+  },
+  bioDescription: { 
+    fontSize: 15, 
+    lineHeight: 22, 
+    fontWeight: "400",
+    opacity: 0.7 
+  },
 
- menuList: { 
+  // MENU: Pulito e distanziato
+  menuList: { 
     marginTop: 10,
-    gap: 2 // Ridotto il gap per rendere il menu più compatto
+    gap: 8 
   },
   menuRow: { 
     flexDirection: 'row', 
     alignItems: 'center', 
     justifyContent: 'space-between', 
-    paddingVertical: 16, 
-    borderBottomWidth: 1 
+    paddingVertical: 14, 
+    paddingHorizontal: 12,
+    borderRadius: 16, // Ogni riga è quasi una card a sé
+    borderBottomWidth: 0,
   },
-  menuLeft: { flexDirection: 'row', alignItems: 'center', gap: 14 },
-  iconCircle: { width: 40, height: 40, borderRadius: 12, justifyContent: 'center', alignItems: 'center' },
-  menuLabel: { fontSize: 16, fontWeight: "600" },
-
+  menuLeft: { flexDirection: 'row', alignItems: 'center', gap: 16 },
+  iconCircle: { 
+    width: 42, 
+    height: 42, 
+    borderRadius: 14, 
+    justifyContent: 'center', 
+    alignItems: 'center',
+    backgroundColor: 'rgba(0,0,0,0.03)' // Sfondo cerchio icona molto soft
+  },
+  menuLabel: { 
+    fontSize: 16, 
+    fontWeight: "500",
+    opacity: 0.9 
+  },
 });

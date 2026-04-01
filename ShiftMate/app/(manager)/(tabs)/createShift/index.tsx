@@ -17,6 +17,7 @@ import { Colors } from "@/constants/theme";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import ShiftUploader from "@/components/imagePicker/imagePickerShift"; // Importato il tuo componente
 
 export default function CreateShift() {
   const router = useRouter();
@@ -25,6 +26,7 @@ export default function CreateShift() {
   const theme = Colors[colorScheme ?? "light"];
 
   const [loading, setLoading] = useState(false);
+  const [imageUrl, setImageUrl] = useState<string | null>(null); // Stato per l'immagine
   const [form, setForm] = useState({
     title: "",
     description: "",
@@ -52,6 +54,7 @@ export default function CreateShift() {
           shift_date: form.date,
           start_time: form.startTime,
           end_time: form.endTime,
+          image_url: imageUrl, // Salviamo l'URL restituito dall'uploader
           status: "open",
         },
       ]);
@@ -62,7 +65,9 @@ export default function CreateShift() {
         { text: "View Shifts", onPress: () => router.push("/(manager)/(tabs)/shift") },
       ]);
       
+      // Reset form
       setForm({ title: "", description: "", date: form.date, startTime: "09:00", endTime: "17:00" });
+      setImageUrl(null);
     } catch (err) {
       console.error(err);
       Alert.alert("Error", "Could not create shift. Please try again.");
@@ -85,7 +90,7 @@ export default function CreateShift() {
         ]}
         placeholder={placeholder}
         placeholderTextColor={theme.text + "40"}
-        value={form[key]}
+        value={form[key] as string}
         onChangeText={(text) => setForm({ ...form, [key]: text })}
         multiline={multiLine}
       />
@@ -98,12 +103,21 @@ export default function CreateShift() {
       style={{ flex: 1, backgroundColor: theme.background }}
     >
       <ScrollView 
-        contentContainerStyle={[styles.scrollContent, { paddingTop: insets.top + 20, paddingBottom: 120 }]}
+        contentContainerStyle={[styles.scrollContent, {paddingBottom: 120 }]}
         showsVerticalScrollIndicator={false}
       >
         <View style={styles.header}>
           <Text style={[styles.title, { color: theme.text }]}>Create New Shift</Text>
           <Text style={[styles.subtitle, { color: theme.text }]}>Fill in the details to find the best workers.</Text>
+        </View>
+
+        {/* SEZIONE IMMAGINE - Usando il tuo componente */}
+        <View style={styles.imageSection}>
+           <Text style={[styles.label, { color: theme.text, marginBottom: 12 }]}>Cover Image</Text>
+           <ShiftUploader
+              initialUrl={imageUrl}
+              onUpload={(url) => setImageUrl(url)}
+            />
         </View>
 
         {renderInput("Job Title *", "briefcase-outline", "title", "e.g. Head Waiter")}
@@ -147,37 +161,83 @@ export default function CreateShift() {
 }
 
 const styles = StyleSheet.create({
-  scrollContent: { paddingHorizontal: 24 },
-  header: { marginBottom: 32 },
-  title: { fontSize: 32, fontWeight: "800", letterSpacing: -1 },
-  subtitle: { fontSize: 16, opacity: 0.5, marginTop: 4, fontWeight: "500" },
+  scrollContent: { 
+    paddingHorizontal: 28, // Più respiro laterale
+  },
+  header: { 
+    marginBottom: 35,
+    marginTop: 10 
+  },
+  title: { 
+    fontSize: 30, // Leggermente più piccolo per eleganza
+    fontWeight: "700", // Da 800 a 700
+    letterSpacing: -0.8 
+  },
+  subtitle: { 
+    fontSize: 15, 
+    opacity: 0.5, 
+    marginTop: 6, 
+    lineHeight: 20,
+    fontWeight: "400" 
+  },
   
-  inputWrapper: { marginBottom: 20 },
-  labelRow: { flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 10, marginLeft: 4 },
-  label: { fontSize: 14, fontWeight: "700", opacity: 0.8 },
+  imageSection: { 
+    marginBottom: 30 
+  },
+  
+  inputWrapper: { 
+    marginBottom: 24 
+  },
+  labelRow: { 
+    flexDirection: "row", 
+    alignItems: "center", 
+    gap: 6, 
+    marginBottom: 10, 
+    marginLeft: 4 
+  },
+  label: { 
+    fontSize: 14, 
+    fontWeight: "600", // Meno pesante
+    opacity: 0.6 // Più discreto
+  },
   input: {
-    padding: 18,
-    borderRadius: 20,
+    padding: 16,
+    borderRadius: 18, // Più tondo
     fontSize: 16,
     fontWeight: "500",
     borderWidth: 1,
+    // Lo sfondo dell'input deve essere quasi uguale a quello della card
+    backgroundColor: 'rgba(0,0,0,0.02)', 
+    borderColor: 'rgba(0,0,0,0.05)',
   },
-  textArea: { height: 120, textAlignVertical: "top" },
-  row: { flexDirection: "row", justifyContent: "space-between" },
+  textArea: { 
+    height: 100, 
+    textAlignVertical: "top",
+    paddingTop: 16 
+  },
+  row: { 
+    flexDirection: "row", 
+    gap: 12 // Usiamo gap invece di marginRight manuale
+  },
   
   submitButton: {
-    marginTop: 20,
-    height: 64,
-    borderRadius: 22,
+    marginTop: 15,
+    height: 60,
+    borderRadius: 20,
     flexDirection: "row",
     justifyContent: "center",
     alignItems: "center",
     gap: 10,
+    // Ombra molto diffusa (Soft Shadow)
     shadowColor: "#000",
-    shadowOpacity: 0.1,
-    shadowRadius: 15,
-    shadowOffset: { width: 0, height: 8 },
-    elevation: 5,
+    shadowOpacity: 0.08,
+    shadowRadius: 20,
+    shadowOffset: { width: 0, height: 10 },
+    elevation: 4,
   },
-  submitText: { fontSize: 18, fontWeight: "800" },
+  submitText: { 
+    fontSize: 16, 
+    fontWeight: "600", // Da 800 a 600 per coerenza soft
+    letterSpacing: 0.2
+  },
 });

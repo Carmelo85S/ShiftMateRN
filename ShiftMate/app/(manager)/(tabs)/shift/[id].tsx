@@ -163,32 +163,160 @@ export default function ShiftDetail() {
 
 const styles = StyleSheet.create({
   center: { flex: 1, justifyContent: "center", alignItems: "center" },
-  heroContainer: { height: 350, width: '100%' },
+  
+  // HERO SECTION: Immagine immersiva
+  heroContainer: { height: 380, width: '100%' },
   heroImage: { width: '100%', height: '100%' },
-  heroOverlay: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.4)' },
-  heroContent: { position: 'absolute', bottom: 0, left: 24, right: 24, paddingBottom: 40 },
-  heroTitle: { color: '#FFF', fontSize: 32, fontWeight: '800', letterSpacing: -0.5 },
-  badge: { alignSelf: 'flex-start', paddingHorizontal: 12, paddingVertical: 4, borderRadius: 8, marginBottom: 12 },
-  badgeText: { color: '#FFF', fontSize: 10, fontWeight: '800' },
+  heroOverlay: { 
+    ...StyleSheet.absoluteFillObject, 
+    backgroundColor: 'rgba(0,0,0,0.35)' // Leggermente più chiaro per far respirare i colori
+  },
+  heroContent: { 
+    position: 'absolute', 
+    bottom: 50, // Più spazio dal bordo per l'overlap della card
+    left: 28, 
+    right: 28 
+  },
+  heroTitle: { 
+    color: '#FFF', 
+    fontSize: 34, 
+    fontWeight: '800', 
+    letterSpacing: -1,
+    lineHeight: 38 
+  },
+  badge: { 
+    alignSelf: 'flex-start', 
+    paddingHorizontal: 10, 
+    paddingVertical: 5, 
+    borderRadius: 10, 
+    marginBottom: 14,
+    shadowColor: "#000",
+    shadowOpacity: 0.2,
+    shadowRadius: 10
+  },
+  badgeText: { color: '#FFF', fontSize: 11, fontWeight: '800', letterSpacing: 0.5 },
   
-  mainContent: { flex: 1, marginTop: -30, borderTopLeftRadius: 32, borderTopRightRadius: 32, padding: 24 },
-  chipRow: { flexDirection: 'row', gap: 12, marginBottom: 32 },
-  chip: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 16, paddingVertical: 10, borderRadius: 16 },
-  chipText: { fontSize: 14, fontWeight: '600' },
+  // MAIN CONTENT: La "superficie" che sale
+  mainContent: { 
+    flex: 1, 
+    marginTop: -35, 
+    borderTopLeftRadius: 36, 
+    borderTopRightRadius: 36, 
+    padding: 28,
+    // Un'ombra leggerissima verso l'alto per dare profondità all'overlap
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: -10 },
+    shadowOpacity: 0.05,
+    shadowRadius: 20,
+  },
+
+  // CHIPS: Pillole di informazione eleganti
+  chipRow: { flexDirection: 'row', gap: 12, marginBottom: 35 },
+  chip: { 
+    flexDirection: 'row', 
+    alignItems: 'center', 
+    gap: 8, 
+    paddingHorizontal: 16, 
+    paddingVertical: 12, 
+    borderRadius: 18,
+    backgroundColor: 'rgba(0,0,0,0.02)', // Soft background
+    borderWidth: 1,
+    borderColor: 'rgba(0,0,0,0.03)'
+  },
+  chipText: { fontSize: 14, fontWeight: '600', letterSpacing: -0.2 },
   
-  sectionTitle: { fontSize: 20, fontWeight: '800', marginBottom: 12, letterSpacing: -0.5 },
-  description: { fontSize: 16, lineHeight: 24, opacity: 0.6, marginBottom: 32 },
+  // TESTI
+  sectionTitle: { 
+    fontSize: 22, 
+    fontWeight: '700', 
+    marginBottom: 12, 
+    letterSpacing: -0.6 
+  },
+  description: { 
+    fontSize: 16, 
+    lineHeight: 25, 
+    opacity: 0.5, 
+    marginBottom: 35,
+    fontWeight: '400' 
+  },
   
-  sectionHeader: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 20 },
-  countBadge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 10 },
+  // APPLICANTS: Grid di candidati "Clean"
+  sectionHeader: { 
+    flexDirection: 'row', 
+    alignItems: 'center', 
+    justifyContent: 'space-between', // Titolo a sx, conteggio a dx
+    marginBottom: 20 
+  },
+  countBadge: { 
+    paddingHorizontal: 12, 
+    paddingVertical: 6, 
+    borderRadius: 12,
+    backgroundColor: 'rgba(0,0,0,0.04)' 
+  },
   
-  appsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
-  appCard: { width: (width - 72) / 3, padding: 12, borderRadius: 20, alignItems: 'center', shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 10, elevation: 2 },
-  appAvatar: { width: 50, height: 50, borderRadius: 25, marginBottom: 8 },
-  appName: { fontSize: 12, fontWeight: '700' },
-  statusDot: { width: 8, height: 8, borderRadius: 4, marginTop: 6 },
+  appsGrid: { 
+    flexDirection: 'row', 
+    flexWrap: 'wrap', 
+    gap: 14, // Aumentato il gap
+    justifyContent: 'space-between'
+  },
+  appCard: { 
+    width: (width - 70) / 3, // Calcolo preciso per 3 colonne
+    paddingVertical: 18,
+    paddingHorizontal: 10, 
+    borderRadius: 24, 
+    alignItems: 'center',
+    backgroundColor: '#FFF',
+    // Invece di ombre forti, usiamo un bordo quasi invisibile o ombra "cloud"
+    shadowColor: '#000', 
+    shadowOpacity: 0.03, 
+    shadowRadius: 15, 
+    elevation: 2 
+  },
+  appAvatar: { 
+    width: 56, 
+    height: 56, 
+    borderRadius: 20, // Avatar "Squircle" per coerenza
+    marginBottom: 10 
+  },
+  appName: { 
+    fontSize: 13, 
+    fontWeight: '600', 
+    textAlign: 'center' 
+  },
+  statusDot: { 
+    width: 8, 
+    height: 8, 
+    borderRadius: 4, 
+    marginTop: 8,
+    borderWidth: 1.5,
+    borderColor: '#FFF' // Effetto "ritaglio" sul dot
+  },
   
-  emptyApps: { padding: 40, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderStyle: 'dashed', borderColor: '#CCC', borderRadius: 20 },
+  emptyApps: { 
+    padding: 50, 
+    alignItems: 'center', 
+    justifyContent: 'center', 
+    borderWidth: 2, 
+    borderStyle: 'dashed', 
+    borderColor: 'rgba(0,0,0,0.05)', 
+    borderRadius: 24 
+  },
   
-  fab: { position: 'absolute', right: 24, width: 60, height: 60, borderRadius: 30, justifyContent: 'center', alignItems: 'center', shadowColor: '#000', shadowOpacity: 0.2, shadowRadius: 10, elevation: 5 }
+  // FAB: Azione principale
+  fab: { 
+    position: 'absolute', 
+    right: 28, 
+    width: 52, // Leggermente più grande
+    height: 52,
+    borderRadius: 32, 
+    justifyContent: "center",
+    alignItems: "center",
+    // Ombra molto più diffusa (Soft Shadow)
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.12,
+    shadowRadius: 12,
+    elevation: 6,
+  }
 });

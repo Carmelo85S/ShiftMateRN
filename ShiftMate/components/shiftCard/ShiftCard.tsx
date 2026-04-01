@@ -78,21 +78,28 @@ export const ShiftCard = ({ item, onPress, variant = "manager" }: ShiftCardProps
 
 const styles = StyleSheet.create({
   card: {
-    padding: 16,
+    padding: 14, // Leggermente più compatto
     borderRadius: 24,
-    borderWidth: 1,
-    marginBottom: 12,
+    borderWidth: 0, // Rimuoviamo il bordo netto
+    marginBottom: 16, // Più spazio tra le card per farle respirare
+    // Soft Shadow per l'effetto "galleggiamento"
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.04,
+    shadowRadius: 12,
+    elevation: 2,
   },
   content: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 16,
+    gap: 14,
   },
   imageContainer: {
-    width: 60,
-    height: 60,
+    width: 58,
+    height: 58,
     borderRadius: 18,
-    borderWidth: 1,
+    borderWidth: 0, // Via i bordi interni
+    backgroundColor: 'rgba(0,0,0,0.03)', // Sfondo neutro per il fallback
     justifyContent: "center",
     alignItems: "center",
     overflow: "hidden",
@@ -103,28 +110,36 @@ const styles = StyleSheet.create({
   },
   mainInfo: { 
     flex: 1, 
-    gap: 4 
+    gap: 2 
   },
   title: { 
-    fontSize: 18, 
-    fontWeight: "800", 
-    letterSpacing: -0.5 
+    fontSize: 17, 
+    fontWeight: "700", // Da 800 a 700 per eleganza
+    letterSpacing: -0.4 
   },
   detailsRow: { 
     flexDirection: "row", 
-    gap: 10,
-    marginTop: 4
+    gap: 12,
+    marginTop: 4,
+    alignItems: 'center'
   },
   infoItem: { 
     flexDirection: "row", 
     alignItems: "center", 
-    gap: 4 
+    gap: 5,
+    // Un leggero sfondo alle pillole di info le rende più leggibili
+    backgroundColor: 'rgba(0,0,0,0.02)',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 10,
   },
   infoText: { 
     fontSize: 12, 
-    fontWeight: "700" 
+    fontWeight: "600", // Da 700 a 600
+    opacity: 0.7
   },
   actionIcon: {
     marginLeft: 4,
+    opacity: 0.3, // Rendiamo l'icona di navigazione meno invadente
   }
 });

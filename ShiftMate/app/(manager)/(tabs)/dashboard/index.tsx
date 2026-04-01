@@ -179,50 +179,138 @@ export default function Dashboard() {
   );
 }
 
-// Sottocomponente per azioni rapide
+// Aggiorna queste parti nel tuo Dashboard.tsx
+
 const QuickAction = ({ title, icon, onPress, theme }: any) => (
   <Pressable 
     onPress={onPress}
     style={({ pressed }) => [
       styles.actionBtn, 
-      { backgroundColor: theme.card, borderColor: theme.border, opacity: pressed ? 0.7 : 1 }
+      { 
+        backgroundColor: theme.card, // Un bianco sporco o grigio chiarissimo
+        opacity: pressed ? 0.8 : 1,
+        transform: [{ scale: pressed ? 0.96 : 1 }] // Effetto click morbido
+      }
     ]}
   >
-    <Ionicons name={icon} size={22} color={theme.text} />
+    <View style={[styles.iconCircle, { backgroundColor: theme.tint + "15" }]}>
+        <Ionicons name={icon} size={20} color={theme.tint} />
+    </View>
     <Text style={[styles.actionBtnText, { color: theme.text }]}>{title}</Text>
   </Pressable>
 );
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  topBar: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 40 },
-  dateText: { fontSize: 11, fontWeight: "800", letterSpacing: 1.5 },
-  userName: { fontSize: 28, fontWeight: "900", letterSpacing: -1 },
-  profileButton: { width: 48, height: 48, borderRadius: 16, borderWidth: 1, justifyContent: 'center', alignItems: 'center' },
+  
+  // HEADER: Meno "urlo", più eleganza
+  topBar: { 
+    flexDirection: 'row', 
+    justifyContent: 'space-between', 
+    alignItems: 'center', 
+    marginBottom: 35,
+    marginTop: 10
+  },
+  dateText: { 
+    fontSize: 12, 
+    fontWeight: "600", 
+    letterSpacing: 0.5,
+    textTransform: 'capitalize', // Meno aggressivo del tutto maiuscolo
+    opacity: 0.6
+  },
+  userName: { 
+    fontSize: 28, 
+    fontWeight: "700", // Da 900 a 700
+    letterSpacing: -0.8 
+  },
+  profileButton: { 
+    width: 45, 
+    height: 45, 
+    borderRadius: 22, // Più tondo
+    justifyContent: 'center', 
+    alignItems: 'center',
+    backgroundColor: '#FFF',
+    // Soft shadow invece del bordo
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.05,
+    shadowRadius: 10,
+    elevation: 2,
+  },
 
+  // METRICS: Effetto "Floating Card"
   metricsRow: { 
     flexDirection: 'row', 
-    backgroundColor: '#FFF', // Usiamo White per farla staccare dal Neutral_100
+    backgroundColor: '#FFF', 
     borderRadius: 24, 
-    paddingVertical: 20, 
-    marginBottom: 25,
-    borderWidth: 1,
-    borderColor: '#E5E7EB'
+    paddingVertical: 22, 
+    marginBottom: 30,
+    // Ombra diffusa che lo fa sembrare soffice
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.04,
+    shadowRadius: 20,
+    elevation: 3,
   },
-  metricBox: { flex: 1, alignItems: 'center', gap: 4 },
-  metricLabel: { fontSize: 10, fontWeight: "800", letterSpacing: 1 },
-  metricValue: { fontSize: 22, fontWeight: "900" },
+  metricBox: { flex: 1, alignItems: 'center', gap: 6 },
+  metricLabel: { 
+    fontSize: 11, 
+    fontWeight: "600", 
+    opacity: 0.5,
+    letterSpacing: 0.3 
+  },
+  metricValue: { 
+    fontSize: 24, 
+    fontWeight: "700" 
+  },
 
-  actionGrid: { flexDirection: 'row', gap: 12, marginBottom: 40 },
-  actionBtn: { flex: 1, height: 56, borderRadius: 18, borderWidth: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10 },
-  actionBtnText: { fontSize: 15, fontWeight: "700" },
+  // QUICK ACTIONS: Bottoni con icone evidenziate
+  actionGrid: { flexDirection: 'row', gap: 16, marginBottom: 35 },
+  actionBtn: { 
+    flex: 1, 
+    paddingVertical: 14, 
+    paddingHorizontal: 12,
+    borderRadius: 20, 
+    flexDirection: 'column', // Layout verticale per un look più moderno
+    alignItems: 'center', 
+    justifyContent: 'center', 
+    gap: 10,
+    backgroundColor: '#FFF',
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.03,
+    shadowRadius: 8,
+  },
+  iconCircle: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  actionBtnText: { fontSize: 13, fontWeight: "600" },
 
-  sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 },
-  sectionTitle: { fontSize: 22, fontWeight: "900", letterSpacing: -0.5 },
-  sectionSubtitle: { fontSize: 14, fontWeight: "500", marginTop: 2 },
+  // SECTIONS
+  sectionHeader: { 
+    flexDirection: 'row', 
+    justifyContent: 'space-between', 
+    alignItems: 'center', 
+    marginBottom: 18 
+  },
+  sectionTitle: { fontSize: 20, fontWeight: "700", letterSpacing: -0.5 },
+  sectionSubtitle: { fontSize: 14, opacity: 0.6, marginTop: 2 },
   
-  shiftsList: { gap: 12 },
-  emptyBox: { height: 100, borderRadius: 24, borderWidth: 1, borderStyle: 'dashed', justifyContent: 'center', alignItems: 'center' },
-  emptyText: { fontSize: 14, fontWeight: "600" },
+  shiftsList: { gap: 16 },
+  emptyBox: { 
+    height: 120, 
+    borderRadius: 24, 
+    backgroundColor: 'rgba(0,0,0,0.02)',
+    borderWidth: 1, 
+    borderStyle: 'dashed', 
+    borderColor: 'rgba(0,0,0,0.1)',
+    justifyContent: 'center', 
+    alignItems: 'center' 
+  },
+  emptyText: { fontSize: 14, fontWeight: "500", opacity: 0.5 },
   center: { flex: 1, justifyContent: "center", alignItems: "center" },
 });

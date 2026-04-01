@@ -194,7 +194,7 @@ export default function EditShift() {
         onPress={handleSave}
         style={({ pressed }) => [
           styles.button,
-          { backgroundColor: theme.tint, opacity: pressed ? 0.85 : 1 },
+            { backgroundColor: theme.text, opacity: pressed || loading ? 0.8 : 1 }
         ]}
         disabled={saving}
       >
@@ -205,21 +205,120 @@ export default function EditShift() {
 }
 
 const styles = StyleSheet.create({
-  container: { flexGrow: 1, padding: 20 },
-  center: { flex: 1, justifyContent: "center", alignItems: "center" },
+  container: { 
+    flexGrow: 1, 
+    padding: 24, // Più respiro laterale
+    backgroundColor: 'transparent' 
+  },
+  center: { 
+    flex: 1, 
+    justifyContent: "center", 
+    alignItems: "center" 
+  },
 
-  subtitle: { fontSize: 14, opacity: 0.7, marginBottom: 20 },
+  subtitle: { 
+    fontSize: 15, 
+    opacity: 0.5, 
+    lineHeight: 22,
+    marginBottom: 25,
+    fontWeight: "400" 
+  },
 
-  card: { borderRadius: 18, padding: 16, marginBottom: 16, backgroundColor: "#fff", elevation: 2 },
-  sectionTitle: { fontSize: 16, fontWeight: "600", marginBottom: 12 },
-  label: { fontSize: 13, marginBottom: 6, opacity: 0.7 },
-  input: { borderWidth: 1, borderColor: "#ddd", borderRadius: 12, padding: 14, fontSize: 15, marginBottom: 12 },
-  textarea: { borderWidth: 1, borderColor: "#ddd", borderRadius: 12, padding: 14, fontSize: 15, minHeight: 100, textAlignVertical: "top", marginBottom: 4 },
-  counter: { textAlign: "right", fontSize: 12, color: "#999", marginBottom: 0 },
+  // CARD: Superficie "Galleggiante"
+  card: { 
+    borderRadius: 24, 
+    padding: 20, 
+    marginBottom: 20, 
+    backgroundColor: "#fff",
+    // Ombra diffusa stile Cloud
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.04,
+    shadowRadius: 20,
+    elevation: 3 
+  },
+  
+  sectionTitle: { 
+    fontSize: 18, 
+    fontWeight: "700", 
+    letterSpacing: -0.5,
+    marginBottom: 16 
+  },
+  
+  label: { 
+    fontSize: 13, 
+    fontWeight: "600",
+    marginBottom: 8, 
+    opacity: 0.4,
+    letterSpacing: 0.3,
+    textTransform: 'uppercase' // Etichette più professionali
+  },
 
-  row: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 12 },
-  rowLabel: { fontSize: 14, fontWeight: "500" },
+  // INPUT: Effetto "Scavato" (Inverted Surface)
+  input: { 
+    backgroundColor: 'rgba(0,0,0,0.02)', // Sfondo quasi invisibile
+    borderWidth: 1, 
+    borderColor: 'rgba(0,0,0,0.03)', 
+    borderRadius: 16, 
+    padding: 16, 
+    fontSize: 15, 
+    fontWeight: "500",
+    marginBottom: 16 
+  },
+  
+  textarea: { 
+    backgroundColor: 'rgba(0,0,0,0.02)',
+    borderWidth: 1, 
+    borderColor: 'rgba(0,0,0,0.03)', 
+    borderRadius: 16, 
+    padding: 16, 
+    fontSize: 15, 
+    minHeight: 120, 
+    textAlignVertical: "top", 
+    marginBottom: 6,
+    lineHeight: 22
+  },
+  
+  counter: { 
+    textAlign: "right", 
+    fontSize: 12, 
+    fontWeight: "600",
+    opacity: 0.3, 
+    marginBottom: 4 
+  },
 
-  button: { marginTop: 10, padding: 18, borderRadius: 16, alignItems: "center" },
-  buttonText: { color: "#fff", fontWeight: "700", fontSize: 16 },
+  // ROW: Allineamento perfetto
+  row: { 
+    flexDirection: "row", 
+    justifyContent: "space-between", 
+    alignItems: "center", 
+    marginBottom: 16,
+    paddingVertical: 4
+  },
+  
+  rowLabel: { 
+    fontSize: 15, 
+    fontWeight: "600",
+    opacity: 0.8 
+  },
+
+  // BUTTON: Call to Action Premium
+  button: { 
+    marginTop: 15, 
+    padding: 18, 
+    borderRadius: 20, 
+    alignItems: "center",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.12,
+    shadowRadius: 15,
+    elevation: 5
+  },
+  
+  buttonText: { 
+    color: "#fff", 
+    fontWeight: "700", 
+    fontSize: 17,
+    letterSpacing: 0.2
+  },
 });
