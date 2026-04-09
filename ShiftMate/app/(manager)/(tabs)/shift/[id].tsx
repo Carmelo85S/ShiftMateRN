@@ -33,24 +33,30 @@ export default function ShiftDetail() {
   const [loadingApps, setLoadingApps] = useState(true);
 
   const loadData = useCallback(async () => {
+    const start = Date.now();
     if (!id) return;
+    
     try {
-      const { data: shiftData } = await supabase.from("shifts").select("*").eq("id", id).single();
-      setShift(shiftData);
+      // 1. Lanciamo ENTRAMBE le query insieme
+      const [shiftRes, appsRes] = await Promise.all([
+        supabase.from("shifts").select("*").eq("id", id).single(),
+        supabase.from("applications")
+          .select(`id, status, profile_id, profiles(name, surname, avatar_url)`)
+          .eq("shift_id", id)
+      ]);
 
-      setLoadingApps(true);
-      const { data: appsData } = await supabase
-        .from("applications")
-        .select(`id, status, profile_id, profiles(name, surname, avatar_url)`)
-        .eq("shift_id", id);
-      
-      setApplications(appsData || []);
+      // 2. Gestiamo i risultati
+      if (shiftRes.data) setShift(shiftRes.data);
+      if (appsRes.data) setApplications(appsRes.data);
+
     } catch (err) {
       console.error(err);
     } finally {
       setLoading(false);
       setRefreshing(false);
       setLoadingApps(false);
+      const end = Date.now();
+      console.log(`🚀 ShiftDetail optimized duration: ${end - start}ms`);
     }
   }, [id]);
 

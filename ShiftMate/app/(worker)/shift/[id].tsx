@@ -9,7 +9,7 @@ import {
   Text,
   View,
 } from "react-native";
-import { Ionicons } from "@expo/vector-icons"; // Fondamentale per il look moderno
+import { Ionicons } from "@expo/vector-icons"; 
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 export default function ShiftDetail() {

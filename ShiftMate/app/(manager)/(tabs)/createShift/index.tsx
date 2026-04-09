@@ -48,14 +48,15 @@ export default function CreateShift() {
 
       const { error } = await supabase.from("shifts").insert([
         {
-          manager_id: user.id,
           title: form.title,
           description: form.description,
           shift_date: form.date,
           start_time: form.startTime,
           end_time: form.endTime,
-          image_url: imageUrl, // Salviamo l'URL restituito dall'uploader
+          image_url: imageUrl,
           status: "open",
+          created_by: user.id, 
+          manager_id: user.id,
         },
       ]);
 

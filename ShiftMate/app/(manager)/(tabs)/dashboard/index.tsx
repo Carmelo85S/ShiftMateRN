@@ -33,49 +33,52 @@ export default function Dashboard() {
   const [userName, setUserName] = useState("Manager");
 
   const fetchData = useCallback(async () => {
-    setLoading(true);
+    const start = Date.now();
+    if (!stats) setLoading(true);
+
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      // 1. Fetch Profile Name
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("name")
-        .eq("id", user.id)
-        .single();
-      if (profile?.name) setUserName(profile.name);
+      const today = new Date().toISOString().split("T")[0];
 
-      // 2. Fetch Statistics
-      const [workers, shifts, open] = await Promise.all([
-        supabase.from("profiles").select("id", { count: "exact", head: true }).eq("role", "worker"),
-        supabase.from("shifts").select("id", { count: "exact", head: true }).eq("manager_id", user.id),
-        supabase.from("shifts").select("id", { count: "exact", head: true }).eq("manager_id", user.id).eq("status", "open")
+      // RIDOTTO A 2 QUERY: Profilo + Tutti i turni del manager
+      const [profileRes, shiftsRes] = await Promise.all([
+        supabase.from("profiles").select("name").eq("id", user.id).single(),
+        supabase
+          .from("shifts")
+          .select("id, title, shift_date, start_time, end_time, status, image_url")
+          .eq("manager_id", user.id)
       ]);
 
+      if (profileRes.data?.name) setUserName(profileRes.data.name);
+
+      const allShifts = shiftsRes.data || [];
+
+      // Calcoliamo le statistiche qui in JS (0ms di latenza)
       setStats({
-        totalWorkers: workers.count || 0,
-        totalShifts: shifts.count || 0,
-        openShifts: open.count || 0,
+        totalWorkers: 0, // Puoi caricarlo a parte se serve davvero
+        totalShifts: allShifts.length,
+        openShifts: allShifts.filter(s => s.status === 'open').length,
       });
 
-      // 3. Fetch Next 3 Upcoming Shifts
-      const today = new Date().toISOString().split("T")[0];
-      const { data: shiftsData } = await supabase
-        .from("shifts")
-        .select("*")
-        .eq("manager_id", user.id)
-        .gte("shift_date", today)
-        .order("shift_date", { ascending: true })
-        .limit(3);
+      // Filtriamo i prossimi 3 turni dalla lista che abbiamo già
+      const upcoming = allShifts
+        .filter(s => s.shift_date >= today)
+        .sort((a, b) => a.shift_date.localeCompare(b.shift_date))
+        .slice(0, 3);
 
-      setUpcomingShifts(shiftsData || []);
+      setUpcomingShifts(upcoming);
+
     } catch (error) {
       console.error("Dashboard error:", error);
     } finally {
       setLoading(false);
+      console.log("--- FETCH FINISHED ---")
+      const end = Date.now();
+      console.log(`Fetch duration: ${end - start}ms`);
     }
-  }, []);
+  }, []); 
 
   useFocusEffect(useCallback(() => { fetchData(); }, [fetchData]));
 
