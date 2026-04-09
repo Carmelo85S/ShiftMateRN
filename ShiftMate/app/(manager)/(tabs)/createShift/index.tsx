@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useCallback } from "react";
 import {
   StyleSheet,
   View,
@@ -11,13 +11,15 @@ import {
   KeyboardAvoidingView,
   Platform,
   useColorScheme,
+  Modal, // Importato Modal
 } from "react-native";
 import { supabase } from "@/lib/supabase";
 import { Colors } from "@/constants/theme";
 import { Ionicons } from "@expo/vector-icons";
-import { useRouter } from "expo-router";
+import { useRouter, useFocusEffect } from "expo-router"; // Importato useFocusEffect
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import ShiftUploader from "@/components/imagePicker/imagePickerShift"; // Importato il tuo componente
+import DateTimePicker from "@react-native-community/datetimepicker";
+import ShiftUploader from "@/components/imagePicker/imagePickerShift";
 
 export default function CreateShift() {
   const router = useRouter();
@@ -26,18 +28,32 @@ export default function CreateShift() {
   const theme = Colors[colorScheme ?? "light"];
 
   const [loading, setLoading] = useState(false);
-  const [imageUrl, setImageUrl] = useState<string | null>(null); // Stato per l'immagine
+  const [imageUrl, setImageUrl] = useState<string | null>(null);
+  
   const [form, setForm] = useState({
     title: "",
     description: "",
-    date: new Date().toISOString().split("T")[0],
-    startTime: "09:00",
-    endTime: "17:00",
+    date: new Date(),
+    startTime: new Date(),
+    endTime: new Date(new Date().setHours(new Date().getHours() + 8)), // Default +8 ore
   });
 
+  const [picker, setPicker] = useState({
+    show: false,
+    mode: 'date' as 'date' | 'time',
+    target: '' as 'date' | 'startTime' | 'endTime'
+  });
+
+  // CHIUDE IL PICKER SE CAMBI TAB (NAVIGAZIONE GLOBALE)
+  useFocusEffect(
+    useCallback(() => {
+      return () => setPicker(p => ({ ...p, show: false }));
+    }, [])
+  );
+
   const handleCreate = async () => {
-    if (!form.title || !form.date || !form.startTime || !form.endTime) {
-      Alert.alert("Missing Info", "Please fill in all required fields marked with *");
+    if (!form.title) {
+      Alert.alert("Missing Info", "Please provide a job title.");
       return;
     }
 
@@ -50,53 +66,80 @@ export default function CreateShift() {
         {
           title: form.title,
           description: form.description,
-          shift_date: form.date,
-          start_time: form.startTime,
-          end_time: form.endTime,
+          shift_date: form.date.toISOString().split("T")[0],
+          start_time: form.startTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false }),
+          end_time: form.endTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false }),
           image_url: imageUrl,
           status: "open",
-          created_by: user.id, 
+          created_by: user.id,
           manager_id: user.id,
         },
       ]);
 
       if (error) throw error;
 
-      Alert.alert("Success", "Shift posted successfully!", [
-        { text: "View Shifts", onPress: () => router.push("/(manager)/(tabs)/shift") },
+      Alert.alert("Success", "Shift posted!", [
+        { text: "OK", onPress: () => router.push("/(manager)/(tabs)/shift") },
       ]);
-      
-      // Reset form
-      setForm({ title: "", description: "", date: form.date, startTime: "09:00", endTime: "17:00" });
-      setImageUrl(null);
     } catch (err) {
       console.error(err);
-      Alert.alert("Error", "Could not create shift. Please try again.");
+      Alert.alert("Error", "Could not create shift.");
     } finally {
       setLoading(false);
     }
   };
 
-  const renderInput = (label: string, icon: string, key: keyof typeof form, placeholder: string, multiLine = false) => (
-    <View style={styles.inputWrapper}>
-      <View style={styles.labelRow}>
-        <Ionicons name={icon as any} size={16} color={theme.text} style={{ opacity: 0.5 }} />
-        <Text style={[styles.label, { color: theme.text }]}>{label}</Text>
-      </View>
-      <TextInput
-        style={[
-          styles.input,
-          { backgroundColor: theme.card, color: theme.text, borderColor: theme.text + "10" },
-          multiLine && styles.textArea
-        ]}
-        placeholder={placeholder}
-        placeholderTextColor={theme.text + "40"}
-        value={form[key] as string}
-        onChangeText={(text) => setForm({ ...form, [key]: text })}
-        multiline={multiLine}
+  const onPickerChange = (event: any, selectedDate?: Date) => {
+    // Gestione nativa Android: si chiude dopo la selezione
+    if (Platform.OS === 'android') {
+      setPicker({ ...picker, show: false });
+      if (selectedDate) setForm({ ...form, [picker.target]: selectedDate });
+    } else {
+      // Gestione iOS: aggiorna la data mentre scorri lo spinner (non chiude)
+      if (selectedDate) setForm({ ...form, [picker.target]: selectedDate });
+    }
+  };
+
+  const showPickerMode = (mode: 'date' | 'time', target: 'date' | 'startTime' | 'endTime') => {
+    setPicker({ show: true, mode, target });
+  };
+
+  // COMPONENTE PER IL PICKER (Gestisce Android nativo vs iOS Modal Alto)
+  const renderDatePicker = () => {
+    if (!picker.show) return null;
+
+    const pickerElement = (
+      <DateTimePicker
+        value={(form as any)[picker.target]}
+        mode={picker.mode}
+        is24Hour={true}
+        display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+        onChange={onPickerChange}
+        textColor={theme.text} // Importante per iOS Dark Mode
       />
-    </View>
-  );
+    );
+
+    if (Platform.OS === 'ios') {
+      return (
+        <Modal transparent animationType="slide" visible={picker.show}>
+          <Pressable style={styles.modalOverlay} onPress={() => setPicker({ ...picker, show: false })}>
+            {/* Cliccando fuori chiude il picker */}
+            <View style={[styles.modalContent, { backgroundColor: theme.card }]}>
+              <View style={styles.modalHeader}>
+                <Pressable onPress={() => setPicker({ ...picker, show: false })}>
+                  <Text style={{ color: theme.tint, fontWeight: '700', fontSize: 16 }}>Done</Text>
+                </Pressable>
+              </View>
+              {pickerElement}
+            </View>
+          </Pressable>
+        </Modal>
+      );
+    }
+
+    // Android: renderizza direttamente il picker nativo
+    return pickerElement;
+  };
 
   return (
     <KeyboardAvoidingView 
@@ -104,38 +147,80 @@ export default function CreateShift() {
       style={{ flex: 1, backgroundColor: theme.background }}
     >
       <ScrollView 
-        contentContainerStyle={[styles.scrollContent, {paddingBottom: 120 }]}
+        contentContainerStyle={[styles.scrollContent, { paddingTop: insets.top + 20, paddingBottom: 120 }]}
         showsVerticalScrollIndicator={false}
       >
         <View style={styles.header}>
           <Text style={[styles.title, { color: theme.text }]}>Create New Shift</Text>
-          <Text style={[styles.subtitle, { color: theme.text }]}>Fill in the details to find the best workers.</Text>
+          <Text style={[styles.subtitle, { color: theme.text }]}>Define the details to attract the right candidates.</Text>
         </View>
 
-        {/* SEZIONE IMMAGINE - Usando il tuo componente */}
         <View style={styles.imageSection}>
-           <Text style={[styles.label, { color: theme.text, marginBottom: 12 }]}>Cover Image</Text>
-           <ShiftUploader
-              initialUrl={imageUrl}
-              onUpload={(url) => setImageUrl(url)}
-            />
+           <ShiftUploader initialUrl={imageUrl} onUpload={(url) => setImageUrl(url)} />
         </View>
 
-        {renderInput("Job Title *", "briefcase-outline", "title", "e.g. Head Waiter")}
-        {renderInput("Description", "document-text-outline", "description", "Describe tasks, dress code, etc.", true)}
-
-        <View style={styles.row}>
-          <View style={{ flex: 1 }}>
-            {renderInput("Date *", "calendar-outline", "date", "YYYY-MM-DD")}
-          </View>
+        {/* JOB TITLE */}
+        <View style={styles.inputWrapper}>
+          <Text style={[styles.label, { color: theme.text }]}>Job Title *</Text>
+          <TextInput
+            style={[styles.input, { backgroundColor: theme.card, color: theme.text, borderColor: theme.text + "10" }]}
+            placeholder="e.g. Head Waiter"
+            placeholderTextColor={theme.text + "40"}
+            value={form.title}
+            onChangeText={(text) => setForm({ ...form, title: text })}
+          />
         </View>
 
+        {/* DESCRIPTION */}
+        <View style={styles.inputWrapper}>
+          <Text style={[styles.label, { color: theme.text }]}>Description</Text>
+          <TextInput
+            style={[styles.input, styles.textArea, { backgroundColor: theme.card, color: theme.text, borderColor: theme.text + "10" }]}
+            placeholder="Describe tasks, requirements..."
+            placeholderTextColor={theme.text + "40"}
+            value={form.description}
+            onChangeText={(text) => setForm({ ...form, description: text })}
+            multiline
+          />
+        </View>
+
+        {/* DATE SELECTOR */}
+        <View style={styles.inputWrapper}>
+          <Text style={[styles.label, { color: theme.text }]}>Date *</Text>
+          <Pressable 
+            onPress={() => showPickerMode('date', 'date')}
+            style={[styles.input, { backgroundColor: theme.card, borderColor: theme.text + "10", justifyContent: 'center' }]}
+          >
+            <Text style={{ color: theme.text, fontSize: 16 }}>
+              {form.date.toLocaleDateString('en-US', { day: 'numeric', month: 'long', year: 'numeric' })}
+            </Text>
+          </Pressable>
+        </View>
+
+        {/* TIME SELECTORS */}
         <View style={styles.row}>
-          <View style={{ flex: 1, marginRight: 12 }}>
-            {renderInput("Start Time *", "time-outline", "startTime", "09:00")}
-          </View>
           <View style={{ flex: 1 }}>
-            {renderInput("End Time *", "log-out-outline", "endTime", "17:00")}
+            <Text style={[styles.label, { color: theme.text }]}>Start *</Text>
+            <Pressable 
+              onPress={() => showPickerMode('time', 'startTime')}
+              style={[styles.input, { backgroundColor: theme.card, borderColor: theme.text + "10", justifyContent: 'center' }]}
+            >
+              <Text style={{ color: theme.text }}>
+                {form.startTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+              </Text>
+            </Pressable>
+          </View>
+
+          <View style={{ flex: 1 }}>
+            <Text style={[styles.label, { color: theme.text }]}>End *</Text>
+            <Pressable 
+              onPress={() => showPickerMode('time', 'endTime')}
+              style={[styles.input, { backgroundColor: theme.card, borderColor: theme.text + "10", justifyContent: 'center' }]}
+            >
+              <Text style={{ color: theme.text }}>
+                {form.endTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+              </Text>
+            </Pressable>
           </View>
         </View>
 
@@ -150,95 +235,69 @@ export default function CreateShift() {
           {loading ? (
             <ActivityIndicator color={theme.background} />
           ) : (
-            <>
-              <Text style={[styles.submitText, { color: theme.background }]}>Post Shift</Text>
-              <Ionicons name="sparkles" size={18} color={theme.background} />
-            </>
+            <Text style={[styles.submitText, { color: theme.background }]}>Post Shift</Text>
           )}
         </Pressable>
+
+        {renderDatePicker()}
       </ScrollView>
     </KeyboardAvoidingView>
   );
 }
 
 const styles = StyleSheet.create({
-  scrollContent: { 
-    paddingHorizontal: 28, // Più respiro laterale
-  },
-  header: { 
-    marginBottom: 35,
-    marginTop: 10 
-  },
-  title: { 
-    fontSize: 30, // Leggermente più piccolo per eleganza
-    fontWeight: "700", // Da 800 a 700
-    letterSpacing: -0.8 
-  },
-  subtitle: { 
-    fontSize: 15, 
-    opacity: 0.5, 
-    marginTop: 6, 
-    lineHeight: 20,
-    fontWeight: "400" 
-  },
-  
-  imageSection: { 
-    marginBottom: 30 
-  },
-  
-  inputWrapper: { 
-    marginBottom: 24 
-  },
-  labelRow: { 
-    flexDirection: "row", 
-    alignItems: "center", 
-    gap: 6, 
-    marginBottom: 10, 
-    marginLeft: 4 
-  },
-  label: { 
-    fontSize: 14, 
-    fontWeight: "600", // Meno pesante
-    opacity: 0.6 // Più discreto
-  },
+  scrollContent: { paddingHorizontal: 28 },
+  header: { marginBottom: 30 },
+  title: { fontSize: 28, fontWeight: "700" },
+  subtitle: { fontSize: 15, opacity: 0.5 },
+  inputWrapper: { marginBottom: 20 },
+  label: { fontSize: 13, fontWeight: "600", marginBottom: 8, opacity: 0.7 },
   input: {
-    padding: 16,
-    borderRadius: 18, // Più tondo
+    height: 56,
+    paddingHorizontal: 16,
+    borderRadius: 16,
     fontSize: 16,
-    fontWeight: "500",
     borderWidth: 1,
-    // Lo sfondo dell'input deve essere quasi uguale a quello della card
-    backgroundColor: 'rgba(0,0,0,0.02)', 
+    backgroundColor: 'rgba(0,0,0,0.02)',
     borderColor: 'rgba(0,0,0,0.05)',
   },
-  textArea: { 
-    height: 100, 
-    textAlignVertical: "top",
-    paddingTop: 16 
-  },
-  row: { 
-    flexDirection: "row", 
-    gap: 12 // Usiamo gap invece di marginRight manuale
-  },
-  
+  textArea: { height: 100, textAlignVertical: "top", paddingTop: 16 },
+  row: { flexDirection: "row", gap: 12, marginBottom: 20 },
   submitButton: {
-    marginTop: 15,
-    height: 60,
-    borderRadius: 20,
-    flexDirection: "row",
+    marginTop: 10,
+    height: 56,
+    borderRadius: 16,
     justifyContent: "center",
     alignItems: "center",
-    gap: 10,
-    // Ombra molto diffusa (Soft Shadow)
-    shadowColor: "#000",
-    shadowOpacity: 0.08,
-    shadowRadius: 20,
-    shadowOffset: { width: 0, height: 10 },
-    elevation: 4,
   },
-  submitText: { 
-    fontSize: 16, 
-    fontWeight: "600", // Da 800 a 600 per coerenza soft
-    letterSpacing: 0.2
+  submitText: { fontSize: 16, fontWeight: "600" },
+  imageSection: { marginBottom: 25 },
+  
+  // MODAL STYLES (iOS Alto)
+  modalOverlay: {
+    flex: 1,
+    justifyContent: 'flex-end', // Allinea in basso, ma...
+    backgroundColor: 'rgba(0,0,0,0.4)',
+  },
+  modalContent: {
+    height: 380, // <-- AUMENTATA L'ALTEZZA (era circa 260 default + padding)
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    paddingBottom: 30, // Spazio per l'home bar di iOS
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: -10 },
+    shadowOpacity: 0.1,
+    shadowRadius: 15,
+    elevation: 20,
+  },
+  modalHeader: {
+    height: 50,
+    flexDirection: 'row',
+    justifyContent: 'flex-end', // Tasto "Done" a destra
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    borderBottomWidth: 0.5,
+    borderBottomColor: '#ccc', // Soft border sotto l'header
+    marginBottom: 10,
   },
 });

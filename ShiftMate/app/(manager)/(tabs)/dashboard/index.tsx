@@ -32,40 +32,48 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [userName, setUserName] = useState("Manager");
 
+  // FETCH DATA: Ottimizzata e Stabile
   const fetchData = useCallback(async () => {
     const start = Date.now();
-    if (!stats) setLoading(true);
-
+    
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
+      // getSession è più veloce di getUser perché legge i dati locali
+      const { data: { session } } = await supabase.auth.getSession();
+      const userId = session?.user?.id;
+      if (!userId) return;
 
       const today = new Date().toISOString().split("T")[0];
 
-      // RIDOTTO A 2 QUERY: Profilo + Tutti i turni del manager
-      const [profileRes, shiftsRes] = await Promise.all([
-        supabase.from("profiles").select("name").eq("id", user.id).single(),
-        supabase
-          .from("shifts")
-          .select("id, title, shift_date, start_time, end_time, status, image_url")
-          .eq("manager_id", user.id)
-      ]);
+      // Se non abbiamo ancora il nome, lo carichiamo (solo una volta)
+      if (userName === "Manager") {
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("name")
+          .eq("id", userId)
+          .single();
+        if (profile?.name) setUserName(profile.name);
+      }
 
-      if (profileRes.data?.name) setUserName(profileRes.data.name);
+      // Query singola per tutti i turni
+      const { data: shifts, error } = await supabase
+        .from("shifts")
+        .select("id, title, shift_date, start_time, end_time, status, image_url")
+        .eq("manager_id", userId)
+        .order('shift_date', { ascending: true });
 
-      const allShifts = shiftsRes.data || [];
+      if (error) throw error;
+      const allShifts = shifts || [];
 
-      // Calcoliamo le statistiche qui in JS (0ms di latenza)
+      // Calcolo statistiche locale (0ms)
       setStats({
-        totalWorkers: 0, // Puoi caricarlo a parte se serve davvero
+        totalWorkers: 0, 
         totalShifts: allShifts.length,
         openShifts: allShifts.filter(s => s.status === 'open').length,
       });
 
-      // Filtriamo i prossimi 3 turni dalla lista che abbiamo già
+      // Filtro i prossimi 3 turni
       const upcoming = allShifts
         .filter(s => s.shift_date >= today)
-        .sort((a, b) => a.shift_date.localeCompare(b.shift_date))
         .slice(0, 3);
 
       setUpcomingShifts(upcoming);
@@ -74,13 +82,16 @@ export default function Dashboard() {
       console.error("Dashboard error:", error);
     } finally {
       setLoading(false);
-      console.log("--- FETCH FINISHED ---")
-      const end = Date.now();
-      console.log(`Fetch duration: ${end - start}ms`);
+      console.log(`--- FETCH FINISHED: ${Date.now() - start}ms ---`);
     }
-  }, []); 
+  }, [userName]); // Dipende solo da userName per caricarlo una volta sola
 
-  useFocusEffect(useCallback(() => { fetchData(); }, [fetchData]));
+  // FOCUS EFFECT: Unica chiamata quando la schermata torna attiva
+  useFocusEffect(
+    useCallback(() => {
+      fetchData();
+    }, [fetchData])
+  );
 
   if (loading) {
     return (
@@ -89,7 +100,6 @@ export default function Dashboard() {
       </View>
     );
   }
-
 
   return (
     <View style={{ flex: 1, backgroundColor: theme.background }}>
@@ -102,7 +112,7 @@ export default function Dashboard() {
         }}
         showsVerticalScrollIndicator={false}
       >
-        {/* HEADER MINIMALE ED ELEGANTE */}
+        {/* HEADER */}
         <View style={styles.topBar}>
           <View>
             <Text style={[styles.dateText, { color: theme.secondaryText }]}>
@@ -112,13 +122,13 @@ export default function Dashboard() {
           </View>
           <Pressable 
             onPress={() => router.push("/profile")}
-            style={[styles.profileButton, { backgroundColor: theme.card, borderColor: theme.border }]}
+            style={[styles.profileButton, { backgroundColor: theme.card }]}
           >
             <Ionicons name="person" size={20} color={theme.text} />
           </Pressable>
         </View>
 
-        {/* STATS: Layout Orizzontale Pulito */}
+        {/* STATS */}
         <View style={styles.metricsRow}>
           <View style={[styles.metricBox, { borderRightWidth: 1, borderColor: theme.border }]}>
             <Text style={[styles.metricLabel, { color: theme.secondaryText }]}>WORKERS</Text>
@@ -134,7 +144,7 @@ export default function Dashboard() {
           </View>
         </View>
 
-        {/* QUICK ACTIONS: Il cuore della produttività */}
+        {/* QUICK ACTIONS */}
         <View style={styles.actionGrid}>
           <QuickAction 
             title="Create Shift" 
@@ -150,7 +160,7 @@ export default function Dashboard() {
           />
         </View>
 
-        {/* SEZIONE PROSSIMI TURNI */}
+        {/* UPCOMING SHIFTS */}
         <View style={styles.sectionHeader}>
           <View>
             <Text style={[styles.sectionTitle, { color: theme.text }]}>Upcoming Shifts</Text>
@@ -182,17 +192,15 @@ export default function Dashboard() {
   );
 }
 
-// Aggiorna queste parti nel tuo Dashboard.tsx
-
 const QuickAction = ({ title, icon, onPress, theme }: any) => (
   <Pressable 
     onPress={onPress}
     style={({ pressed }) => [
       styles.actionBtn, 
       { 
-        backgroundColor: theme.card, // Un bianco sporco o grigio chiarissimo
+        backgroundColor: theme.card,
         opacity: pressed ? 0.8 : 1,
-        transform: [{ scale: pressed ? 0.96 : 1 }] // Effetto click morbido
+        transform: [{ scale: pressed ? 0.96 : 1 }]
       }
     ]}
   >
@@ -205,115 +213,23 @@ const QuickAction = ({ title, icon, onPress, theme }: any) => (
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  
-  // HEADER: Meno "urlo", più eleganza
-  topBar: { 
-    flexDirection: 'row', 
-    justifyContent: 'space-between', 
-    alignItems: 'center', 
-    marginBottom: 35,
-    marginTop: 10
-  },
-  dateText: { 
-    fontSize: 12, 
-    fontWeight: "600", 
-    letterSpacing: 0.5,
-    textTransform: 'capitalize', // Meno aggressivo del tutto maiuscolo
-    opacity: 0.6
-  },
-  userName: { 
-    fontSize: 28, 
-    fontWeight: "700", // Da 900 a 700
-    letterSpacing: -0.8 
-  },
-  profileButton: { 
-    width: 45, 
-    height: 45, 
-    borderRadius: 22, // Più tondo
-    justifyContent: 'center', 
-    alignItems: 'center',
-    backgroundColor: '#FFF',
-    // Soft shadow invece del bordo
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.05,
-    shadowRadius: 10,
-    elevation: 2,
-  },
-
-  // METRICS: Effetto "Floating Card"
-  metricsRow: { 
-    flexDirection: 'row', 
-    backgroundColor: '#FFF', 
-    borderRadius: 24, 
-    paddingVertical: 22, 
-    marginBottom: 30,
-    // Ombra diffusa che lo fa sembrare soffice
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.04,
-    shadowRadius: 20,
-    elevation: 3,
-  },
+  topBar: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 35, marginTop: 10 },
+  dateText: { fontSize: 12, fontWeight: "600", letterSpacing: 0.5, opacity: 0.6 },
+  userName: { fontSize: 28, fontWeight: "700", letterSpacing: -0.8 },
+  profileButton: { width: 45, height: 45, borderRadius: 22, justifyContent: 'center', alignItems: 'center', backgroundColor: '#FFF', shadowColor: "#000", shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.05, shadowRadius: 10, elevation: 2 },
+  metricsRow: { flexDirection: 'row', backgroundColor: '#FFF', borderRadius: 24, paddingVertical: 22, marginBottom: 30, shadowColor: "#000", shadowOffset: { width: 0, height: 10 }, shadowOpacity: 0.04, shadowRadius: 20, elevation: 3 },
   metricBox: { flex: 1, alignItems: 'center', gap: 6 },
-  metricLabel: { 
-    fontSize: 11, 
-    fontWeight: "600", 
-    opacity: 0.5,
-    letterSpacing: 0.3 
-  },
-  metricValue: { 
-    fontSize: 24, 
-    fontWeight: "700" 
-  },
-
-  // QUICK ACTIONS: Bottoni con icone evidenziate
+  metricLabel: { fontSize: 11, fontWeight: "600", opacity: 0.5, letterSpacing: 0.3 },
+  metricValue: { fontSize: 24, fontWeight: "700" },
   actionGrid: { flexDirection: 'row', gap: 16, marginBottom: 35 },
-  actionBtn: { 
-    flex: 1, 
-    paddingVertical: 14, 
-    paddingHorizontal: 12,
-    borderRadius: 20, 
-    flexDirection: 'column', // Layout verticale per un look più moderno
-    alignItems: 'center', 
-    justifyContent: 'center', 
-    gap: 10,
-    backgroundColor: '#FFF',
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.03,
-    shadowRadius: 8,
-  },
-  iconCircle: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
+  actionBtn: { flex: 1, paddingVertical: 14, paddingHorizontal: 12, borderRadius: 20, alignItems: 'center', justifyContent: 'center', gap: 10, backgroundColor: '#FFF' },
+  iconCircle: { width: 40, height: 40, borderRadius: 20, justifyContent: 'center', alignItems: 'center' },
   actionBtnText: { fontSize: 13, fontWeight: "600" },
-
-  // SECTIONS
-  sectionHeader: { 
-    flexDirection: 'row', 
-    justifyContent: 'space-between', 
-    alignItems: 'center', 
-    marginBottom: 18 
-  },
+  sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 18 },
   sectionTitle: { fontSize: 20, fontWeight: "700", letterSpacing: -0.5 },
   sectionSubtitle: { fontSize: 14, opacity: 0.6, marginTop: 2 },
-  
   shiftsList: { gap: 16 },
-  emptyBox: { 
-    height: 120, 
-    borderRadius: 24, 
-    backgroundColor: 'rgba(0,0,0,0.02)',
-    borderWidth: 1, 
-    borderStyle: 'dashed', 
-    borderColor: 'rgba(0,0,0,0.1)',
-    justifyContent: 'center', 
-    alignItems: 'center' 
-  },
+  emptyBox: { height: 120, borderRadius: 24, backgroundColor: 'rgba(0,0,0,0.02)', borderWidth: 1, borderStyle: 'dashed', borderColor: 'rgba(0,0,0,0.1)', justifyContent: 'center', alignItems: 'center' },
   emptyText: { fontSize: 14, fontWeight: "500", opacity: 0.5 },
   center: { flex: 1, justifyContent: "center", alignItems: "center" },
 });

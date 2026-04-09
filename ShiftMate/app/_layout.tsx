@@ -12,7 +12,7 @@ import { Session } from "@supabase/supabase-js";
 SplashScreen.preventAutoHideAsync();
 
 export default function RootLayout() {
-  const navigationRouter = useRouter(); // Rinominiamo per chiarezza
+  const navigationRouter = useRouter();
   const insets = useSafeAreaInsets();
   
   const [session, setSession] = useState<Session | null>(null);
