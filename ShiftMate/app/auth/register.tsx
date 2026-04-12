@@ -12,8 +12,11 @@ import {
   ScrollView,
   KeyboardAvoidingView,
   Platform,
+  ActivityIndicator
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+
+type UserRole = "worker" | "manager" | "owner";
 
 export default function Register() {
   const theme = Colors.light;
@@ -23,50 +26,85 @@ export default function Register() {
   const [surname, setSurname] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [role, setRole] = useState<"worker" | "manager">("worker");
+  const [role, setRole] = useState<UserRole>("worker");
+  const [inviteCode, setInviteCode] = useState("");
   const [loading, setLoading] = useState(false);
 
   const handleRegister = async () => {
     if (!name || !surname || !email || !password) {
-      Alert.alert("Missing Info", "Please fill all fields to request access.");
+      Alert.alert("Missing Info", "Please fill all fields.");
+      return;
+    }
+
+    if (role !== "owner" && !inviteCode) {
+      Alert.alert("Invite Code", "Please enter the code provided by your manager.");
       return;
     }
 
     setLoading(true);
     try {
-      // 1. Creazione utente in Supabase Auth (Tabella interna auth.users)
+      let hotelId = null;
+
+      if (role !== "owner") {
+        const cleanCode = inviteCode.trim().toUpperCase(); // Normalizing the input
+        console.log("Searching for code:", cleanCode);
+        const { data: hotel, error: hotelError } = await supabase
+          .from("hotels")
+          .select("id")
+          .eq("invite_code", cleanCode) // Ensure column name matches exactly in DB
+          .maybeSingle(); // Better than .single() because it doesn't throw if 0 rows found
+
+        if (hotelError) {
+          console.error("Query Error:", hotelError.message);
+          throw new Error("Connection error while checking the code.");
+        }
+
+        if (!hotel) {
+          throw new Error("Invalid code. Please check with your manager.");
+        }
+        
+        hotelId = hotel.id;
+      }
+
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email,
         password,
       });
       
       if (authError) throw authError;
-      if (!authData.user) throw new Error("User creation failed.");
+      if (!authData.user) throw new Error("Auth failed.");
 
-      // 2. Creazione profilo pubblico (Tabella public.profiles)
-      // Inviamo solo i dati non sensibili necessari all'app
       const { error: profileError } = await supabase.from("profiles").insert({
         id: authData.user.id,
         name,
         surname,
         role,
-        // La colonna 'email' qui non esiste, quindi non la inviamo.
+        hotel_id: hotelId,
       });
 
       if (profileError) throw profileError;
 
-      // 3. Routing dinamico post-registrazione
-      // Se Supabase fa l'auto-login dopo il signup, lo mandiamo alla home corretta
-      const targetPath = role === "manager" 
-        ? "/(manager)/(tabs)/dashboard" 
-        : "/(worker)/(tabs)/shifts";
-      
-      router.replace(targetPath);
+      if (role === "owner") {
+        router.replace("/(manager)/setup-hotel" as any);
+      } else {
+        const targetPath = role === "manager" 
+          ? "/(manager)/(tabs)/dashboard" 
+          : "/(worker)/(tabs)/shifts";
+        router.replace(targetPath as any);
+      }
 
     } catch (error: any) {
-      Alert.alert("Registration Error", error.message);
+      Alert.alert("Registration Failed", error.message);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleBack = () => {
+    if (router.canGoBack()) {
+      router.back();
+    } else {
+      router.replace("/auth/login" as any);
     }
   };
 
@@ -77,48 +115,37 @@ export default function Register() {
         style={{ flex: 1, backgroundColor: theme.background }}
         behavior={Platform.OS === "ios" ? "padding" : "height"}
       >
-        <ScrollView
-          contentContainerStyle={styles.container}
+        <ScrollView 
+          contentContainerStyle={styles.container} 
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
-          {/* HEADER */}
+          
           <View style={styles.header}>
-            <Pressable onPress={() => router.back()} style={styles.backBtn}>
+            <Pressable onPress={handleBack} style={styles.backBtn}>
               <Ionicons name="arrow-back" size={24} color={theme.text} />
             </Pressable>
-            <Text style={[styles.kpi, { color: theme.tint }]}>JOIN THE TEAM</Text>
-            <Text style={[styles.title, { color: theme.text }]}>Create{"\n"}Account</Text>
+            <Text style={[styles.kpi, { color: theme.tint }]}>SECURE ACCESS</Text>
+            <Text style={[styles.title, { color: theme.text }]}>Join the{"\n"}Team</Text>
           </View>
 
-          {/* ROLE SELECTOR - Brutalist Style */}
+          {/* ROLE SELECTOR */}
           <View style={styles.roleWrapper}>
-            <Text style={styles.inputLabel}>SELECT YOUR ROLE</Text>
+            <Text style={styles.inputLabel}>YOUR ROLE</Text>
             <View style={styles.roleContainer}>
-              <RoleCard 
-                label="WORKER" 
-                selected={role === "worker"} 
-                onPress={() => setRole("worker")} 
-                theme={theme}
-                icon="hammer-sharp"
-              />
-              <RoleCard 
-                label="MANAGER" 
-                selected={role === "manager"} 
-                onPress={() => setRole("manager")} 
-                theme={theme}
-                icon="briefcase-sharp"
-              />
+              <RoleCard label="WORKER" selected={role === "worker"} onPress={() => setRole("worker")} theme={theme} icon="hammer" />
+              <RoleCard label="MANAGER" selected={role === "manager"} onPress={() => setRole("manager")} theme={theme} icon="briefcase" />
+              <RoleCard label="OWNER" selected={role === "owner"} onPress={() => setRole("owner")} theme={theme} icon="business" />
             </View>
           </View>
 
-          {/* FORM */}
           <View style={styles.form}>
             <View style={styles.row}>
                <View style={{ flex: 1 }}>
                   <Text style={styles.inputLabel}>FIRST NAME</Text>
                   <TextInput
                     placeholder="John"
+                    placeholderTextColor="#999"
                     value={name}
                     onChangeText={setName}
                     style={[styles.input, { color: theme.text, borderColor: theme.text }]}
@@ -128,6 +155,7 @@ export default function Register() {
                   <Text style={styles.inputLabel}>LAST NAME</Text>
                   <TextInput
                     placeholder="Doe"
+                    placeholderTextColor="#999"
                     value={surname}
                     onChangeText={setSurname}
                     style={[styles.input, { color: theme.text, borderColor: theme.text }]}
@@ -138,7 +166,8 @@ export default function Register() {
             <View style={styles.inputWrapper}>
               <Text style={styles.inputLabel}>WORK EMAIL</Text>
               <TextInput
-                placeholder="email@company.com"
+                placeholder="name@company.com"
+                placeholderTextColor="#999"
                 value={email}
                 onChangeText={setEmail}
                 keyboardType="email-address"
@@ -151,12 +180,27 @@ export default function Register() {
               <Text style={styles.inputLabel}>PASSWORD</Text>
               <TextInput
                 placeholder="••••••••"
+                placeholderTextColor="#999"
                 value={password}
                 onChangeText={setPassword}
                 secureTextEntry
                 style={[styles.input, { color: theme.text, borderColor: theme.text }]}
               />
             </View>
+
+            {role !== "owner" && (
+              <View style={styles.inputWrapper}>
+                <Text style={[styles.inputLabel, { color: theme.tint }]}>COMPANY INVITE CODE</Text>
+                <TextInput
+                  placeholder="EX: HOTEL2024"
+                  placeholderTextColor="#999"
+                  value={inviteCode}
+                  onChangeText={setInviteCode}
+                  autoCapitalize="characters"
+                  style={[styles.input, { color: theme.text, borderColor: theme.tint, borderWidth: 1.5 }]}
+                />
+              </View>
+            )}
 
             <Pressable
               style={({ pressed }) => [
@@ -167,8 +211,9 @@ export default function Register() {
               disabled={loading}
             >
               <Text style={[styles.buttonText, { color: theme.background }]}>
-                {loading ? "CREATING..." : "REQUEST ACCESS"}
+                {loading ? "CREATING ACCOUNT..." : role === "owner" ? "REGISTER STRUCTURE" : "REQUEST ACCESS"}
               </Text>
+              {!loading && <Ionicons name="arrow-forward" size={20} color={theme.background} />}
             </Pressable>
           </View>
         </ScrollView>
@@ -177,33 +222,37 @@ export default function Register() {
   );
 }
 
-// Sub-component for Role Selection
 const RoleCard = ({ label, selected, onPress, theme, icon }: any) => (
   <Pressable
     onPress={onPress}
     style={[
       styles.roleButton,
-      { borderColor: selected ? theme.tint : theme.text, backgroundColor: selected ? theme.tint : 'transparent' }
+      { 
+        backgroundColor: selected ? theme.text : "#F1F3F5",
+        borderColor: selected ? theme.text : "rgba(0,0,0,0.05)",
+        borderWidth: 1
+      }
     ]}
   >
-    <Ionicons name={icon} size={20} color={selected ? "#FFF" : theme.text} />
-    <Text style={[styles.roleText, { color: selected ? "#FFF" : theme.text }]}>{label}</Text>
+    <Ionicons name={icon} size={18} color={selected ? theme.background : theme.text} />
+    <Text style={[styles.roleText, { color: selected ? theme.background : theme.text }]}>{label}</Text>
   </Pressable>
 );
 
 const styles = StyleSheet.create({
   container: { 
-    paddingHorizontal: 30, // Più spazio ai lati per centrare lo sguardo
-    paddingBottom: 60, 
-    paddingTop: 20 
+    flexGrow: 1,
+    paddingHorizontal: 32, 
+    paddingTop: 60,
+    paddingBottom: 40,
   },
   header: { 
     marginBottom: 40, 
-    marginTop: 10 
+    alignItems: 'flex-start' 
   },
   backBtn: { 
     marginBottom: 20, 
-    marginLeft: -10, // Allineamento ottico con l'icona
+    marginLeft: -10, 
     width: 44, 
     height: 44, 
     justifyContent: 'center' 
@@ -211,45 +260,37 @@ const styles = StyleSheet.create({
   kpi: { 
     fontSize: 13, 
     fontWeight: "700", 
-    letterSpacing: 0.5, // Ridotto lo spacing eccessivo
-    marginBottom: 8,
-    opacity: 0.6 
+    letterSpacing: 0.5, 
+    marginBottom: 8, 
+    opacity: 0.8 
   },
-  title: { 
-    fontSize: 36, // Da 48 a 36: più elegante
-    fontWeight: "800", 
-    lineHeight: 42, 
-    letterSpacing: -1 
+  title: {
+    fontSize: 38,
+    fontWeight: "800",
+    lineHeight: 42,
+    letterSpacing: -1,
   },
-  
   roleWrapper: { 
     marginBottom: 32 
   },
   roleContainer: { 
     flexDirection: "row", 
-    gap: 12, 
-    marginTop: 12,
-    backgroundColor: "#F1F3F5", // Sfondo comune per entrambi (stile iOS)
-    padding: 6,
+    gap: 10, 
+    marginTop: 12 
+  },
+  roleButton: { 
+    flex: 1, 
+    alignItems: 'center', 
+    justifyContent: 'center', 
+    gap: 8, 
+    paddingVertical: 14, 
     borderRadius: 20,
   },
-  roleButton: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-    paddingVertical: 12, // Più sottile
-    borderRadius: 14,
-    borderWidth: 0, // Rimosso il bordo spesso 2px
-  },
-  // Nota: per lo stato 'selected' userai un'ombra leggera e sfondo bianco puro
   roleText: { 
-    fontWeight: "600", 
-    fontSize: 14, 
-    letterSpacing: 0 
+    fontWeight: "700", 
+    fontSize: 10, 
+    letterSpacing: 0.5 
   },
-
   form: { 
     gap: 24 
   },
@@ -261,34 +302,33 @@ const styles = StyleSheet.create({
     gap: 10 
   },
   inputLabel: { 
-    fontSize: 14, // Più leggibile (da 10)
+    fontSize: 14, 
     fontWeight: "600", 
-    marginLeft: 4,
-    opacity: 0.8 
+    marginLeft: 4, 
+    opacity: 0.7 
   },
-  input: {
-    width: "100%",
-    backgroundColor: "#F1F3F5", // Sfondo soft invece del bordo nero
-    borderRadius: 18,
-    padding: 16,
-    fontSize: 16,
-    fontWeight: "500",
+  input: { 
+    width: "100%", 
+    backgroundColor: "#F1F3F5", 
     borderWidth: 1,
-    borderColor: "rgba(0,0,0,0.03)", // Bordo quasi impercettibile
+    padding: 18, 
+    fontSize: 16, 
+    borderRadius: 20, 
   },
-  button: {
-    width: "100%",
-    padding: 18,
-    borderRadius: 22,
-    alignItems: "center",
+  button: { 
+    width: "100%", 
+    padding: 18, 
+    borderRadius: 22, 
+    flexDirection: "row",
+    alignItems: "center", 
     justifyContent: "center",
-    marginTop: 15,
-    // Soft Shadow per far risaltare l'azione principale
+    gap: 12,
+    marginTop: 10,
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
+    shadowOffset: { width: 0, height: 6 },
     shadowOpacity: 0.1,
-    shadowRadius: 12,
-    elevation: 4,
+    shadowRadius: 15,
+    elevation: 5,
   },
   buttonText: { 
     fontWeight: "700", 

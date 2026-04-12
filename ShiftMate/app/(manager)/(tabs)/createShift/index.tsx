@@ -11,12 +11,12 @@ import {
   KeyboardAvoidingView,
   Platform,
   useColorScheme,
-  Modal, // Importato Modal
+  Modal,
 } from "react-native";
 import { supabase } from "@/lib/supabase";
 import { Colors } from "@/constants/theme";
 import { Ionicons } from "@expo/vector-icons";
-import { useRouter, useFocusEffect } from "expo-router"; // Importato useFocusEffect
+import { useRouter, useFocusEffect } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import ShiftUploader from "@/components/imagePicker/imagePickerShift";
@@ -33,9 +33,10 @@ export default function CreateShift() {
   const [form, setForm] = useState({
     title: "",
     description: "",
+    department: "" as 'bar' | 'kitchen' | 'restaurant' | 'housekeeping' | 'reception' | 'maintenance' | '',
     date: new Date(),
     startTime: new Date(),
-    endTime: new Date(new Date().setHours(new Date().getHours() + 8)), // Default +8 ore
+    endTime: new Date(new Date().setHours(new Date().getHours() + 8)),
   });
 
   const [picker, setPicker] = useState({
@@ -44,28 +45,53 @@ export default function CreateShift() {
     target: '' as 'date' | 'startTime' | 'endTime'
   });
 
-  // CHIUDE IL PICKER SE CAMBI TAB (NAVIGAZIONE GLOBALE)
   useFocusEffect(
     useCallback(() => {
       return () => setPicker(p => ({ ...p, show: false }));
     }, [])
   );
 
+  const selectDepartment = () => {
+    const deps = ['bar', 'kitchen', 'restaurant', 'housekeeping', 'reception', 'maintenance'];
+    Alert.alert("Select Department", "Which department needs help?", [
+      ...deps.map(d => ({ 
+        text: d.toUpperCase(), 
+        onPress: () => setForm({...form, department: d as any}) 
+      })),
+      { text: "Cancel", style: "cancel" }
+    ]);
+  };
+
   const handleCreate = async () => {
-    if (!form.title) {
-      Alert.alert("Missing Info", "Please provide a job title.");
+    if (!form.title || !form.department) {
+      Alert.alert("Missing Info", "Please provide a job title and a department.");
       return;
     }
 
     setLoading(true);
     try {
+      // 1. Ottieni l'utente corrente
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("No user found");
 
-      const { error } = await supabase.from("shifts").insert([
+      // 2. Recupera l'hotel_id dal profilo del manager
+      const { data: profile, error: profileError } = await supabase
+        .from("profiles")
+        .select("hotel_id")
+        .eq("id", user.id)
+        .single();
+
+      if (profileError || !profile?.hotel_id) {
+        throw new Error("Your profile is not linked to an hotel. Contact admin.");
+      }
+
+      // 3. Inserisci il turno collegato all'hotel del manager
+      const { error: shiftError } = await supabase.from("shifts").insert([
         {
           title: form.title,
           description: form.description,
+          department: form.department,
+          hotel_id: profile.hotel_id, // Link automatico all'hotel
           shift_date: form.date.toISOString().split("T")[0],
           start_time: form.startTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false }),
           end_time: form.endTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false }),
@@ -76,26 +102,24 @@ export default function CreateShift() {
         },
       ]);
 
-      if (error) throw error;
+      if (shiftError) throw shiftError;
 
-      Alert.alert("Success", "Shift posted!", [
+      Alert.alert("Success", "Shift posted successfully!", [
         { text: "OK", onPress: () => router.push("/(manager)/(tabs)/shift") },
       ]);
-    } catch (err) {
+    } catch (err: any) {
       console.error(err);
-      Alert.alert("Error", "Could not create shift.");
+      Alert.alert("Error", err.message || "Could not create shift.");
     } finally {
       setLoading(false);
     }
   };
 
   const onPickerChange = (event: any, selectedDate?: Date) => {
-    // Gestione nativa Android: si chiude dopo la selezione
     if (Platform.OS === 'android') {
       setPicker({ ...picker, show: false });
       if (selectedDate) setForm({ ...form, [picker.target]: selectedDate });
     } else {
-      // Gestione iOS: aggiorna la data mentre scorri lo spinner (non chiude)
       if (selectedDate) setForm({ ...form, [picker.target]: selectedDate });
     }
   };
@@ -104,10 +128,8 @@ export default function CreateShift() {
     setPicker({ show: true, mode, target });
   };
 
-  // COMPONENTE PER IL PICKER (Gestisce Android nativo vs iOS Modal Alto)
   const renderDatePicker = () => {
     if (!picker.show) return null;
-
     const pickerElement = (
       <DateTimePicker
         value={(form as any)[picker.target]}
@@ -115,7 +137,7 @@ export default function CreateShift() {
         is24Hour={true}
         display={Platform.OS === 'ios' ? 'spinner' : 'default'}
         onChange={onPickerChange}
-        textColor={theme.text} // Importante per iOS Dark Mode
+        textColor={theme.text}
       />
     );
 
@@ -123,7 +145,6 @@ export default function CreateShift() {
       return (
         <Modal transparent animationType="slide" visible={picker.show}>
           <Pressable style={styles.modalOverlay} onPress={() => setPicker({ ...picker, show: false })}>
-            {/* Cliccando fuori chiude il picker */}
             <View style={[styles.modalContent, { backgroundColor: theme.card }]}>
               <View style={styles.modalHeader}>
                 <Pressable onPress={() => setPicker({ ...picker, show: false })}>
@@ -136,8 +157,6 @@ export default function CreateShift() {
         </Modal>
       );
     }
-
-    // Android: renderizza direttamente il picker nativo
     return pickerElement;
   };
 
@@ -151,32 +170,42 @@ export default function CreateShift() {
         showsVerticalScrollIndicator={false}
       >
         <View style={styles.header}>
-          <Text style={[styles.title, { color: theme.text }]}>Create New Shift</Text>
-          <Text style={[styles.subtitle, { color: theme.text }]}>Define the details to attract the right candidates.</Text>
+          <Text style={[styles.title, { color: theme.text }]}>New Shift</Text>
+          <Text style={[styles.subtitle, { color: theme.text }]}>Fill the info to post an emergency call.</Text>
         </View>
 
         <View style={styles.imageSection}>
            <ShiftUploader initialUrl={imageUrl} onUpload={(url) => setImageUrl(url)} />
         </View>
 
-        {/* JOB TITLE */}
+        <View style={styles.inputWrapper}>
+          <Text style={[styles.label, { color: theme.text }]}>Department *</Text>
+          <Pressable 
+            onPress={selectDepartment}
+            style={[styles.input, { backgroundColor: theme.card, borderColor: theme.text + "10", justifyContent: 'center' }]}
+          >
+            <Text style={{ color: form.department ? theme.text : theme.text + "40", fontSize: 16 }}>
+              {form.department ? form.department.toUpperCase() : "Select Department"}
+            </Text>
+          </Pressable>
+        </View>
+
         <View style={styles.inputWrapper}>
           <Text style={[styles.label, { color: theme.text }]}>Job Title *</Text>
           <TextInput
             style={[styles.input, { backgroundColor: theme.card, color: theme.text, borderColor: theme.text + "10" }]}
-            placeholder="e.g. Head Waiter"
+            placeholder="e.g. Waiter"
             placeholderTextColor={theme.text + "40"}
             value={form.title}
             onChangeText={(text) => setForm({ ...form, title: text })}
           />
         </View>
 
-        {/* DESCRIPTION */}
         <View style={styles.inputWrapper}>
           <Text style={[styles.label, { color: theme.text }]}>Description</Text>
           <TextInput
             style={[styles.input, styles.textArea, { backgroundColor: theme.card, color: theme.text, borderColor: theme.text + "10" }]}
-            placeholder="Describe tasks, requirements..."
+            placeholder="Task description..."
             placeholderTextColor={theme.text + "40"}
             value={form.description}
             onChangeText={(text) => setForm({ ...form, description: text })}
@@ -184,7 +213,6 @@ export default function CreateShift() {
           />
         </View>
 
-        {/* DATE SELECTOR */}
         <View style={styles.inputWrapper}>
           <Text style={[styles.label, { color: theme.text }]}>Date *</Text>
           <Pressable 
@@ -192,12 +220,11 @@ export default function CreateShift() {
             style={[styles.input, { backgroundColor: theme.card, borderColor: theme.text + "10", justifyContent: 'center' }]}
           >
             <Text style={{ color: theme.text, fontSize: 16 }}>
-              {form.date.toLocaleDateString('en-US', { day: 'numeric', month: 'long', year: 'numeric' })}
+              {form.date.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}
             </Text>
           </Pressable>
         </View>
 
-        {/* TIME SELECTORS */}
         <View style={styles.row}>
           <View style={{ flex: 1 }}>
             <Text style={[styles.label, { color: theme.text }]}>Start *</Text>
@@ -210,7 +237,6 @@ export default function CreateShift() {
               </Text>
             </Pressable>
           </View>
-
           <View style={{ flex: 1 }}>
             <Text style={[styles.label, { color: theme.text }]}>End *</Text>
             <Pressable 
@@ -272,32 +298,7 @@ const styles = StyleSheet.create({
   },
   submitText: { fontSize: 16, fontWeight: "600" },
   imageSection: { marginBottom: 25 },
-  
-  // MODAL STYLES (iOS Alto)
-  modalOverlay: {
-    flex: 1,
-    justifyContent: 'flex-end', // Allinea in basso, ma...
-    backgroundColor: 'rgba(0,0,0,0.4)',
-  },
-  modalContent: {
-    height: 380, // <-- AUMENTATA L'ALTEZZA (era circa 260 default + padding)
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    paddingBottom: 30, // Spazio per l'home bar di iOS
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: -10 },
-    shadowOpacity: 0.1,
-    shadowRadius: 15,
-    elevation: 20,
-  },
-  modalHeader: {
-    height: 50,
-    flexDirection: 'row',
-    justifyContent: 'flex-end', // Tasto "Done" a destra
-    alignItems: 'center',
-    paddingHorizontal: 20,
-    borderBottomWidth: 0.5,
-    borderBottomColor: '#ccc', // Soft border sotto l'header
-    marginBottom: 10,
-  },
+  modalOverlay: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.4)' },
+  modalContent: { height: 380, borderTopLeftRadius: 24, borderTopRightRadius: 24, paddingBottom: 30 },
+  modalHeader: { height: 50, flexDirection: 'row', justifyContent: 'flex-end', alignItems: 'center', paddingHorizontal: 20, borderBottomWidth: 0.5, borderBottomColor: '#ccc' },
 });

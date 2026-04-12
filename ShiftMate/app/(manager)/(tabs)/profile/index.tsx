@@ -186,7 +186,6 @@ const styles = StyleSheet.create({
   },
   avatar: { width: '100%', height: '100%', borderRadius: 25 },
 
-  // INFO CARD: Effetto superficie morbida
   infoCard: { 
     flexDirection: 'row', 
     borderRadius: 24, 
