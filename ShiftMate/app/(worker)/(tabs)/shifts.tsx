@@ -12,7 +12,7 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { ShiftCard } from "@/components/shiftCard/ShiftCard"; // Importiamo il componente unico
+import { ShiftCard } from "@/components/shiftCard/ShiftCard";
 
 type Shift = {
   id: string;
@@ -21,6 +21,7 @@ type Shift = {
   start_time: string;
   end_time: string;
   image_url: string | null;
+  hotel_id: string;
 };
 
 export default function WorkerShifts() {
@@ -34,17 +35,37 @@ export default function WorkerShifts() {
 
   const fetchShifts = async () => {
     try {
+      // 1. Recuperiamo l'utente loggato
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (!user) return;
+
+      // 2. Recuperiamo l'hotel_id dal profilo di questo utente
+      const { data: profile, error: profileError } = await supabase
+        .from("profiles")
+        .select("hotel_id")
+        .eq("id", user.id)
+        .single();
+
+      if (profileError || !profile?.hotel_id) {
+        console.error("User not associated with any hotel");
+        setShifts([]);
+        return;
+      }
+
+      // 3. Filtriamo i turni: devono essere "open" E dello stesso hotel del worker
       const { data, error } = await supabase
         .from("shifts")
-        .select("id, title, shift_date, start_time, end_time, image_url")
+        .select("id, title, shift_date, start_time, end_time, image_url, hotel_id")
         .eq("status", "open")
+        .eq("hotel_id", profile.hotel_id) // <--- QUI il filtro magico
         .gte("shift_date", new Date().toISOString().split("T")[0])
         .order("shift_date", { ascending: true });
 
       if (error) throw error;
       setShifts(data as Shift[]);
     } catch (err: any) {
-      console.error("Error:", err.message);
+      console.error("Error fetching shifts:", err.message);
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -60,9 +81,8 @@ export default function WorkerShifts() {
 
   return (
     <View style={[styles.container, { backgroundColor: theme.background, paddingTop: insets.top + 20 }]}>
-      {/* HEADER BOLD - Stile Worker */}
       <View style={styles.headerArea}>
-        <Text style={[styles.kpi, { color: theme.tint }]}>AVAILABLE NOW</Text>
+        <Text style={[styles.kpi, { color: theme.tint }]}>AVAILABLE AT YOUR HOTEL</Text>
         <Text style={[styles.title, { color: theme.text }]}>Find Work</Text>
       </View>
 
@@ -74,7 +94,6 @@ export default function WorkerShifts() {
         <FlatList
           data={shifts}
           keyExtractor={(item) => item.id}
-          // USIAMO IL COMPONENTE CONDIVISO
           renderItem={({ item }) => (
             <ShiftCard 
               item={item} 
@@ -93,9 +112,9 @@ export default function WorkerShifts() {
           }
           ListEmptyComponent={() => (
             <View style={styles.emptyContainer}>
-              <Ionicons name="search-outline" size={48} color={theme.icon} style={{ opacity: 0.2 }} />
+              <Ionicons name="business-outline" size={48} color={theme.icon} style={{ opacity: 0.2 }} />
               <Text style={[styles.emptyText, { color: theme.secondaryText }]}>
-                No shifts available at the moment
+                No shifts available for your hotel
               </Text>
             </View>
           )}
