@@ -27,7 +27,8 @@ export default function AuthChoice() {
         <View style={styles.textSection}>
           <Text style={[styles.brandName, { color: theme.text }]}>ShiftMate</Text>
           <Text style={[styles.tagline, { color: theme.secondaryText }]}>
-            Streamline scheduling, assign shifts, and claim opportunities. Your unified workflow, simplified.
+            Assign shifts or claim opportunities. 
+            Your unified workflow, simplified.
           </Text>
         </View>
 

@@ -146,7 +146,7 @@ export default function ShiftDetail() {
           <View style={styles.descriptionSection}>
             <Text style={[styles.descriptionLabel, { color: theme.secondaryText }]}>DESCRIZIONE</Text>
             <Text style={[styles.descriptionText, { color: theme.text }]}>
-              {shift?.description || "Nessuna descrizione fornita."}
+              {shift?.description || "No description available."}
             </Text>
           </View>
           <View style={{ height: 140 }} />

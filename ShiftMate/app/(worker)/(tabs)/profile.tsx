@@ -51,11 +51,6 @@ export default function ProfileScreen() {
     }, [fetchProfile])
   );
 
-  const handleLogout = async () => {
-    await supabase.auth.signOut();
-    router.replace("/auth/login");
-  };
-
   if (loading) {
     return (
       <View style={[styles.center, { backgroundColor: theme.background }]}>
@@ -150,13 +145,6 @@ export default function ProfileScreen() {
           label="App Settings"
           onPress={() => router.push("/(worker)/settingWorker/settingWorker")}
           theme={theme}
-        />
-        <MenuButton
-          icon="log-out-sharp"
-          label="Logout"
-          onPress={handleLogout}
-          theme={theme}
-          isDelete
         />
       </View>
     </ScrollView>

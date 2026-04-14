@@ -10,13 +10,13 @@ import {
 } from "react-native";
 import React, { useState, useCallback } from "react";
 import { Colors } from "@/constants/theme";
-import { supabase } from "@/lib/supabase";
 import { useRouter, useFocusEffect } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { ShiftCard } from "@/components/shiftCard/ShiftCard";
 import { Ionicons } from "@expo/vector-icons";
+import { fetchManagerShifts } from "@/queries/managerQueries";
+import { supabase } from "@/lib/supabase";
 
-// 1. Definiamo il tipo Shift per risolvere gli errori "Cannot find name 'Shift'"
 interface Shift {
   id: string;
   title: string;
@@ -25,37 +25,28 @@ interface Shift {
   end_time: string;
   image_url: string | null;
   status: string;
-  description?: string;
 }
 
 export default function ShiftsManager() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const colorScheme = useColorScheme();
-  const theme = Colors[colorScheme ?? "light"];
+  const theme = Colors[useColorScheme() ?? "light"];
 
-  // 2. Inizializziamo lo stato con il tipo corretto <Shift[]> per evitare "never[]"
   const [shifts, setShifts] = useState<Shift[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
-  const fetchShifts = useCallback(async () => {
+  const loadData = useCallback(async () => {
     try {
-      const { data: userData } = await supabase.auth.getUser();
-      if (!userData.user) return;
+      // Manager id is stored in the session, so we can get it directly without an extra query
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.user?.id) return;
 
-      const { data, error } = await supabase
-        .from("shifts")
-        .select("*")
-        .eq("manager_id", userData.user.id)
-        .order("shift_date", { ascending: false });
-
-      if (error) throw error;
-      
-      // 3. Cast sicuro dei dati
-      setShifts((data as Shift[]) || []);
+      // Pass the manager's user ID to the fetchManagerShifts function
+      const data = await fetchManagerShifts(session.user.id); 
+      setShifts(data as Shift[]);
     } catch (err) {
-      console.error("Error fetching shifts:", err);
+      console.error("Error loading shifts:", err);
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -64,9 +55,14 @@ export default function ShiftsManager() {
 
   useFocusEffect(
     useCallback(() => {
-      fetchShifts();
-    }, [fetchShifts])
+      loadData();
+    }, [loadData])
   );
+
+  const onRefresh = () => {
+    setRefreshing(true);
+    loadData();
+  };
 
   if (loading && !refreshing) {
     return (
@@ -83,15 +79,11 @@ export default function ShiftsManager() {
         keyExtractor={(item) => item.id}
         contentContainerStyle={[
           styles.listContent, 
-          { paddingTop: insets.top + 10, paddingBottom: 100 } // Spazio ridotto in alto
+          { paddingTop: insets.top + 10, paddingBottom: 100 }
         ]}
         showsVerticalScrollIndicator={false}
         refreshControl={
-          <RefreshControl 
-            refreshing={refreshing} 
-            onRefresh={() => { setRefreshing(true); fetchShifts(); }} 
-            tintColor={theme.tint} 
-          />
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={theme.tint} />
         }
         ListHeaderComponent={() => (
           <View style={styles.headerArea}>
@@ -100,7 +92,6 @@ export default function ShiftsManager() {
                 <Text style={[styles.kpiLabel, { color: theme.tint }]}>CENTER</Text>
                 <Text style={[styles.headerTitle, { color: theme.text }]}>Shift Hub</Text>
               </View>
-              {/* Contatore discreto */}
               <View style={[styles.countBadge, { backgroundColor: theme.text + "10" }]}>
                 <Text style={[styles.countText, { color: theme.text }]}>{shifts.length}</Text>
               </View>
@@ -110,6 +101,7 @@ export default function ShiftsManager() {
         renderItem={({ item }) => (
           <ShiftCard 
             item={item} 
+            variant="manager" // Assicurati di passare la variante corretta se il componente la supporta
             onPress={() => router.push(`/(manager)/(tabs)/shift/${item.id}`)} 
           />
         )}
@@ -121,14 +113,13 @@ export default function ShiftsManager() {
         )}
       />
 
-      {/* FAB CIRCOLARE E LATERALE */}
       <View style={[styles.fabContainer, { bottom: insets.bottom + 20 }]}>
         <Pressable 
           onPress={() => router.push("/(manager)/(tabs)/createShift")}
           style={({ pressed }) => [
             styles.fab, 
             { 
-              backgroundColor: theme.text, // NEUTRAL_900
+              backgroundColor: theme.text,
               opacity: pressed ? 0.9 : 1,
               transform: [{ scale: pressed ? 0.92 : 1 }]
             }
@@ -143,77 +134,15 @@ export default function ShiftsManager() {
 
 const styles = StyleSheet.create({
   center: { flex: 1, justifyContent: "center", alignItems: "center" },
-  listContent: { 
-    paddingHorizontal: 24, // Leggermente più largo per il respiro "soft"
-  },
-  
-  // Header: Meno "Urlo", più "Aria"
-  headerArea: { 
-    marginBottom: 30,
-    marginTop: 15 
-  },
-  titleRow: { 
-    flexDirection: 'row', 
-    justifyContent: 'space-between', 
-    alignItems: 'center' // Allineamento centrato per eleganza
-  },
-  kpiLabel: { 
-    fontSize: 12, 
-    fontWeight: "700", // Da 900 a 700
-    letterSpacing: 0.5, 
-    marginBottom: 4,
-    opacity: 0.5 
-  },
-  headerTitle: { 
-    fontSize: 28, 
-    fontWeight: "700",
-    letterSpacing: -0.8 
-  },
-  
-  countBadge: { 
-    paddingHorizontal: 12, 
-    height: 28, 
-    borderRadius: 12, // Più tondo
-    justifyContent: 'center', 
-    alignItems: 'center',
-    backgroundColor: 'rgba(0,0,0,0.03)', // Grigio quasi invisibile
-  },
-  countText: { 
-    fontSize: 14, 
-    fontWeight: "600",
-    opacity: 0.7 
-  },
-
-  // Empty State: Più delicato
-  emptyContainer: { 
-    marginTop: 100, 
-    alignItems: "center",
-    gap: 15 
-  },
-  emptyText: { 
-    fontSize: 16, 
-    fontWeight: "500", 
-    opacity: 0.4,
-    textAlign: 'center'
-  },
-
-  // FAB: L'unico elemento che mantiene un po' di "carattere"
-  fabContainer: {
-    position: 'absolute',
-    right: 24,
-    zIndex: 10,
-  },
-  fab: {
-    width: 52, // Leggermente più grande
-    height: 52,
-    borderRadius: 32, 
-    justifyContent: "center",
-    alignItems: "center",
-    // Ombra molto più diffusa (Soft Shadow)
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.12,
-    shadowRadius: 12,
-    elevation: 6,
-  },
+  listContent: { paddingHorizontal: 24 },
+  headerArea: { marginBottom: 30, marginTop: 15 },
+  titleRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  kpiLabel: { fontSize: 12, fontWeight: "700", letterSpacing: 0.5, marginBottom: 4, opacity: 0.5 },
+  headerTitle: { fontSize: 28, fontWeight: "700", letterSpacing: -0.8 },
+  countBadge: { paddingHorizontal: 12, height: 28, borderRadius: 12, justifyContent: 'center', alignItems: 'center' },
+  countText: { fontSize: 14, fontWeight: "600", opacity: 0.7 },
+  emptyContainer: { marginTop: 100, alignItems: "center", gap: 15 },
+  emptyText: { fontSize: 16, fontWeight: "500", opacity: 0.4, textAlign: 'center' },
+  fabContainer: { position: 'absolute', right: 24, zIndex: 10 },
+  fab: { width: 52, height: 52, borderRadius: 32, justifyContent: "center", alignItems: "center", shadowColor: "#000", shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.12, shadowRadius: 12, elevation: 6 },
 });

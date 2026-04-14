@@ -110,22 +110,6 @@ export default function ProfileManager() {
             onPress={() => {}}
             theme={theme}
           />
-          
-          {/* LOGOUT INTEGRATO NEL MENU */}
-          <Pressable 
-            onPress={() => supabase.auth.signOut().then(() => router.replace("/auth/login"))}
-            style={({ pressed }) => [
-              styles.menuRow, 
-              { borderBottomWidth: 0, marginTop: 10, opacity: pressed ? 0.6 : 1 }
-            ]}
-          >
-            <View style={styles.menuLeft}>
-              <View style={[styles.iconCircle, { backgroundColor: '#FFF5F5' }]}>
-                <Ionicons name="log-out-outline" size={20} color={theme.delete} />
-              </View>
-              <Text style={[styles.menuLabel, { color: theme.delete }]}>Sign Out</Text>
-            </View>
-          </Pressable>
         </View>
       </ScrollView>
     </View>
