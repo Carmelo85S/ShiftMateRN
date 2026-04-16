@@ -17,6 +17,7 @@ import {
 import DateTimePicker from "@react-native-community/datetimepicker";
 import ShiftUploader from "@/components/imagePicker/imagePickerShift";
 import { Ionicons } from "@expo/vector-icons";
+import { getShiftForEdit, updateShift } from "@/queries/managerQueries";
 
 export default function EditShift() {
   const theme = Colors.light;
@@ -44,12 +45,13 @@ export default function EditShift() {
     const fetchShift = async () => {
       setLoading(true);
       try {
-        const { data, error } = await supabase
-          .from("shifts")
-          .select("*")
-          .eq("id", id)
-          .single();
-        if (error) throw error;
+        // Fetch shift data for editing using the provided ID
+        const data = await getShiftForEdit(id!);
+        if (!data) {
+          Alert.alert("Error", "Shift not found");
+          router.back();
+          return;
+        }
 
         setTitle(data.title);
         setDescription(data.description ?? "");
@@ -75,23 +77,21 @@ export default function EditShift() {
     }
     setSaving(true);
     try {
-      const { error } = await supabase
-        .from("shifts")
-        .update({
-          title,
-          description,
-          shift_date: shiftDate.toISOString().split("T")[0],
-          start_time: startTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false }),
-          end_time: endTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false }),
-          image_url: imageUrl,
-        })
-        .eq("id", id);
+      // Update shift in the database
+      await updateShift(id!, {
+      title,
+      description,
+      shift_date: shiftDate,
+      start_time: startTime,
+      end_time: endTime,
+      image_url: imageUrl,
+    });
 
-      if (error) throw error;
       Alert.alert("Success", "Shift updated successfully");
       router.back();
     } catch (err) {
       Alert.alert("Error", "Failed to update shift");
+      console.error(err);
     } finally {
       setSaving(false);
     }

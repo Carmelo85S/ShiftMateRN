@@ -1,8 +1,4 @@
-import AvatarUploader from "@/components/imagePicker/imagePicker";
-import { Colors } from "@/constants/theme";
-import { supabase } from "@/lib/supabase";
-import { useRouter } from "expo-router";
-import { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   Alert,
   KeyboardAvoidingView,
@@ -17,7 +13,13 @@ import {
   ScrollView,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { supabase } from "@/lib/supabase";
+import { Colors } from "@/constants/theme";
+import AvatarUploader from "@/components/imagePicker/imagePicker";
+
+import { fetchUserProfile, updateUserProfile } from "@/queries/managerQueries";
 
 type Department = 'bar' | 'kitchen' | 'restaurant' | 'housekeeping' | 'reception' | 'maintenance' | '';
 
@@ -41,21 +43,16 @@ export default function EditProfileScreen() {
   });
 
   useEffect(() => {
-    fetchProfile();
+    loadData();
   }, []);
 
-  const fetchProfile = async () => {
+  const loadData = async () => {
     try {
-      const { data: userData } = await supabase.auth.getUser();
-      if (!userData.user) return;
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
 
-      const { data, error } = await supabase
-        .from("profiles")
-        .select("*")
-        .eq("id", userData.user.id)
-        .single();
-
-      if (!error && data) {
+      const data = await fetchUserProfile(user.id);
+      if (data) {
         setForm({
           id: data.id,
           name: data.name ?? "",
@@ -68,7 +65,7 @@ export default function EditProfileScreen() {
         });
       }
     } catch (error) {
-      console.error(error);
+      console.error("Error loading profile:", error);
     } finally {
       setLoading(false);
     }
@@ -81,9 +78,8 @@ export default function EditProfileScreen() {
     }
 
     setSaving(true);
-    const { error } = await supabase
-      .from("profiles")
-      .update({
+    try {
+      await updateUserProfile(form.id, {
         name: form.name,
         surname: form.surname,
         job_role: form.job_role,
@@ -91,15 +87,12 @@ export default function EditProfileScreen() {
         phone: form.phone,
         department: form.department || null,
         avatar_url: form.avatar_url,
-      })
-      .eq("id", form.id);
-
-    setSaving(false);
-
-    if (error) {
-      Alert.alert("Error", error.message);
-    } else {
+      });
       router.back();
+    } catch (error: any) {
+      Alert.alert("Error", error.message);
+    } finally {
+      setSaving(false);
     }
   };
 

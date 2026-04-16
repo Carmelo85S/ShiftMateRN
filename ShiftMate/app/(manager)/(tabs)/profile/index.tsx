@@ -3,7 +3,6 @@ import { supabase } from "@/lib/supabase";
 import { useRouter, useFocusEffect } from "expo-router";
 import React, { useState, useCallback } from "react";
 import { 
-  Alert, 
   Pressable, 
   StyleSheet, 
   Text, 
@@ -15,6 +14,9 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+// Importiamo la tua query specifica
+import { fetchUserProfile } from "@/queries/managerQueries";
+
 export default function ProfileManager() {
   const theme = Colors.light; 
   const router = useRouter();
@@ -23,15 +25,27 @@ export default function ProfileManager() {
   const [profile, setProfile] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
-  const fetchProfile = useCallback(async () => {
-    const { data: userData } = await supabase.auth.getUser();
-    if (!userData.user) return;
-    const { data } = await supabase.from("profiles").select("*").eq("id", userData.user.id).single();
-    setProfile(data);
-    setLoading(false);
+  // Load data function
+  const loadData = useCallback(async () => {
+    try {
+      const { data: userData } = await supabase.auth.getUser();
+      if (!userData.user) return;
+
+      const data = await fetchUserProfile(userData.user.id);
+      setProfile(data);
+    } catch (error) {
+      console.error("Error loading profile:", error);
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
-  useFocusEffect(useCallback(() => { fetchProfile(); }, [fetchProfile]));
+  // Reload data when returning to this screen
+  useFocusEffect(
+    useCallback(() => { 
+      loadData(); 
+    }, [loadData])
+  );
 
   if (loading) return (
     <View style={[styles.center, { backgroundColor: theme.background }]}>
@@ -49,12 +63,12 @@ export default function ProfileManager() {
         }}
         showsVerticalScrollIndicator={false}
       >
-        {/* HEADER: Titolo Pulito e Avatar laterale per coerenza */}
+        {/* HEADER */}
         <View style={styles.headerRow}>
           <View style={{ flex: 1 }}>
             <Text style={[styles.welcomeText, { color: theme.secondaryText }]}>Account</Text>
             <Text style={[styles.nameTitle, { color: theme.text }]}>
-              {profile?.name || "Manager"}
+              {profile?.name} {profile?.surname}
             </Text>
           </View>
           <View style={[styles.avatarFrame, { backgroundColor: theme.card, borderColor: theme.border }]}>
@@ -66,11 +80,13 @@ export default function ProfileManager() {
           </View>
         </View>
 
-        {/* INFO CARD: Unico elemento che stacca leggermente dallo sfondo */}
+        {/* INFO CARD */}
         <View style={[styles.infoCard, { backgroundColor: theme.card, borderColor: theme.border }]}>
           <View style={styles.infoItem}>
             <Text style={[styles.infoLabel, { color: theme.secondaryText }]}>ROLE</Text>
-            <Text style={[styles.infoValue, { color: theme.text }]}>{profile?.job_role || "Administrator"}</Text>
+            <Text style={[styles.infoValue, { color: theme.text }]}>
+              {profile?.job_role || "Administrator"}
+            </Text>
           </View>
           <View style={[styles.verticalDivider, { backgroundColor: theme.border }]} />
           <View style={styles.infoItem}>
@@ -82,11 +98,11 @@ export default function ProfileManager() {
           </View>
         </View>
 
-        {/* BIO INTEGRATA */}
+        {/* BIO */}
         <View style={styles.bioSection}>
           <Text style={[styles.sectionTitle, { color: theme.text }]}>Biography</Text>
           <Text style={[styles.bioDescription, { color: theme.secondaryText }]}>
-            {profile?.bio || "Describe your professional experience here."}
+            {profile?.bio || "No biography provided yet."}
           </Text>
         </View>
 
@@ -116,16 +132,17 @@ export default function ProfileManager() {
   );
 }
 
+// Sottocomponente per le righe del menu
 const MenuRow = ({ label, icon, onPress, theme }: any) => (
   <Pressable 
     onPress={onPress} 
     style={({ pressed }) => [
       styles.menuRow, 
-      { borderBottomColor: theme.border, opacity: pressed ? 0.6 : 1 }
+      { opacity: pressed ? 0.6 : 1 }
     ]}
   >
     <View style={styles.menuLeft}>
-      <View style={[styles.iconCircle, { backgroundColor: theme.background }]}>
+      <View style={[styles.iconCircle, { backgroundColor: 'rgba(0,0,0,0.03)' }]}>
         <Ionicons name={icon} size={20} color={theme.text} />
       </View>
       <Text style={[styles.menuLabel, { color: theme.text }]}>{label}</Text>
@@ -136,125 +153,34 @@ const MenuRow = ({ label, icon, onPress, theme }: any) => (
 
 const styles = StyleSheet.create({
   center: { flex: 1, justifyContent: "center", alignItems: "center" },
-  
-  // HEADER: Più arioso e meno "bold"
-  headerRow: { 
-    flexDirection: 'row', 
-    alignItems: 'center', 
-    marginBottom: 40,
-    marginTop: 10 
-  },
-  welcomeText: { 
-    fontSize: 14, 
-    fontWeight: "600", 
-    opacity: 0.5,
-    letterSpacing: 0.5,
-    textTransform: 'uppercase' 
-  },
-  nameTitle: { 
-    fontSize: 30, 
-    fontWeight: "700", 
-    letterSpacing: -0.8 
-  },
+  headerRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 40, marginTop: 10 },
+  welcomeText: { fontSize: 14, fontWeight: "600", opacity: 0.5, letterSpacing: 0.5, textTransform: 'uppercase' },
+  nameTitle: { fontSize: 30, fontWeight: "700", letterSpacing: -0.8 },
   avatarFrame: { 
-    width: 70, 
-    height: 70, 
-    borderRadius: 25, // Più "squircle" che cerchio
-    backgroundColor: '#FFF',
-    // Soft Shadow invece del bordo
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.08,
-    shadowRadius: 12,
-    elevation: 3,
+    width: 70, height: 70, borderRadius: 25, justifyContent: 'center', alignItems: 'center',
+    shadowColor: "#000", shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.08, shadowRadius: 12, elevation: 3,
   },
   avatar: { width: '100%', height: '100%', borderRadius: 25 },
-
   infoCard: { 
-    flexDirection: 'row', 
-    borderRadius: 24, 
-    padding: 24, 
-    backgroundColor: '#FFF',
-    borderWidth: 0, // Via i bordi
-    marginBottom: 40,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.04,
-    shadowRadius: 20,
-    elevation: 2,
+    flexDirection: 'row', borderRadius: 24, padding: 24, marginBottom: 40,
+    shadowColor: "#000", shadowOffset: { width: 0, height: 10 }, shadowOpacity: 0.04, shadowRadius: 20, elevation: 2,
   },
   infoItem: { flex: 1, gap: 6 },
-  infoLabel: { 
-    fontSize: 11, 
-    fontWeight: "600", 
-    opacity: 0.4,
-    letterSpacing: 0.5 
-  },
-  infoValue: { 
-    fontSize: 16, 
-    fontWeight: "700" 
-  },
-  verticalDivider: { 
-    width: 1, 
-    height: '80%', 
-    alignSelf: 'center',
-    marginHorizontal: 20,
-    opacity: 0.1 // Quasi invisibile
-  },
+  infoLabel: { fontSize: 11, fontWeight: "600", opacity: 0.4, letterSpacing: 0.5 },
+  infoValue: { fontSize: 16, fontWeight: "700" },
+  verticalDivider: { width: 1, height: '80%', alignSelf: 'center', marginHorizontal: 20, opacity: 0.1 },
   statusBadge: { 
-    flexDirection: 'row', 
-    alignItems: 'center', 
-    gap: 6,
-    backgroundColor: 'rgba(52, 199, 89, 0.1)', // Verde chiarissimo di sfondo
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 10,
-    alignSelf: 'flex-start'
+    flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: 'rgba(52, 199, 89, 0.1)', 
+    paddingHorizontal: 10, paddingVertical: 4, borderRadius: 10, alignSelf: 'flex-start'
   },
   statusDot: { width: 6, height: 6, borderRadius: 3 },
   statusText: { fontSize: 12, fontWeight: "700" },
-
-  // BIO
   bioSection: { marginBottom: 30, paddingHorizontal: 4 },
-  sectionTitle: { 
-    fontSize: 18, 
-    fontWeight: "700", 
-    marginBottom: 10,
-    letterSpacing: -0.3 
-  },
-  bioDescription: { 
-    fontSize: 15, 
-    lineHeight: 22, 
-    fontWeight: "400",
-    opacity: 0.7 
-  },
-
-  // MENU: Pulito e distanziato
-  menuList: { 
-    marginTop: 10,
-    gap: 8 
-  },
-  menuRow: { 
-    flexDirection: 'row', 
-    alignItems: 'center', 
-    justifyContent: 'space-between', 
-    paddingVertical: 14, 
-    paddingHorizontal: 12,
-    borderRadius: 16, // Ogni riga è quasi una card a sé
-    borderBottomWidth: 0,
-  },
+  sectionTitle: { fontSize: 18, fontWeight: "700", marginBottom: 10, letterSpacing: -0.3 },
+  bioDescription: { fontSize: 15, lineHeight: 22, fontWeight: "400", opacity: 0.7 },
+  menuList: { marginTop: 10, gap: 8 },
+  menuRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 14, paddingHorizontal: 12, borderRadius: 16 },
   menuLeft: { flexDirection: 'row', alignItems: 'center', gap: 16 },
-  iconCircle: { 
-    width: 42, 
-    height: 42, 
-    borderRadius: 14, 
-    justifyContent: 'center', 
-    alignItems: 'center',
-    backgroundColor: 'rgba(0,0,0,0.03)' // Sfondo cerchio icona molto soft
-  },
-  menuLabel: { 
-    fontSize: 16, 
-    fontWeight: "500",
-    opacity: 0.9 
-  },
+  iconCircle: { width: 42, height: 42, borderRadius: 14, justifyContent: 'center', alignItems: 'center' },
+  menuLabel: { fontSize: 16, fontWeight: "500", opacity: 0.9 },
 });

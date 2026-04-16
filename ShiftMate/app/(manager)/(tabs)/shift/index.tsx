@@ -101,7 +101,7 @@ export default function ShiftsManager() {
         renderItem={({ item }) => (
           <ShiftCard 
             item={item} 
-            variant="manager" // Assicurati di passare la variante corretta se il componente la supporta
+            variant="manager"
             onPress={() => router.push(`/(manager)/(tabs)/shift/${item.id}`)} 
           />
         )}

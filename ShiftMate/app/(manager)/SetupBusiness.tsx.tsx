@@ -15,9 +15,10 @@ import { supabase } from "@/lib/supabase";
 import { useRouter } from "expo-router";
 import { Colors } from "@/constants/theme";
 import { Ionicons } from "@expo/vector-icons";
+import { createBusinessAndAssignOwner } from "@/queries/managerQueries";
 
-export default function SetupHotel() {
-  const [hotelName, setHotelName] = useState("");
+export default function SetupBusiness() {
+  const [businessName, setBusinessName] = useState("");
   const [loading, setLoading] = useState(false);
   const router = useRouter();
   const theme = Colors.light;
@@ -31,9 +32,9 @@ export default function SetupHotel() {
     return result;
   };
 
-  const handleCreateStructure = async () => {
-    if (!hotelName.trim()) {
-      Alert.alert("Attention", "Please enter your structure name.");
+  const handleCreateBusiness = async () => {
+    if (!businessName.trim()) {
+      Alert.alert("Attention", "Please enter your business name.");
       return;
     }
 
@@ -44,29 +45,12 @@ export default function SetupHotel() {
 
       const inviteCode = generateInviteCode();
 
-      // 1. Inserimento nella tabella hotels
-      const { data: hotel, error: hotelError } = await supabase
-        .from("hotels")
-        .insert([{ 
-            name: hotelName.trim(), 
-            invite_code: inviteCode 
-        }])
-        .select()
-        .single();
-
-      if (hotelError) throw hotelError;
-
-      // 2. Aggiornamento del profilo dell'Owner
-      const { error: profileError } = await supabase
-        .from("profiles")
-        .update({ hotel_id: hotel.id })
-        .eq("id", user.id);
-
-      if (profileError) throw profileError;
+      // Create business and assign owner in one operation
+      await createBusinessAndAssignOwner(user.id, businessName, inviteCode);
 
       Alert.alert(
-        "Structure Created!",
-        `Your invite code is: ${inviteCode}. Share it with your team to let them join.`,
+        "Business Created!",
+        `Invite code: ${inviteCode}. Share it with your team to let them join.`,
         [{ text: "LET'S START", onPress: () => router.replace("/(manager)/(tabs)/dashboard") }]
       );
 
@@ -84,7 +68,6 @@ export default function SetupHotel() {
     >
       <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
         
-        {/* HEADER IDENTICO A REGISTER/LOGIN */}
         <View style={styles.header}>
           <Text style={[styles.kpi, { color: theme.tint }]}>FIRST STEP</Text>
           <Text style={[styles.title, { color: theme.text }]}>Setup Your{"\n"}Business</Text>
@@ -92,19 +75,19 @@ export default function SetupHotel() {
 
         <View style={styles.content}>
           <View style={styles.infoBox}>
-            <Ionicons name="information-circle-outline" size={20} color={theme.text} style={{ opacity: 0.6 }} />
+            <Ionicons name="business-outline" size={20} color={theme.text} style={{ opacity: 0.6 }} />
             <Text style={styles.subtitle}>
-              Register your hotel or restaurant to start managing shifts and your team.
+              Register your business and start managing your team.
             </Text>
           </View>
 
           <View style={styles.inputWrapper}>
-            <Text style={styles.inputLabel}>STRUCTURE NAME</Text>
+            <Text style={styles.inputLabel}>BUSINESS NAME</Text>
             <TextInput
               placeholder="e.g. Grand Hotel or Central Bar"
               placeholderTextColor="#999"
-              value={hotelName}
-              onChangeText={setHotelName}
+              value={businessName}
+              onChangeText={setBusinessName}
               style={[styles.input, { color: theme.text, borderColor: theme.text }]}
             />
           </View>
@@ -114,11 +97,11 @@ export default function SetupHotel() {
               styles.button, 
               { backgroundColor: theme.text, opacity: pressed || loading ? 0.8 : 1 }
             ]} 
-            onPress={handleCreateStructure}
+            onPress={handleCreateBusiness}
             disabled={loading}
           >
             <Text style={[styles.buttonText, { color: theme.background }]}>
-              {loading ? "CREATING..." : "CREATE STRUCTURE"}
+              {loading ? "CREATING..." : "CREATE BUSINESS"}
             </Text>
             {!loading && <Ionicons name="checkmark-circle" size={20} color={theme.background} />}
           </Pressable>

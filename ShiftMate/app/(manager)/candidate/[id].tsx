@@ -17,6 +17,7 @@ import { supabase } from "@/lib/supabase";
 import { Colors } from "@/constants/theme";
 import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { fetchCandidateProfile, updateApplicationStatus } from "@/queries/managerQueries";
 
 type Profile = {
   id: string;
@@ -45,14 +46,9 @@ export default function CandidateProfile() {
     if (!id) return;
     setLoading(true);
     try {
-      const { data, error } = await supabase
-        .from("profiles")
-        .select("*")
-        .eq("id", id)
-        .single();
-
-      if (error) throw error;
-      setProfile(data);
+      // Fetch candidate profile using the query function defined in managerQueries.ts
+      const profileData = await fetchCandidateProfile(id as string);
+      setProfile(profileData);
     } catch (err) {
       console.error("Error fetching profile:", err);
       Alert.alert("Error", "Could not load candidate profile.");
@@ -73,13 +69,7 @@ export default function CandidateProfile() {
 
     setProcessing(status);
     try {
-      const { error } = await supabase
-        .from("applications")
-        .update({ status: status })
-        .eq("shift_id", shiftId)
-        .eq("profile_id", id);
-
-      if (error) throw error;
+      await updateApplicationStatus(shiftId as string, id as string, status);
 
       Alert.alert(
         status === "accepted" ? "Success" : "Rejected",

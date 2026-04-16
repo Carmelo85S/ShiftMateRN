@@ -20,6 +20,7 @@ import { useRouter, useFocusEffect } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import ShiftUploader from "@/components/imagePicker/imagePickerShift";
+import { createShift } from "@/queries/managerQueries";
 
 export default function CreateShift() {
   const router = useRouter();
@@ -70,39 +71,12 @@ export default function CreateShift() {
 
     setLoading(true);
     try {
-      // 1. Ottieni l'utente corrente
+      // Get current user ID from session
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("No user found");
 
-      // 2. Recupera l'hotel_id dal profilo del manager
-      const { data: profile, error: profileError } = await supabase
-        .from("profiles")
-        .select("hotel_id")
-        .eq("id", user.id)
-        .single();
-
-      if (profileError || !profile?.hotel_id) {
-        throw new Error("Your profile is not linked to an hotel. Contact admin.");
-      }
-
-      // 3. Inserisci il turno collegato all'hotel del manager
-      const { error: shiftError } = await supabase.from("shifts").insert([
-        {
-          title: form.title,
-          description: form.description,
-          department: form.department,
-          hotel_id: profile.hotel_id, // Link automatico all'hotel
-          shift_date: form.date.toISOString().split("T")[0],
-          start_time: form.startTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false }),
-          end_time: form.endTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false }),
-          image_url: imageUrl,
-          status: "open",
-          created_by: user.id,
-          manager_id: user.id,
-        },
-      ]);
-
-      if (shiftError) throw shiftError;
+      // Call centralized query
+      await createShift(user.id, imageUrl, form);
 
       Alert.alert("Success", "Shift posted successfully!", [
         { text: "OK", onPress: () => router.push("/(manager)/(tabs)/shift") },

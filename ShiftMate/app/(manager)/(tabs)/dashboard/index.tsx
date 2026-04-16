@@ -14,6 +14,7 @@ import { supabase } from "@/lib/supabase";
 import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { ShiftCard } from "@/components/shiftCard/ShiftCard";
+import { countBusinessWorkers, fetchManagerShifts, getManagerProfile } from "@/queries/managerQueries";
 
 type Stats = {
   totalWorkers: number;
@@ -32,61 +33,35 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [userName, setUserName] = useState("Manager");
 
-  // FETCH DATA: Ottimizzata e Stabile
+  // FETCH DATA
   const fetchData = useCallback(async () => {
-    const start = Date.now();
-    
     try {
-      // getSession è più veloce di getUser perché legge i dati locali
       const { data: { session } } = await supabase.auth.getSession();
       const userId = session?.user?.id;
       if (!userId) return;
-
       const today = new Date().toISOString().split("T")[0];
-
-      // Se non abbiamo ancora il nome, lo carichiamo (solo una volta)
-      if (userName === "Manager") {
-        const { data: profile } = await supabase
-          .from("profiles")
-          .select("name")
-          .eq("id", userId)
-          .single();
-        if (profile?.name) setUserName(profile.name);
+      const [profileData, allShifts] = await Promise.all([
+        getManagerProfile(userId),
+        fetchManagerShifts(userId),
+      ]);
+      if (profileData?.name) setUserName(profileData.name);
+      let workersCount = 0;
+      if (profileData?.business_id) {
+        workersCount = await countBusinessWorkers(profileData.business_id);
       }
-
-      // Query singola per tutti i turni
-      const { data: shifts, error } = await supabase
-        .from("shifts")
-        .select("id, title, shift_date, start_time, end_time, status, image_url")
-        .eq("manager_id", userId)
-        .order('shift_date', { ascending: true });
-
-      if (error) throw error;
-      const allShifts = shifts || [];
-
-      // Calcolo statistiche locale (0ms)
       setStats({
-        totalWorkers: 0, 
-        totalShifts: allShifts.length,
-        openShifts: allShifts.filter(s => s.status === 'open').length,
+        totalWorkers: workersCount || 0,
+        totalShifts: allShifts.length || 0,
+        openShifts: allShifts.filter((s: any) => s.status === 'open').length || 0,
       });
-
-      // Filtro i prossimi 3 turni
-      const upcoming = allShifts
-        .filter(s => s.shift_date >= today)
-        .slice(0, 3);
-
-      setUpcomingShifts(upcoming);
-
+      setUpcomingShifts(allShifts.filter((s: any) => s.shift_date >= today).slice(0, 3));
     } catch (error) {
       console.error("Dashboard error:", error);
     } finally {
       setLoading(false);
-      console.log(`--- FETCH FINISHED: ${Date.now() - start}ms ---`);
     }
-  }, [userName]); // Dipende solo da userName per caricarlo una volta sola
+  }, []);
 
-  // FOCUS EFFECT: Unica chiamata quando la schermata torna attiva
   useFocusEffect(
     useCallback(() => {
       fetchData();
