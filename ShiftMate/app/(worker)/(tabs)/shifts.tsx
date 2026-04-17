@@ -16,7 +16,7 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { ShiftCard } from "@/components/shiftCard/ShiftCard";
-import { LinearGradient } from "expo-linear-gradient";
+import { fetchGlobalShifts } from "@/queries/workerQueries";
 
 const { width } = Dimensions.get("window");
 
@@ -27,7 +27,7 @@ type Shift = {
   start_time: string;
   end_time: string;
   image_url: string | null;
-  hotel_id: string;
+  business_id: string;
 };
 
 export default function WorkerShifts() {
@@ -38,47 +38,32 @@ export default function WorkerShifts() {
   const [shifts, setShifts] = useState<Shift[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [hotelName, setHotelName] = useState("Il Tuo Hotel");
+  const [isGuest, setIsGuest] = useState(true);
 
-  const fetchShifts = useCallback(async () => {
+  const loadShiftsBoard = useCallback(async () => {
     try {
-      const { data: authData } = await supabase.auth.getUser();
-      const user = authData.user;
-      if (!user) return;
+      // 1. Check Session
+      const { data: { session } } = await supabase.auth.getSession();
+      setIsGuest(!session);
 
-      // 1. Recupero hotel_id e solo il NAME dalla tabella hotels (visto che city non esiste)
-      const { data: profile, error: profileError } = await supabase
-        .from("profiles")
-        .select(`
-          hotel_id, 
-          hotels (
-            name
-          )
-        `)
-        .eq("id", user.id)
-        .single();
+      // 2. Fetch Global Shifts (Marketplace Mode)
+      const shiftsData = await fetchGlobalShifts();
 
-      if (profileError) throw profileError;
-
-      if (profile) {
-        // TypeScript fix per l'oggetto hotels
-        const hotelData = profile.hotels as any;
-        setHotelName(hotelData?.name || "Il Tuo Hotel");
-        
-        // 2. Recupero turni filtrati per hotel
-        const { data: shiftsData, error: shiftsError } = await supabase
-          .from("shifts")
-          .select("*")
-          .eq("status", "open")
-          .eq("hotel_id", profile.hotel_id)
-          .gte("shift_date", new Date().toISOString().split("T")[0])
-          .order("shift_date", { ascending: true });
-
-        if (shiftsError) throw shiftsError;
-        setShifts(shiftsData as Shift[]);
-      }
+      // Normalize incoming data to match local Shift type
+      const normalized: Shift[] = (shiftsData || []).map((s: any) => ({
+        id: String(s.id),
+        title: s.title,
+        shift_date: s.shift_date,
+        start_time: s.start_time,
+        end_time: s.end_time,
+        image_url: s.image_url ?? null,
+        // prefer explicit business_id, otherwise try the first business entry's id, otherwise empty string
+        business_id: s.business_id ?? (s.businesses && s.businesses[0]?.id) ?? ''
+      }));
+      setShifts(normalized);
+      
     } catch (err: any) {
-      console.error("WorkerShifts Error:", err.message);
+      console.error("WorkerShifts Load Error:", err.message);
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -86,19 +71,18 @@ export default function WorkerShifts() {
   }, []);
 
   useEffect(() => {
-    fetchShifts();
-  }, [fetchShifts]);
+    loadShiftsBoard();
+  }, [loadShiftsBoard]);
 
   const onRefresh = () => {
     setRefreshing(true);
-    fetchShifts();
+    loadShiftsBoard();
   };
 
   return (
     <View style={styles.container}>
       <StatusBar barStyle="dark-content" />
       
-      {/* Background soft decoration */}
       <View style={[styles.bgCircle, { top: -width * 0.1, right: -width * 0.1 }]} />
       
       <FlatList
@@ -116,22 +100,35 @@ export default function WorkerShifts() {
           <View style={styles.header}>
             <View style={styles.headerTop}>
               <View style={{ flex: 1 }}>
-                <Text style={styles.hotelBadge}>{hotelName.toUpperCase()}</Text>
-                <Text style={styles.mainTitle} numberOfLines={1}>Shifts board</Text>
+                <Text style={styles.businessBadge}>
+                  {isGuest ? "OPEN MARKETPLACE" : "DASHBOARD"}
+                </Text>
+                <Text style={styles.mainTitle} numberOfLines={1}>
+                  {isGuest ? "Job Offers" : "Shifts board"}
+                </Text>
               </View>
               <Pressable 
                 style={styles.profileBtn} 
-                onPress={() => router.push("/profile")}
+                onPress={() => isGuest ? router.push("/") : router.push("/profile")}
               >
-                <Ionicons name="person-circle-outline" size={40} color={theme.text} />
+                <Ionicons 
+                  name={isGuest ? "log-in-outline" : "person-circle-outline"} 
+                  size={40} 
+                  color={theme.text} 
+                />
               </Pressable>
             </View>
             
-            {/* Pannello info rapida */}
             <View style={styles.infoBox}>
-               <Ionicons name="information-circle-outline" size={20} color={theme.tint} />
+               <Ionicons 
+                 name={isGuest ? "sparkles-outline" : "information-circle-outline"} 
+                 size={20} 
+                 color={theme.tint} 
+               />
                <Text style={styles.infoText}>
-                 You have {shifts.length} {shifts.length === 1 ? 'shift available' : 'shifts available'} today
+                 {isGuest 
+                   ? `Found ${shifts.length} opportunities for you` 
+                   : `You have ${shifts.length} available shifts`}
                </Text>
             </View>
           </View>
@@ -151,9 +148,11 @@ export default function WorkerShifts() {
               <View style={styles.emptyIconCircle}>
                 <Ionicons name="calendar-clear-outline" size={32} color="#94A3B8" />
               </View>
-              <Text style={styles.emptyTitle}>No shift available</Text>
+              <Text style={styles.emptyTitle}>No shifts found</Text>
               <Text style={styles.emptySubtitle}>
-                Currently, there are no shifts loaded by the manager of {hotelName}.
+                {isGuest 
+                  ? "There are no open shifts in the marketplace right now. Check back soon!" 
+                  : "No shifts currently available for your business."}
               </Text>
             </View>
           ) : (
@@ -166,7 +165,7 @@ export default function WorkerShifts() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#FFFFFF', paddingTop: 30 },
+  container: { flex: 1, backgroundColor: '#FFFFFF', paddingTop: 10 },
   bgCircle: {
     position: 'absolute',
     width: width * 0.7,
@@ -183,7 +182,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 20 
   },
-  hotelBadge: { 
+  businessBadge: { 
     fontSize: 11, 
     fontWeight: "800", 
     color: '#94A3B8', 
@@ -237,13 +236,5 @@ const styles = StyleSheet.create({
     textAlign: 'center', 
     marginTop: 8,
     lineHeight: 20 
-  },
-  bottomGradient: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    height: 80,
-    pointerEvents: 'none',
   }
 });

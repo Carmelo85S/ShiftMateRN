@@ -16,6 +16,14 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { supabase } from "@/lib/supabase";
 import { router, useFocusEffect } from "expo-router";
 
+// --- IMPORT QUERIES ---
+import { 
+  fetchWorkerNotifications, 
+  markNotificationAsRead, 
+  markAllNotificationsAsRead, 
+  archiveNotification 
+} from "@/queries/workerQueries";
+
 export default function NotificationsScreen() {
   const colorScheme = useColorScheme();
   const theme = Colors[colorScheme ?? "light"];
@@ -25,56 +33,29 @@ export default function NotificationsScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
-  // Fetch data
-  const fetchNotifications = async () => {
+  // 1. Caricamento dati iniziale tramite query esterna
+  const loadNotifications = async () => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      const { data, error } = await supabase
-        .from('notifications')
-        .select('*')
-        .eq('profile_id', user.id)
-        .eq("is_archived", false)
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
-      setNotifications(data || []);
+      const data = await fetchWorkerNotifications(user.id);
+      setNotifications(data);
     } catch (error) {
-      console.error("Error fetching notifications:", error);
+      console.error("Error loading notifications:", error);
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
   };
 
-  //Delete old notifications (optional, for cleanup)
-  const handleDeleteNotification = async (id: string) => {
-  try {
-    // 1. Aggiornamento sul Database
-    const { error } = await supabase
-      .from("notifications")
-      .update({ is_archived: true })
-      .eq("id", id);
-
-    if (error) throw error;
-
-    // 2. Aggiornamento UI ottimistico (rimuovi subito dalla lista locale)
-    setNotifications((prev) => prev.filter((n) => n.id !== id));
-    
-  } catch (err) {
-    console.error(err);
-    Alert.alert("Error", "Could not remove notification.");
-  }
-};
-  // Load data when screen is focused
   useFocusEffect(
     useCallback(() => {
-      fetchNotifications();
+      loadNotifications();
     }, [])
   );
 
-  // Real time updates with Supabase Realtime
+  // 2. Realtime (Resta qui perché gestisce lo stato locale reattivo)
   useEffect(() => {
     let channel: any;
 
@@ -103,18 +84,10 @@ export default function NotificationsScreen() {
     return () => { if (channel) supabase.removeChannel(channel); };
   }, []);
 
-  // Mark as read
-  const markAsRead = async (id: string) => {
+  // 3. Handlers rifattorizzati
+  const handleMarkAsRead = async (id: string) => {
     try {
-      // 1. Aggiorna Supabase (questo scatena il Realtime nel TabLayout)
-      const { error } = await supabase
-        .from('notifications')
-        .update({ is_read: true })
-        .eq('id', id);
-      
-      if (error) throw error;
-
-      // 2. Aggiorna lo stato locale per il feedback visivo immediato
+      await markNotificationAsRead(id);
       setNotifications(prev => 
         prev.map(n => n.id === id ? { ...n, is_read: true } : n)
       );
@@ -123,68 +96,57 @@ export default function NotificationsScreen() {
     }
   };
 
-  const markAllAsRead = async () => {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
+  const handleMarkAllRead = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
 
-    await supabase
-      .from('notifications')
-      .update({ is_read: true })
-      .eq('profile_id', user.id)
-      .eq('is_read', false);
-    
-    fetchNotifications();
-  };
-
-  const handleNotificationPress = async (item: any) => {
-  if (!item) return;
-  
-  console.log("🔔 Notifica premuta:", item.type);
-  
-  // 1. Segna come letta
-  await markAsRead(item.id);
-
-  // 2. Navigazione logica
-  switch (item.type) {
-    case "confirmation":
-    case "reminder":
-    case "invitation":
-      if (item.shift_id) {
-        console.log("➡️ Navigo al dettaglio dello shift:", item.shift_id);
-        // Se il file è in app/(worker)/shift/[id].tsx, usa questo path:
-        router.push({ 
-          pathname: "/(worker)/shift/[id]", 
-          params: { id: item.shift_id } 
-        });
-      }
-      break;
-
-      case "rejection":
-        console.log("➡️ Rifiutato: Navigo alla lista turni");
-        router.push("/(worker)/(tabs)/shifts");
-        break;
-      
-      default:
-        console.log("ℹ️ Nessuna azione per questo tipo");
-        break;
+      await markAllNotificationsAsRead(user.id);
+      loadNotifications();
+    } catch (error) {
+      console.error("Errore mark all as read:", error);
     }
   };
 
-  // Helper time formatting function
+  const handleDeleteNotification = async (id: string) => {
+    try {
+      await archiveNotification(id);
+      setNotifications((prev) => prev.filter((n) => n.id !== id));
+    } catch (err) {
+      console.error(err);
+      Alert.alert("Error", "Could not remove notification.");
+    }
+  };
+
+  const handleNotificationPress = async (item: any) => {
+    if (!item) return;
+    
+    await handleMarkAsRead(item.id);
+
+    // Navigazione logica basata sul tipo
+    if (item.shift_id && ["confirmation", "reminder", "invitation"].includes(item.type)) {
+      router.push({ 
+        pathname: "/(worker)/shift/[id]", 
+        params: { id: item.shift_id } 
+      });
+    } else if (item.type === "rejection") {
+      router.push("/(worker)/(tabs)/shifts");
+    }
+  };
+
+  // Helper per il tempo
   const getTimeAgo = (date: string) => {
-    const now = new Date();
-    const past = new Date(date);
-    const diffInMs = now.getTime() - past.getTime();
+    const diffInMs = new Date().getTime() - new Date(date).getTime();
     const diffInMins = Math.floor(diffInMs / 60000);
     const diffInHours = Math.floor(diffInMins / 60);
 
     if (diffInMins < 1) return 'Now';
     if (diffInMins < 60) return `${diffInMins}m ago`;
     if (diffInHours < 24) return `${diffInHours}h ago`;
-    return past.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    return new Date(date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
   };
 
-const renderItem = ({ item }: { item: any }) => (
+  const renderItem = ({ item }: { item: any }) => (
     <View style={styles.cardWrapper}>
       <Pressable 
         onPress={() => handleNotificationPress(item)}
@@ -193,9 +155,8 @@ const renderItem = ({ item }: { item: any }) => (
           { 
             backgroundColor: theme.card, 
             borderColor: theme.border,
-            // Se è letta la rendiamo leggermente più opaca, ma non troppo
-            opacity: item.is_read ? 0.8 : 1,
-            flex: 1, // Prende tutto lo spazio tranne il tasto elimina
+            opacity: item.is_read ? 0.7 : 1,
+            flex: 1, 
           }
         ]}
       >
@@ -230,13 +191,11 @@ const renderItem = ({ item }: { item: any }) => (
           </Text>
         </View>
 
-        {/* Pallino blu se non letta */}
         {!item.is_read && (
           <View style={[styles.unreadDot, { backgroundColor: theme.tint }]} />
         )}
       </Pressable>
 
-      {/* TASTO ELIMINA ESTERNO O LATERALE */}
       <Pressable 
         onPress={() => {
           Alert.alert(
@@ -244,11 +203,7 @@ const renderItem = ({ item }: { item: any }) => (
             "Are you sure you want to remove this notification?",
             [
               { text: "Cancel", style: "cancel" },
-              { 
-                text: "Delete", 
-                style: "destructive", 
-                onPress: () => handleDeleteNotification(item.id) 
-              }
+              { text: "Delete", style: "destructive", onPress: () => handleDeleteNotification(item.id) }
             ]
           );
         }}
@@ -271,12 +226,18 @@ const renderItem = ({ item }: { item: any }) => (
         data={notifications}
         keyExtractor={(item) => item.id}
         contentContainerStyle={[styles.list, { paddingTop: insets.top + 20 }]}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); fetchNotifications(); }} />}
+        refreshControl={
+          <RefreshControl 
+            refreshing={refreshing} 
+            onRefresh={() => { setRefreshing(true); loadNotifications(); }} 
+            tintColor={theme.tint}
+          />
+        }
         ListHeaderComponent={() => (
           <View style={styles.headerArea}>
             <Text style={[styles.screenTitle, { color: theme.text }]}>Notifications</Text>
             {notifications.some(n => !n.is_read) && (
-              <Pressable onPress={markAllAsRead} style={{ padding: 8 }}> 
+              <Pressable onPress={handleMarkAllRead} style={{ padding: 8 }}> 
                 <Text style={{ color: theme.tint, fontWeight: "600" }}>Mark all as read</Text>
               </Pressable>
             )}
@@ -294,7 +255,7 @@ const renderItem = ({ item }: { item: any }) => (
   );
 }
 
-// Helper Styles & Logic
+// Helpers grafici
 const getIconName = (type: string) => {
   switch (type) {
     case "confirmation": return "checkmark-circle-outline";
@@ -325,54 +286,13 @@ const styles = StyleSheet.create({
   list: { paddingHorizontal: 20, paddingBottom: 100 },
   headerArea: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: 25 },
   screenTitle: { fontSize: 28, fontWeight: "800", letterSpacing: -0.5 },
-  cardWrapper: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 12,
-    gap: 8, // Spazio tra card e tasto X
-  },
-  notificationCard: { 
-    flexDirection: 'row', 
-    padding: 16, 
-    borderRadius: 24, // Più arrotondato per un look moderno
-    alignItems: 'center', 
-    shadowColor: "#000", 
-    shadowOpacity: 0.04, 
-    shadowRadius: 12, 
-    elevation: 3,
-    borderWidth: 1,
-  },
-  deleteButton: {
-    padding: 8,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  // Aggiorna questo per evitare che il titolo vada sopra il tempo
-  headerRow: { 
-    flexDirection: 'row', 
-    justifyContent: 'space-between', 
-    alignItems: 'center',
-    marginBottom: 2
-  },
-  notifTitle: { 
-    fontSize: 15, 
-    flex: 1, 
-    marginRight: 8 
-  },
-  timeText: { 
-    fontSize: 10, 
-    fontWeight: "600",
-    textTransform: 'uppercase'
-  },
-  unreadDot: { 
-    width: 10, 
-    height: 10, 
-    borderRadius: 5, 
-    marginLeft: 12,
-    shadowColor: "#000",
-    shadowOpacity: 0.1,
-    shadowRadius: 4
-  },
+  cardWrapper: { flexDirection: 'row', alignItems: 'center', marginBottom: 12, gap: 8 },
+  notificationCard: { flexDirection: 'row', padding: 16, borderRadius: 24, alignItems: 'center', shadowColor: "#000", shadowOpacity: 0.04, shadowRadius: 12, elevation: 3, borderWidth: 1 },
+  deleteButton: { padding: 8, justifyContent: 'center', alignItems: 'center' },
+  headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 2 },
+  notifTitle: { fontSize: 15, flex: 1, marginRight: 8 },
+  timeText: { fontSize: 10, fontWeight: "600", textTransform: 'uppercase' },
+  unreadDot: { width: 10, height: 10, borderRadius: 5, marginLeft: 12 },
   iconContainer: { width: 48, height: 48, borderRadius: 14, justifyContent: 'center', alignItems: 'center' },
   textContainer: { flex: 1, marginLeft: 14, gap: 2 },
   message: { fontSize: 14, lineHeight: 20 },

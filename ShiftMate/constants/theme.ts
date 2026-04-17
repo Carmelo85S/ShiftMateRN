@@ -19,6 +19,7 @@ const UnifiedPalette = {
   tabIconSelected: BRAND_PRIMARY,
   card: WHITE,
   border: "#E5E7EB",
+  borderGuest: NEUTRAL_900,
   success: "#10B981",
 };
 

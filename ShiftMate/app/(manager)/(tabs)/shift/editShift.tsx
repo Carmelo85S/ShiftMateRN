@@ -24,7 +24,6 @@ export default function EditShift() {
   const router = useRouter();
   const { id } = useLocalSearchParams<{ id: string }>();
 
-  // Stati del Form
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [shiftDate, setShiftDate] = useState(new Date());
@@ -32,7 +31,6 @@ export default function EditShift() {
   const [endTime, setEndTime] = useState(new Date());
   const [imageUrl, setImageUrl] = useState<string | null>(null);
   
-  // Stati UI
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [picker, setPicker] = useState({

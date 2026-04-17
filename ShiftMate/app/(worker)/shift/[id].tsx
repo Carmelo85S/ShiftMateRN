@@ -10,9 +10,11 @@ import {
   View,
   ScrollView,
   Image,
+  Alert,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons"; 
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { applyForShift, checkApplicationStatus, fetchShiftDetails } from "@/queries/workerQueries";
 
 export default function ShiftDetail() {
   const { id } = useLocalSearchParams();
@@ -20,46 +22,25 @@ export default function ShiftDetail() {
   const insets = useSafeAreaInsets();
 
   const [shift, setShift] = useState<any>(null);
-  const [hotelName, setHotelName] = useState<string>("Loading...");
   const [loading, setLoading] = useState(true);
   const [applicationStatus, setApplicationStatus] = useState<string | null>(null);
+  const [isGuest, setIsGuest] = useState(true);
 
   useEffect(() => {
-    const fetchData = async () => {
+    const loadData = async () => {
       try {
-        const { data: authData } = await supabase.auth.getUser();
-        const user = authData.user;
-
-        // 1. Dettagli dello shift
-        const { data: shiftData, error: shiftError } = await supabase
-          .from("shifts")
-          .select("*")
-          .eq("id", id)
-          .single();
-
-        if (shiftError || !shiftData) throw shiftError;
+        // 1. Fetch Shift Details (Public - now includes business join)
+        const shiftData = await fetchShiftDetails(id as string);
         setShift(shiftData);
 
-        // 2. Nome dell'hotel
-        const { data: hotelData } = await supabase
-          .from('hotels')
-          .select('name')
-          .eq('id', shiftData.hotel_id)
-          .single();
-        if (hotelData) setHotelName(hotelData.name);
-
-        // 3. Controllo candidatura e STATUS ('applied', 'accepted', 'rejected')
-        if (user) {
-          const { data: application } = await supabase
-            .from("applications")
-            .select("status")
-            .eq("shift_id", id)
-            .eq("profile_id", user.id)
-            .maybeSingle();
-
-          if (application) {
-            setApplicationStatus(application.status);
-          }
+        // 2. Check User Session
+        const { data: { session } } = await supabase.auth.getSession();
+        
+        if (session) {
+          setIsGuest(false);
+          // 3. Check application status only if logged in
+          const status = await checkApplicationStatus(session.user.id, id as string);
+          if (status) setApplicationStatus(status.status);
         }
       } catch (err) {
         console.error("Fetch error:", err);
@@ -67,40 +48,41 @@ export default function ShiftDetail() {
         setLoading(false);
       }
     };
-
-    fetchData();
+    loadData();
   }, [id]);
 
   const handleApply = async () => {
-    if (!shift || applicationStatus) return;
-    
+    if (isGuest) {
+      Alert.alert(
+        "Interested?",
+        "Sign up to apply for this shift and start earning.",
+        [
+          { text: "Cancel", style: "cancel" },
+          { text: "Sign Up", onPress: () => router.push("/") }
+        ]
+      );
+      return;
+    }
+
     try {
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
-
-      const { error } = await supabase.from("applications").insert({
-        shift_id: shift.id,
-        profile_id: user.id,
-        status: 'applied' // Stato iniziale
-      });
-
-      if (error) throw error;
-      setApplicationStatus('applied');
-      
-    } catch (error: any) {
-      console.error("Application error:", error.message);
+      if (user) {
+        await applyForShift(user.id, id as string);
+        setApplicationStatus("applied"); // Consistent with DB constraint
+      }
+    } catch (err) {
+      console.error("Apply error:", err);
     }
   };
 
-  // Funzione per definire lo stile del bottone in base allo stato
   const getButtonConfig = () => {
     switch (applicationStatus) {
       case 'accepted':
-        return { label: "Shift confirmed", color: "#10b981", icon: "checkmark-done" };
+        return { label: "Shift Confirmed", color: "#10b981", icon: "checkmark-done" };
       case 'rejected':
-        return { label: "Rejected", color: "#ef4444", icon: "close-circle" };
+        return { label: "Not Selected", color: "#ef4444", icon: "close-circle" };
       case 'applied':
-        return { label: "Pending Response", color: "#f59e0b", icon: "hourglass" };
+        return { label: "Application Pending", color: "#f59e0b", icon: "hourglass" };
       default:
         return { label: "Apply Now", color: theme.text, icon: "arrow-forward" };
     }
@@ -134,26 +116,44 @@ export default function ShiftDetail() {
 
         <View style={[styles.mainContent, { backgroundColor: theme.background }]}>
           <View style={styles.detailsBox}>
-            <DetailRow icon="calendar-outline" label="Date" theme={theme}
-              value={new Date(shift?.shift_date).toLocaleDateString("it-IT", { weekday: 'long', day: 'numeric', month: 'long' })} 
+            <DetailRow 
+              icon="calendar-outline" 
+              label="Date" 
+              theme={theme}
+              value={shift?.shift_date ? new Date(shift.shift_date).toLocaleDateString("en-US", { weekday: 'long', day: 'numeric', month: 'long' }) : "Loading..."} 
             />
-            <DetailRow icon="time-outline" label="Schedule" theme={theme}
-              value={`${shift?.start_time.slice(0, 5)} — ${shift?.end_time.slice(0, 5)}`} 
+            <DetailRow 
+              icon="time-outline" 
+              label="Schedule" 
+              theme={theme}
+              value={shift?.start_time ? `${shift.start_time.slice(0, 5)} — ${shift.end_time.slice(0, 5)}` : "--:--"} 
             />
-            <DetailRow icon="business-outline" label="Workplace" value={hotelName} theme={theme} />
+            <DetailRow 
+              icon="business-outline" 
+              label="Workplace" 
+              value={shift?.businesses?.name || "Premium Venue"} 
+              theme={theme} 
+            />
+            {!!shift?.hourly_rate && (
+              <DetailRow 
+                icon="cash-outline" 
+                label="Hourly Rate" 
+                value={`€${shift.hourly_rate} / hr`} 
+                theme={theme} 
+              />
+            )}
           </View>
 
           <View style={styles.descriptionSection}>
-            <Text style={[styles.descriptionLabel, { color: theme.secondaryText }]}>DESCRIZIONE</Text>
+            <Text style={[styles.descriptionLabel, { color: theme.secondaryText }]}>DESCRIPTION</Text>
             <Text style={[styles.descriptionText, { color: theme.text }]}>
-              {shift?.description || "No description available."}
+              {shift?.description || "No specific description available for this shift."}
             </Text>
           </View>
           <View style={{ height: 140 }} />
         </View>
       </ScrollView>
 
-      {/* FOOTER DINAMICO */}
       <View style={[styles.footer, { paddingBottom: insets.bottom + 20, backgroundColor: theme.background }]}>
         <Pressable
           disabled={applicationStatus !== null}
@@ -162,7 +162,7 @@ export default function ShiftDetail() {
             styles.applyButton,
             {
               backgroundColor: config.color,
-              opacity: pressed ? 0.8 : 1,
+              opacity: (pressed || applicationStatus) ? 0.8 : 1,
               transform: [{ scale: (pressed && !applicationStatus) ? 0.98 : 1 }]
             },
           ]}

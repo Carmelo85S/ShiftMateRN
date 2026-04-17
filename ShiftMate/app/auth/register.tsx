@@ -43,27 +43,27 @@ export default function Register() {
 
     setLoading(true);
     try {
-      let hotelId = null;
+      let businessId = null;
 
       if (role !== "owner") {
         const cleanCode = inviteCode.trim().toUpperCase(); // Normalizing the input
         console.log("Searching for code:", cleanCode);
-        const { data: hotel, error: hotelError } = await supabase
-          .from("hotels")
+        const { data: business, error: businessError } = await supabase
+          .from("businesses")
           .select("id")
           .eq("invite_code", cleanCode) // Ensure column name matches exactly in DB
           .maybeSingle(); // Better than .single() because it doesn't throw if 0 rows found
 
-        if (hotelError) {
-          console.error("Query Error:", hotelError.message);
+        if (businessError) {
+          console.error("Query Error:", businessError.message);
           throw new Error("Connection error while checking the code.");
         }
 
-        if (!hotel) {
+        if (!business) {
           throw new Error("Invalid code. Please check with your manager.");
         }
-        
-        hotelId = hotel.id;
+
+        businessId = business.id;
       }
 
       const { data: authData, error: authError } = await supabase.auth.signUp({
@@ -79,13 +79,13 @@ export default function Register() {
         name,
         surname,
         role,
-        hotel_id: hotelId,
+        business_id: businessId,
       });
 
       if (profileError) throw profileError;
 
       if (role === "owner") {
-        router.replace("/(manager)/setup-hotel" as any);
+        router.replace("/(manager)/setupBusiness" as any);
       } else {
         const targetPath = role === "manager" 
           ? "/(manager)/(tabs)/dashboard" 
@@ -192,7 +192,7 @@ export default function Register() {
               <View style={styles.inputWrapper}>
                 <Text style={[styles.inputLabel, { color: theme.tint }]}>COMPANY INVITE CODE</Text>
                 <TextInput
-                  placeholder="EX: HOTEL2024"
+                  placeholder="EX: BUSINESS2024"
                   placeholderTextColor="#999"
                   value={inviteCode}
                   onChangeText={setInviteCode}

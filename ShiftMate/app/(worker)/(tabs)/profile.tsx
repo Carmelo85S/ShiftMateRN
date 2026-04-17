@@ -14,6 +14,7 @@ import { supabase } from "@/lib/supabase";
 import { useRouter, useFocusEffect } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { fetchWorkerProfile } from "@/queries/workerQueries";
 
 export default function ProfileScreen() {
   const theme = Colors.light;
@@ -29,13 +30,8 @@ export default function ProfileScreen() {
       const { data: userData } = await supabase.auth.getUser();
       if (!userData.user) return;
 
-      const { data, error } = await supabase
-        .from("profiles")
-        .select("id, name, surname, job_role, bio, avatar_url")
-        .eq("id", userData.user.id)
-        .single();
+      const data = await fetchWorkerProfile(userData.user.id);
 
-      if (error) throw error;
       if (data) setProfile(data);
     } catch (err) {
       console.error("Error fetching profile:", err);
@@ -44,7 +40,7 @@ export default function ProfileScreen() {
     }
   }, []);
 
-  // Questo hook fa scattare il refresh ogni volta che la tab torna in primo piano
+  // Refresh data every time we come back to this screen
   useFocusEffect(
     useCallback(() => {
       fetchProfile();
