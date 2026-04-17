@@ -1,67 +1,88 @@
-import { Tabs } from "expo-router";
-import React, { useEffect, useState } from "react";
-import { Platform } from "react-native";
+import { Tabs, useRouter } from "expo-router";
+import React, { useEffect, useState, useCallback } from "react";
+import { Platform, Alert } from "react-native";
 import { HapticTab } from "@/components/haptic-tab";
 import { Colors } from "@/constants/theme";
 import { Ionicons } from "@expo/vector-icons";
-import { supabase } from "@/lib/supabase"; // Importa supabase
+import { supabase } from "@/lib/supabase";
+import { fetchUnreadNotificationCount, subscribeToNotifications } from "@/queries/workerLayoutQueries";
+
 
 export default function TabLayout() {
   const theme = Colors.light;
+  const router = useRouter();
   const [unreadCount, setUnreadCount] = useState<number | null>(null);
+  const [isGuest, setIsGuest] = useState(true);
 
-  // Funzione per contare le notifiche non lette
-  const fetchUnreadCount = async () => {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
-
-    const { count, error } = await supabase
-      .from('notifications')
-      .select('*', { count: 'exact', head: true })
-      .eq('profile_id', user.id)
-      .eq('is_read', false);
-
-    if (!error) setUnreadCount(count && count > 0 ? count : null);
-  };
+  // fetch badge count function
+  const loadBadge = useCallback(async (userId: string) => {
+    const count = await fetchUnreadNotificationCount(userId);
+    setUnreadCount(count > 0 ? count : null);
+  }, []);
 
   useEffect(() => {
     let channel: any;
 
-    const listen = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
+    const init = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      const handleAuthState = (currentSession: any) => {
+        const user = currentSession?.user;
+        setIsGuest(!currentSession);
 
-      fetchUnreadCount();
+        if (user) {
+          loadBadge(user.id);
+          channel = subscribeToNotifications(user.id, () => loadBadge(user.id));
+        } else {
+          setUnreadCount(null);
+          if (channel) supabase.removeChannel(channel);
+        }
+      };
 
-      channel = supabase
-        .channel('tab-badge-changes')
-        .on(
-          'postgres_changes',
-          { 
-            event: '*', 
-            schema: 'public', 
-            table: 'notifications',
-            filter: `profile_id=eq.${user.id}` 
-          },
-          (payload) => {
-            console.log("Change detected in tab layout!", payload);
-            fetchUnreadCount(); // Ricalcola il badge
-          }
-        )
-        .subscribe((status) => {
-          console.log("Realtime status in Tabs:", status);
-        });
+      // Initial auth state check
+      handleAuthState(session);
+
+      // Listen for auth changes
+      const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, newSession) => {
+        handleAuthState(newSession);
+      });
+
+      return subscription;
     };
 
-    listen();
-    return () => { if (channel) supabase.removeChannel(channel); };
-  }, []);
+    const authSub = init();
+
+    return () => {
+      if (channel) supabase.removeChannel(channel);
+      authSub.then(sub => sub?.unsubscribe());
+    };
+  }, [loadBadge]);
+
+  // ProtectedTab Component
+  const ProtectedTab = (props: any, isProtected: boolean) => (
+    <HapticTab
+      {...props}
+      onPress={(e) => {
+        if (isGuest && isProtected) {
+          Alert.alert(
+            "Join our community",
+            "Create an account to track your applications and manage your profile.",
+            [
+              { text: "Later", style: "cancel" },
+              { text: "Sign Up", onPress: () => router.push("/") }
+            ]
+          );
+        } else {
+          props.onPress?.(e);
+        }
+      }}
+    />
+  );
 
   return (
     <Tabs
       screenOptions={{
         headerShown: false,
-        tabBarButton: HapticTab,
         tabBarActiveTintColor: theme.text,
         tabBarInactiveTintColor: "#999999",
         tabBarStyle: {
@@ -72,17 +93,14 @@ export default function TabLayout() {
           paddingBottom: Platform.OS === 'ios' ? 30 : 12,
           paddingTop: 12,
         },
-        tabBarLabelStyle: {
-          fontSize: 10,
-          fontWeight: "800",
-          textTransform: 'uppercase',
-        },
+        tabBarLabelStyle: { fontSize: 10, fontWeight: "800", textTransform: 'uppercase' },
       }}
     >
       <Tabs.Screen
         name="shifts"
         options={{
           title: "EXPLORE",
+          tabBarButton: (props) => ProtectedTab(props, false),
           tabBarIcon: ({ color, focused }) => (
             <Ionicons name={focused ? "briefcase-sharp" : "briefcase-outline"} size={24} color={color} />
           ),
@@ -93,6 +111,7 @@ export default function TabLayout() {
         name="profile"
         options={{
           title: "ME",
+          tabBarButton: (props) => ProtectedTab(props, true),
           tabBarIcon: ({ color, focused }) => (
             <Ionicons name={focused ? "person-sharp" : "person-outline"} size={24} color={color} />
           ),
@@ -104,19 +123,10 @@ export default function TabLayout() {
         options={{
           title: "ALERTS",
           tabBarBadge: unreadCount ?? undefined,
-          tabBarBadgeStyle: {
-            backgroundColor: "#FF3B30",
-            color: "white",
-            fontSize: 10,
-            fontWeight: "bold",
-            lineHeight: 15,
-          },
+          tabBarButton: (props) => ProtectedTab(props, true),
+          tabBarBadgeStyle: { backgroundColor: "#FF3B30", color: "white", fontSize: 10, fontWeight: "bold" },
           tabBarIcon: ({ color, focused }) => (
-            <Ionicons 
-              name={focused ? "notifications-sharp" : "notifications-outline"} 
-              size={24} 
-              color={color} 
-            />
+            <Ionicons name={focused ? "notifications-sharp" : "notifications-outline"} size={24} color={color} />
           ),
         }}
       />
