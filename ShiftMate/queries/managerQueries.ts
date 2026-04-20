@@ -300,3 +300,29 @@ export const completeShiftStatus = async (shiftId: string) => {
   if (error) throw error;
   return true;
 };
+
+// Fetch shift history for manager
+export const fetchManagerHistory = async (userId: string) => {
+  const today = new Date().toISOString().split("T")[0];
+  
+  const { data, error } = await supabase
+    .from("shifts")
+    .select(`
+      *,
+      applications(
+        status,
+        profiles(name, surname, avatar_url)
+      )
+    `)
+    .eq("manager_id", userId)
+    .lt("shift_date", today) // Solo turni antecedenti a oggi
+    .order("shift_date", { ascending: false });
+
+  if (error) throw error;
+
+  // Filtriamo lato client per identificare il worker assegnato in ogni turno
+  return data.map(shift => ({
+    ...shift,
+    assignedWorker: shift.applications?.find((app: any) => app.status === 'accepted')?.profiles || null
+  }));
+};

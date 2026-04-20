@@ -9,8 +9,8 @@ export default function DashboardLayout() {
   return (
     <Stack
       screenOptions={{
-        headerShown: true,           // Attiva la barra in alto
-        headerShadowVisible: false,   // Toglie la linea sotto per un look più pulito
+        headerShown: true,
+        headerShadowVisible: false,
         headerStyle: {
           backgroundColor: theme.background,
         },

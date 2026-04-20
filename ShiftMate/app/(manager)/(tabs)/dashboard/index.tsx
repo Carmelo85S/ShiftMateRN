@@ -55,7 +55,7 @@ export default function Dashboard() {
 
       if (profileData?.name) setUserName(profileData.name);
 
-      // Calcolo finanziario
+      // calculate stats
       const totalSum = allShifts.reduce((acc, s) => acc + (Number(s.total_pay) || 0), 0);
       const effectiveSum = allShifts
         .filter(s => s.status === 'assigned') 
@@ -115,7 +115,7 @@ export default function Dashboard() {
             <Text style={[styles.dateText, { color: theme.secondaryText }]}>
               {new Date().toLocaleDateString('it-IT', { weekday: 'short', day: 'numeric', month: 'short' }).toUpperCase()}
             </Text>
-            <Text style={[styles.userName, { color: theme.text }]}>Ciao, {userName.split(' ')[0]}</Text>
+            <Text style={[styles.userName, { color: theme.text }]}>Hi, {userName.split(' ')[0]}</Text>
           </View>
           <Pressable 
             onPress={() => router.push("/profile")}
@@ -153,7 +153,7 @@ export default function Dashboard() {
 
         {/* QUICK ACTION - HISTORY & PENDING BADGE */}
         <Pressable 
-          onPress={() => console.log("Navigate to history")}
+          onPress={() => router.push("/history")}
           style={({ pressed }) => [
             styles.historyBar, 
             { backgroundColor: theme.card, opacity: pressed ? 0.9 : 1 }

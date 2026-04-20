@@ -16,7 +16,6 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { supabase } from "@/lib/supabase";
 import { router, useFocusEffect } from "expo-router";
 
-// Importiamo le funzioni dal tuo nuovo Data Layer
 import { 
   archiveNotification, 
   fetchUserNotifications, 
@@ -33,7 +32,7 @@ export default function NotificationsScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
-  // 1. Funzione per caricare i dati
+  // Load data
   const fetchNotifications = useCallback(async () => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
@@ -49,7 +48,7 @@ export default function NotificationsScreen() {
     }
   }, []);
 
-  // 2. Real-time Listener (fondamentale per aggiornamenti istantanei)
+  // Real time updates with Supabase Realtime
   useEffect(() => {
     let channel: any;
 
@@ -57,7 +56,7 @@ export default function NotificationsScreen() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      // Ascolta i cambiamenti sulla tabella 'notifications' solo per questo utente
+      // Listen for changes on the 'notifications' table only for this user
       channel = supabase
         .channel(`user-notifications-${user.id}`)
         .on(
@@ -69,7 +68,7 @@ export default function NotificationsScreen() {
             filter: `profile_id=eq.${user.id}` 
           }, 
           () => {
-            // Quando succede qualcosa nel DB, rinfresca la lista
+            // When something happens in the DB, refresh the list
             fetchNotifications();
           }
         )
@@ -83,14 +82,14 @@ export default function NotificationsScreen() {
     };
   }, [fetchNotifications]);
 
-  // Ricarica quando lo schermo torna in primo piano
+  // Reload when the screen comes into focus
   useFocusEffect(
     useCallback(() => {
       fetchNotifications();
     }, [fetchNotifications])
   );
 
-  // 3. Gestione Azioni
+  // Handle delete and mark as read
   const handleDeleteNotification = async (id: string) => {
     try {
       await archiveNotification(id);
