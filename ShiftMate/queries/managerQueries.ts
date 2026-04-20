@@ -1,8 +1,23 @@
 import { supabase } from "@/lib/supabase";
 
+// --- HELPERS (Interni per il calcolo del guadagno) ---
+const calculateTotalPay = (startTime: Date, endTime: Date, hourlyRate: string) => {
+  const rate = parseFloat(hourlyRate) || 0;
+  if (rate <= 0) return 0;
+
+  let diffInMs = endTime.getTime() - startTime.getTime();
+  
+  // Gestione turni notturni (se finisce il giorno dopo)
+  if (diffInMs < 0) {
+    diffInMs += 24 * 60 * 60 * 1000; 
+  }
+
+  const diffInHours = diffInMs / (1000 * 60 * 60);
+  return parseFloat((rate * diffInHours).toFixed(2));
+};
+
 // --- PROFILE & BUSINESS ---
 
-// Get manager profile with business ID
 export const getManagerProfile = async (userId: string) => {
   const { data, error } = await supabase
     .from("profiles")
@@ -14,7 +29,6 @@ export const getManagerProfile = async (userId: string) => {
   return data;
 };
 
-// Count workers linked to a specific business
 export const countBusinessWorkers = async (businessId: string) => {
   const { count, error } = await supabase
     .from("profiles")
@@ -26,38 +40,30 @@ export const countBusinessWorkers = async (businessId: string) => {
   return count || 0;
 };
 
-// Create a new business and link it to the owner profile
 export const createBusinessAndAssignOwner = async (userId: string, businessName: string, inviteCode: string) => {
-  // 1. Insert into businesses table
   const { data: business, error: businessError } = await supabase
     .from("businesses")
-    .insert([{ 
-        name: businessName.trim(), 
-        invite_code: inviteCode 
-    }])
+    .insert([{ name: businessName.trim(), invite_code: inviteCode }])
     .select()
     .single();
 
   if (businessError) throw businessError;
 
-  // 2. Update owner profile with business_id
   const { error: profileError } = await supabase
     .from("profiles")
     .update({ business_id: business.id })
     .eq("id", userId);
 
   if (profileError) throw profileError;
-
   return { business, inviteCode };
 };
 
 // --- SHIFT MANAGEMENT ---
 
-// Fetch all shifts created by a specific manager
 export const fetchManagerShifts = async (userId: string) => {
   const { data: shifts, error } = await supabase
     .from("shifts")
-    .select("id, title, shift_date, start_time, end_time, status, image_url")
+    .select("id, title, shift_date, start_time, end_time, status, image_url, hourly_rate, total_pay, department")
     .eq("manager_id", userId)
     .order('shift_date', { ascending: true });
 
@@ -65,7 +71,6 @@ export const fetchManagerShifts = async (userId: string) => {
   return shifts || [];
 };
 
-// Create a new shift linked to the manager's business
 export const createShift = async (userId: string, imageUrl: string | null, formData: {
   title: string;
   description: string;
@@ -73,8 +78,8 @@ export const createShift = async (userId: string, imageUrl: string | null, formD
   date: Date;
   startTime: Date;
   endTime: Date;
+  hourly_rate: string;
 }) => {
-  // 1. Get business ID from manager profile
   const { data: profile, error: profileError } = await supabase
     .from("profiles")
     .select("business_id")
@@ -82,20 +87,23 @@ export const createShift = async (userId: string, imageUrl: string | null, formD
     .single();
 
   if (profileError || !profile?.business_id) {
-    throw new Error("Your profile is not linked to a business. Contact admin.");
+    throw new Error("Your profile is not linked to a business.");
   }
 
-  // 2. Insert new shift
+  const totalPay = calculateTotalPay(formData.startTime, formData.endTime, formData.hourly_rate);
+
   const { error: shiftError } = await supabase.from("shifts").insert([
     {
       title: formData.title,
       description: formData.description,
-      department: formData.department,
+      department: formData.department.toLowerCase(),
       business_id: profile.business_id,
       shift_date: formData.date.toISOString().split("T")[0],
       start_time: formData.startTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false }),
       end_time: formData.endTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false }),
       image_url: imageUrl,
+      hourly_rate: parseFloat(formData.hourly_rate) || 0,
+      total_pay: totalPay,
       status: "open",
       created_by: userId,
       manager_id: userId,
@@ -106,11 +114,10 @@ export const createShift = async (userId: string, imageUrl: string | null, formD
   return true;
 };
 
-// Get basic shift data for editing
 export const getShiftForEdit = async (shiftId: string) => {
   const {data, error} = await supabase
     .from("shifts")
-    .select("title, description, shift_date, start_time, end_time, image_url")
+    .select("title, description, shift_date, start_time, end_time, image_url, hourly_rate, department, total_pay")
     .eq("id", shiftId)
     .maybeSingle();
 
@@ -118,7 +125,6 @@ export const getShiftForEdit = async (shiftId: string) => {
   return data;
 };
 
-// Update existing shift details
 export const updateShift = async (id: string, shiftData: {
   title: string;
   description: string;
@@ -126,16 +132,23 @@ export const updateShift = async (id: string, shiftData: {
   start_time: Date;
   end_time: Date;
   image_url: string | null;
+  hourly_rate: string;
+  department: string;
 }) => {
+  const totalPay = calculateTotalPay(shiftData.start_time, shiftData.end_time, shiftData.hourly_rate);
+
   const { error } = await supabase
     .from("shifts")
     .update({
       title: shiftData.title,
       description: shiftData.description,
+      department: shiftData.department.toLowerCase(),
       shift_date: shiftData.shift_date.toISOString().split("T")[0],
       start_time: shiftData.start_time.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false }),
       end_time: shiftData.end_time.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false }),
       image_url: shiftData.image_url,
+      hourly_rate: parseFloat(shiftData.hourly_rate) || 0,
+      total_pay: totalPay,
     })
     .eq("id", id);
 
@@ -143,15 +156,12 @@ export const updateShift = async (id: string, shiftData: {
   return true;
 };
 
-// Fetch shift details including all applications
 export const fetchShiftFullDetails = async (shiftId: string) => {
   const [shiftRes, appsRes] = await Promise.all([
     supabase
       .from("shifts")
-      .select(`id, title, status, image_url, shift_date, start_time, end_time, description, department, 
-        businesses (
-          name
-        )`)
+      .select(`id, title, status, image_url, shift_date, start_time, end_time, description, department, hourly_rate, total_pay,
+        businesses ( name )`)
       .eq("id", shiftId)
       .single(),
 
@@ -171,7 +181,6 @@ export const fetchShiftFullDetails = async (shiftId: string) => {
 
 // --- CANDIDATES & NOTIFICATIONS ---
 
-// Fetch detailed profile for a specific candidate
 export const fetchCandidateProfile = async (candidateId: string) => {
   const { data, error } = await supabase
     .from("profiles")
@@ -183,7 +192,6 @@ export const fetchCandidateProfile = async (candidateId: string) => {
   return data;
 };
 
-// Update status of a shift application
 export const updateApplicationStatus = async (shiftId: string, candidateId: string, status: "accepted" | "rejected") => {
   const { error } = await supabase
     .from("applications")
@@ -195,7 +203,6 @@ export const updateApplicationStatus = async (shiftId: string, candidateId: stri
   return true;
 };
 
-// Fetch active notifications for a user
 export const fetchUserNotifications = async (userId: string) => {
   const { data, error } = await supabase
     .from('notifications')
@@ -208,7 +215,6 @@ export const fetchUserNotifications = async (userId: string) => {
   return data;
 };
 
-// Move notification to archive
 export const archiveNotification = async (notificationId: string) => {
   const { error } = await supabase
     .from("notifications")
@@ -218,7 +224,6 @@ export const archiveNotification = async (notificationId: string) => {
   if (error) throw error;
 };
 
-// Mark single notification as read
 export const markNotificationAsRead = async (notificationId: string) => {
   const { error } = await supabase
     .from('notifications')
@@ -228,7 +233,6 @@ export const markNotificationAsRead = async (notificationId: string) => {
   if (error) throw error;
 };
 
-// Mark all user notifications as read
 export const markAllNotificationsAsRead = async (userId: string) => {
   const { error } = await supabase
     .from('notifications')
@@ -240,7 +244,6 @@ export const markAllNotificationsAsRead = async (userId: string) => {
 
 // --- USER PROFILE ---
 
-// Fetch public profile information
 export const fetchUserProfile = async (userId: string) => {
   const { data, error } = await supabase
     .from("profiles")
@@ -252,12 +255,47 @@ export const fetchUserProfile = async (userId: string) => {
   return data;
 };
 
-// Update user profile details
 export const updateUserProfile = async (userId: string, updates: any) => {
   const { error } = await supabase
     .from("profiles")
     .update(updates)
     .eq("id", userId);
+
+  if (error) throw error;
+  return true;
+};
+
+export const countPendingApplications = async (userId: string) => {
+  const { count, error } = await supabase
+    .from("applications")
+    .select("id, shifts!inner(manager_id)", { count: 'exact', head: true })
+    .eq("status", "pending")
+    .eq("shifts.manager_id", userId);
+
+  if (error) {
+    console.error("Error counting applications:", error);
+    return 0;
+  }
+  return count || 0;
+};
+
+// delete shift
+export const deleteShift = async (shiftId: string) => {
+  const { error } = await supabase
+    .from("shifts")
+    .delete()
+    .eq("id", shiftId);
+
+  if (error) throw error;
+  return true;
+};
+
+// mark shift as completed
+export const completeShiftStatus = async (shiftId: string) => {
+  const { error } = await supabase
+    .from("shifts")
+    .update({ status: "completed" })
+    .eq("id", shiftId);
 
   if (error) throw error;
   return true;

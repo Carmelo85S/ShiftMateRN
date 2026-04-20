@@ -20,6 +20,7 @@ import { fetchGlobalShifts } from "@/queries/workerQueries";
 
 const { width } = Dimensions.get("window");
 
+// --- DEFINIZIONE TIPO AGGIORNATA ---
 type Shift = {
   id: string;
   title: string;
@@ -28,6 +29,9 @@ type Shift = {
   end_time: string;
   image_url: string | null;
   business_id: string;
+  total_pay: number;    // Necessario per la nuova Card
+  hourly_rate: number;  // Necessario per la nuova Card
+  department: string;   // Necessario per la nuova Card
 };
 
 export default function WorkerShifts() {
@@ -42,14 +46,14 @@ export default function WorkerShifts() {
 
   const loadShiftsBoard = useCallback(async () => {
     try {
-      // 1. Check Session
+      // 1. Controllo Sessione
       const { data: { session } } = await supabase.auth.getSession();
       setIsGuest(!session);
 
-      // 2. Fetch Global Shifts (Marketplace Mode)
+      // 2. Fetch dei turni globali dal marketplace
       const shiftsData = await fetchGlobalShifts();
 
-      // Normalize incoming data to match local Shift type
+      // 3. Normalizzazione dei dati con i nuovi campi economici
       const normalized: Shift[] = (shiftsData || []).map((s: any) => ({
         id: String(s.id),
         title: s.title,
@@ -57,11 +61,14 @@ export default function WorkerShifts() {
         start_time: s.start_time,
         end_time: s.end_time,
         image_url: s.image_url ?? null,
-        // prefer explicit business_id, otherwise try the first business entry's id, otherwise empty string
-        business_id: s.business_id ?? (s.businesses && s.businesses[0]?.id) ?? ''
+        business_id: s.business_id ?? (s.businesses?.id) ?? '',
+        // Mappatura nuovi campi dal database
+        total_pay: Number(s.total_pay) || 0,
+        hourly_rate: Number(s.hourly_rate) || 0,
+        department: s.department || 'hospitality'
       }));
-      setShifts(normalized);
       
+      setShifts(normalized);
     } catch (err: any) {
       console.error("WorkerShifts Load Error:", err.message);
     } finally {
@@ -83,6 +90,7 @@ export default function WorkerShifts() {
     <View style={styles.container}>
       <StatusBar barStyle="dark-content" />
       
+      {/* Elemento decorativo di sfondo */}
       <View style={[styles.bgCircle, { top: -width * 0.1, right: -width * 0.1 }]} />
       
       <FlatList
@@ -94,7 +102,11 @@ export default function WorkerShifts() {
           { paddingTop: insets.top + 20, paddingBottom: 120 }
         ]}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={theme.tint} />
+          <RefreshControl 
+            refreshing={refreshing} 
+            onRefresh={onRefresh} 
+            tintColor={theme.tint} 
+          />
         }
         ListHeaderComponent={() => (
           <View style={styles.header}>
@@ -104,7 +116,7 @@ export default function WorkerShifts() {
                   {isGuest ? "OPEN MARKETPLACE" : "DASHBOARD"}
                 </Text>
                 <Text style={styles.mainTitle} numberOfLines={1}>
-                  {isGuest ? "Job Offers" : "Shifts board"}
+                  {isGuest ? "Opportunities" : "Job Board"}
                 </Text>
               </View>
               <Pressable 
@@ -113,22 +125,21 @@ export default function WorkerShifts() {
               >
                 <Ionicons 
                   name={isGuest ? "log-in-outline" : "person-circle-outline"} 
-                  size={40} 
+                  size={36} 
                   color={theme.text} 
                 />
               </Pressable>
             </View>
             
-            <View style={styles.infoBox}>
+            {/* Box informativo con conteggio dinamico */}
+            <View style={[styles.infoBox, { backgroundColor: theme.tint + "08" }]}>
                <Ionicons 
-                 name={isGuest ? "sparkles-outline" : "information-circle-outline"} 
-                 size={20} 
+                 name="flash" 
+                 size={18} 
                  color={theme.tint} 
                />
-               <Text style={styles.infoText}>
-                 {isGuest 
-                   ? `Found ${shifts.length} opportunities for you` 
-                   : `You have ${shifts.length} available shifts`}
+               <Text style={[styles.infoText, { color: theme.text }]}>
+                 {shifts.length} {shifts.length === 1 ? 'shift available' : 'shifts available'} for you
                </Text>
             </View>
           </View>
@@ -151,7 +162,7 @@ export default function WorkerShifts() {
               <Text style={styles.emptyTitle}>No shifts found</Text>
               <Text style={styles.emptySubtitle}>
                 {isGuest 
-                  ? "There are no open shifts in the marketplace right now. Check back soon!" 
+                  ? "The marketplace is empty at the moment. Check back later!" 
                   : "No shifts currently available for your business."}
               </Text>
             </View>
@@ -165,7 +176,10 @@ export default function WorkerShifts() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#FFFFFF', paddingTop: 10 },
+  container: { 
+    flex: 1, 
+    backgroundColor: '#FFFFFF' 
+  },
   bgCircle: {
     position: 'absolute',
     width: width * 0.7,
@@ -174,8 +188,12 @@ const styles = StyleSheet.create({
     backgroundColor: '#F8FAFC',
     zIndex: -1,
   },
-  listContent: { paddingHorizontal: 24 },
-  header: { marginBottom: 28 },
+  listContent: { 
+    paddingHorizontal: 24 
+  },
+  header: { 
+    marginBottom: 28 
+  },
   headerTop: { 
     flexDirection: 'row', 
     justifyContent: 'space-between', 
@@ -190,7 +208,7 @@ const styles = StyleSheet.create({
     marginBottom: 4 
   },
   mainTitle: { 
-    fontSize: 36, 
+    fontSize: 34, 
     fontWeight: "900", 
     color: '#0F172A', 
     letterSpacing: -1.5 
@@ -201,7 +219,6 @@ const styles = StyleSheet.create({
   },
   infoBox: {
     flexDirection: 'row',
-    backgroundColor: '#F1F5F9',
     borderRadius: 16,
     padding: 16,
     alignItems: 'center',
@@ -209,10 +226,11 @@ const styles = StyleSheet.create({
   },
   infoText: {
     fontSize: 14,
-    color: '#334155',
-    fontWeight: '600'
+    fontWeight: '700'
   },
-  cardContainer: { marginBottom: 16 },
+  cardContainer: { 
+    marginBottom: 16 
+  },
   emptyBox: { 
     marginTop: 60, 
     alignItems: 'center', 
@@ -229,7 +247,11 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#E2E8F0'
   },
-  emptyTitle: { fontSize: 18, fontWeight: '800', color: '#1E293B' },
+  emptyTitle: { 
+    fontSize: 18, 
+    fontWeight: '800', 
+    color: '#1E293B' 
+  },
   emptySubtitle: { 
     fontSize: 14, 
     color: '#64748B', 

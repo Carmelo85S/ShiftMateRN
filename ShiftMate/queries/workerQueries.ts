@@ -51,6 +51,7 @@ export const fetchGlobalShifts = async () => {
       end_time, 
       image_url, 
       hourly_rate, 
+      total_pay,
       department,
       businesses (
         name

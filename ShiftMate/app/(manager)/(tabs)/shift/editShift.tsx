@@ -1,7 +1,7 @@
 import { Colors } from "@/constants/theme";
 import { supabase } from "@/lib/supabase";
 import { useRouter, useLocalSearchParams } from "expo-router";
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import {
   Alert,
   Pressable,
@@ -17,15 +17,18 @@ import {
 import DateTimePicker from "@react-native-community/datetimepicker";
 import ShiftUploader from "@/components/imagePicker/imagePickerShift";
 import { Ionicons } from "@expo/vector-icons";
-import { getShiftForEdit, updateShift } from "@/queries/managerQueries";
+import { deleteShift, getShiftForEdit, updateShift } from "@/queries/managerQueries";
 
 export default function EditShift() {
   const theme = Colors.light;
   const router = useRouter();
   const { id } = useLocalSearchParams<{ id: string }>();
 
+  // --- STATE ---
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
+  const [department, setDepartment] = useState("");
+  const [hourlyRate, setHourlyRate] = useState("");
   const [shiftDate, setShiftDate] = useState(new Date());
   const [startTime, setStartTime] = useState(new Date());
   const [endTime, setEndTime] = useState(new Date());
@@ -39,12 +42,15 @@ export default function EditShift() {
     target: '' as 'date' | 'startTime' | 'endTime'
   });
 
+  const [deleting, setDeleting] = useState(false);
+
+  // --- FETCH DATA ---
   useEffect(() => {
     const fetchShift = async () => {
+      if (!id) return;
       setLoading(true);
       try {
-        // Fetch shift data for editing using the provided ID
-        const data = await getShiftForEdit(id!);
+        const data = await getShiftForEdit(id);
         if (!data) {
           Alert.alert("Error", "Shift not found");
           router.back();
@@ -53,61 +59,91 @@ export default function EditShift() {
 
         setTitle(data.title);
         setDescription(data.description ?? "");
+        setDepartment(data.department ?? "");
+        setHourlyRate(data.hourly_rate?.toString() ?? "");
         setShiftDate(new Date(data.shift_date));
+        // Formattazione ore per il picker (ISO dummy date + time string)
         setStartTime(new Date(`1970-01-01T${data.start_time}`));
         setEndTime(new Date(`1970-01-01T${data.end_time}`));
         setImageUrl(data.image_url ?? null);
       } catch (err) {
-        console.error(err);
-        Alert.alert("Error", "Failed to load shift");
+        console.error("Fetch Error:", err);
+        Alert.alert("Error", "Failed to load shift data");
       } finally {
         setLoading(false);
       }
     };
 
-    if (id) fetchShift();
+    fetchShift();
   }, [id]);
 
+  const handleDelete = () => {
+    Alert.alert(
+      "Delete Shift",
+      "Are you sure you want to delete this shift? This action cannot be undone.",
+      [
+        { text: "Cancel", style: "cancel" },
+        { 
+          text: "Delete", 
+          style: "destructive", 
+          onPress: async () => {
+            setDeleting(true);
+            try {
+              await deleteShift(id!);
+              router.replace("/(manager)/(tabs)/shift");
+            } catch (err) {
+              console.error("Delete Error:", err);
+              Alert.alert("Error", "Could not delete the shift. Check if there are active applications.");
+            } finally {
+              setDeleting(false);
+            }
+          }
+        }
+      ]
+    );
+  };
+  
+  // --- SAVE LOGIC ---
   const handleSave = async () => {
-    if (!title) {
-      Alert.alert("Validation", "Title is required");
+    if (!title || !hourlyRate || !department) {
+      Alert.alert("Validation", "Please fill in Title, Department and Hourly Rate");
       return;
     }
+
     setSaving(true);
     try {
-      // Update shift in the database
       await updateShift(id!, {
-      title,
-      description,
-      shift_date: shiftDate,
-      start_time: startTime,
-      end_time: endTime,
-      image_url: imageUrl,
-    });
+        title: title.trim(),
+        description: description.trim(),
+        shift_date: shiftDate,
+        start_time: startTime,
+        end_time: endTime,
+        image_url: imageUrl,
+        hourly_rate: hourlyRate,
+        department: department.trim()
+      });
 
-      Alert.alert("Success", "Shift updated successfully");
-      router.back();
+      Alert.alert("Success", "Shift updated successfully", [
+        { text: "OK", onPress: () => router.back() }
+      ]);
     } catch (err) {
+      console.error("Update Error:", err);
       Alert.alert("Error", "Failed to update shift");
-      console.error(err);
     } finally {
       setSaving(false);
     }
   };
 
+  // --- PICKER HELPERS ---
   const onPickerChange = (event: any, selectedDate?: Date) => {
     if (Platform.OS === 'android') {
       setPicker({ ...picker, show: false });
-      if (selectedDate) updateStateFromPicker(selectedDate);
-    } else {
-      if (selectedDate) updateStateFromPicker(selectedDate);
     }
-  };
-
-  const updateStateFromPicker = (date: Date) => {
-    if (picker.target === 'date') setShiftDate(date);
-    else if (picker.target === 'startTime') setStartTime(date);
-    else if (picker.target === 'endTime') setEndTime(date);
+    if (selectedDate) {
+      if (picker.target === 'date') setShiftDate(selectedDate);
+      else if (picker.target === 'startTime') setStartTime(selectedDate);
+      else if (picker.target === 'endTime') setEndTime(selectedDate);
+    }
   };
 
   const showPickerMode = (mode: 'date' | 'time', target: 'date' | 'startTime' | 'endTime') => {
@@ -159,30 +195,48 @@ export default function EditShift() {
 
   return (
     <View style={{ flex: 1, backgroundColor: theme.background }}>
-      <ScrollView
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={styles.container}
-      >
-        <Text style={[styles.subtitle, { color: theme.text }]}>Edit job opportunity</Text>
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.container}>
+        <Text style={[styles.subtitle, { color: theme.text }]}>Modify the shift details</Text>
 
-        {/* IMAGE */}
+        {/* IMAGE SECTION */}
         <View style={styles.card}>
           <Text style={[styles.sectionTitle, { color: theme.text }]}>Cover Image</Text>
-          <ShiftUploader
-            initialUrl={imageUrl}
-            onUpload={(url) => setImageUrl(url)}
-          />
+          <ShiftUploader initialUrl={imageUrl} onUpload={(url) => setImageUrl(url)} />
         </View>
 
-        {/* DETAILS */}
+        {/* DETAILS SECTION */}
         <View style={styles.card}>
-          <Text style={[styles.sectionTitle, { color: theme.text }]}>Details</Text>
-          <Text style={[styles.label, { color: theme.text }]}>Title</Text>
+          <Text style={[styles.sectionTitle, { color: theme.text }]}>Job Details</Text>
+          
+          <Text style={[styles.label, { color: theme.text }]}>Shift Title</Text>
           <TextInput
             value={title}
             onChangeText={setTitle}
+            placeholder="e.g. Senior Waiter"
             style={[styles.input, { color: theme.text }]}
           />
+
+          <View style={styles.inputRow}>
+            <View style={{ flex: 1.5 }}>
+              <Text style={[styles.label, { color: theme.text }]}>Department</Text>
+              <TextInput
+                value={department}
+                onChangeText={setDepartment}
+                placeholder="e.g. Kitchen"
+                style={[styles.input, { color: theme.text }]}
+              />
+            </View>
+            <View style={{ flex: 1, marginLeft: 12 }}>
+              <Text style={[styles.label, { color: theme.text }]}>Rate (€/h)</Text>
+              <TextInput
+                value={hourlyRate}
+                onChangeText={setHourlyRate}
+                keyboardType="numeric"
+                placeholder="15.00"
+                style={[styles.input, { color: theme.text }]}
+              />
+            </View>
+          </View>
 
           <Text style={[styles.label, { color: theme.text }]}>Description</Text>
           <TextInput
@@ -190,40 +244,42 @@ export default function EditShift() {
             onChangeText={setDescription}
             multiline
             maxLength={300}
+            placeholder="Describe the tasks..."
             style={[styles.textarea, { color: theme.text }]}
           />
           <Text style={styles.counter}>{description.length}/300</Text>
         </View>
 
-        {/* SCHEDULE - REPLACED WITH PRESSABLES */}
+        {/* SCHEDULE SECTION */}
         <View style={styles.card}>
-          <Text style={[styles.sectionTitle, { color: theme.text }]}>Schedule</Text>
+          <Text style={[styles.sectionTitle, { color: theme.text }]}>Timing</Text>
 
           <Pressable style={styles.row} onPress={() => showPickerMode('date', 'date')}>
             <Text style={[styles.rowLabel, { color: theme.text }]}>Date</Text>
             <View style={styles.pickerTrigger}>
               <Text style={{ color: theme.text }}>{shiftDate.toLocaleDateString()}</Text>
-              <Ionicons name="chevron-forward" size={16} color={theme.text} style={{ opacity: 0.3 }} />
+              <Ionicons name="calendar-outline" size={16} color={theme.tint} />
             </View>
           </Pressable>
 
           <Pressable style={styles.row} onPress={() => showPickerMode('time', 'startTime')}>
-            <Text style={[styles.rowLabel, { color: theme.text }]}>Start Time</Text>
+            <Text style={[styles.rowLabel, { color: theme.text }]}>Starts at</Text>
             <View style={styles.pickerTrigger}>
               <Text style={{ color: theme.text }}>{startTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</Text>
-              <Ionicons name="chevron-forward" size={16} color={theme.text} style={{ opacity: 0.3 }} />
+              <Ionicons name="time-outline" size={16} color={theme.tint} />
             </View>
           </Pressable>
 
           <Pressable style={styles.row} onPress={() => showPickerMode('time', 'endTime')}>
-            <Text style={[styles.rowLabel, { color: theme.text }]}>End Time</Text>
+            <Text style={[styles.rowLabel, { color: theme.text }]}>Ends at</Text>
             <View style={styles.pickerTrigger}>
               <Text style={{ color: theme.text }}>{endTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</Text>
-              <Ionicons name="chevron-forward" size={16} color={theme.text} style={{ opacity: 0.3 }} />
+              <Ionicons name="time-outline" size={16} color={theme.tint} />
             </View>
           </Pressable>
         </View>
 
+        {/* SAVE BUTTON */}
         <Pressable
           onPress={handleSave}
           style={({ pressed }) => [
@@ -232,9 +288,29 @@ export default function EditShift() {
           ]}
           disabled={saving}
         >
-          <Text style={[styles.buttonText, { color: theme.background }]}>
-            {saving ? "Saving..." : "Save Changes"}
-          </Text>
+          {saving ? (
+            <ActivityIndicator color={theme.background} />
+          ) : (
+            <Text style={[styles.buttonText, { color: theme.background }]}>Update Shift</Text>
+          )}
+        </Pressable>
+        {/* DELETE BUTTON */}
+        <Pressable
+          onPress={handleDelete}
+          style={({ pressed }) => [
+            styles.deleteButton,
+            { opacity: pressed || deleting ? 0.6 : 1 }
+          ]}
+          disabled={saving || deleting}
+        >
+          {deleting ? (
+            <ActivityIndicator color="#FF3B30" />
+          ) : (
+            <>
+              <Ionicons name="trash-outline" size={18} color="#FF3B30" />
+              <Text style={styles.deleteButtonText}>Delete Shift</Text>
+            </>
+          )}
         </Pressable>
       </ScrollView>
 
@@ -261,34 +337,18 @@ const styles = StyleSheet.create({
   sectionTitle: { fontSize: 18, fontWeight: "700", marginBottom: 16 },
   label: { fontSize: 11, fontWeight: "700", marginBottom: 8, opacity: 0.4, textTransform: 'uppercase' },
   input: { backgroundColor: 'rgba(0,0,0,0.02)', borderRadius: 16, padding: 16, fontSize: 15, marginBottom: 16 },
+  inputRow: { flexDirection: 'row', width: '100%' },
   textarea: { backgroundColor: 'rgba(0,0,0,0.02)', borderRadius: 16, padding: 16, fontSize: 15, minHeight: 120, textAlignVertical: "top" },
   counter: { textAlign: "right", fontSize: 12, opacity: 0.3, marginTop: 4 },
-  row: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: 'rgba(0,0,0,0.03)' },
+  row: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: 'rgba(0,0,0,0.03)' },
   rowLabel: { fontSize: 15, fontWeight: "600" },
-  pickerTrigger: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  button: { padding: 18, borderRadius: 20, alignItems: "center" },
-  buttonText: { fontWeight: "700", fontSize: 17 },
+  pickerTrigger: { flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: 'rgba(0,0,0,0.02)', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 10 },
+  button: { padding: 20, borderRadius: 22, alignItems: "center", marginTop: 10 },
+  buttonText: { fontWeight: "800", fontSize: 17 },
   
-  // MODAL STYLES (iOS Alto)
-  modalOverlay: {
-    flex: 1,
-    justifyContent: 'flex-end',
-    backgroundColor: 'rgba(0,0,0,0.4)',
-  },
-  modalContent: {
-    height: 380,
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    paddingBottom: 30,
-  },
-  modalHeader: {
-    height: 50,
-    flexDirection: 'row',
-    justifyContent: 'flex-end',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-    borderBottomWidth: 0.5,
-    borderBottomColor: '#ccc',
-    marginBottom: 10,
-  },
+  modalOverlay: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.4)' },
+  modalContent: { height: 380, borderTopLeftRadius: 28, borderTopRightRadius: 28, paddingBottom: 30 },
+  modalHeader: { height: 50, flexDirection: 'row', justifyContent: 'flex-end', alignItems: 'center', paddingHorizontal: 20, borderBottomWidth: 0.5, borderBottomColor: '#ccc', marginBottom: 10 },
+  deleteButton: {flexDirection: 'row',alignItems: 'center',justifyContent: 'center',gap: 8,marginTop: 25,padding: 15},
+  deleteButtonText: {color: "#FF3B30",fontWeight: "700",fontSize: 15},
 });

@@ -6,6 +6,7 @@ import {
   ActivityIndicator,
   useColorScheme,
   Pressable,
+  RefreshControl,
 } from "react-native";
 import { Colors } from "@/constants/theme";
 import { useFocusEffect, useRouter } from "expo-router";
@@ -14,12 +15,16 @@ import { supabase } from "@/lib/supabase";
 import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { ShiftCard } from "@/components/shiftCard/ShiftCard";
-import { countBusinessWorkers, fetchManagerShifts, getManagerProfile } from "@/queries/managerQueries";
+import { 
+  fetchManagerShifts, 
+  getManagerProfile,
+  countPendingApplications 
+} from "@/queries/managerQueries";
 
 type Stats = {
-  totalWorkers: number;
-  totalShifts: number;
-  openShifts: number;
+  totalSpending: number;     
+  effectiveSpending: number; 
+  pendingCount: number;
 };
 
 export default function Dashboard() {
@@ -31,29 +36,37 @@ export default function Dashboard() {
   const [stats, setStats] = useState<Stats | null>(null);
   const [upcomingShifts, setUpcomingShifts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [userName, setUserName] = useState("Manager");
 
-  // FETCH DATA
   const fetchData = useCallback(async () => {
     try {
       const { data: { session } } = await supabase.auth.getSession();
       const userId = session?.user?.id;
       if (!userId) return;
+
       const today = new Date().toISOString().split("T")[0];
-      const [profileData, allShifts] = await Promise.all([
+      
+      const [profileData, allShifts, pendingCount] = await Promise.all([
         getManagerProfile(userId),
         fetchManagerShifts(userId),
+        countPendingApplications(userId)
       ]);
+
       if (profileData?.name) setUserName(profileData.name);
-      let workersCount = 0;
-      if (profileData?.business_id) {
-        workersCount = await countBusinessWorkers(profileData.business_id);
-      }
+
+      // Calcolo finanziario
+      const totalSum = allShifts.reduce((acc, s) => acc + (Number(s.total_pay) || 0), 0);
+      const effectiveSum = allShifts
+        .filter(s => s.status === 'assigned') 
+        .reduce((acc, s) => acc + (Number(s.total_pay) || 0), 0);
+
       setStats({
-        totalWorkers: workersCount || 0,
-        totalShifts: allShifts.length || 0,
-        openShifts: allShifts.filter((s: any) => s.status === 'open').length || 0,
+        totalSpending: totalSum,
+        effectiveSpending: effectiveSum,
+        pendingCount: pendingCount || 0
       });
+
       setUpcomingShifts(allShifts.filter((s: any) => s.shift_date >= today).slice(0, 3));
     } catch (error) {
       console.error("Dashboard error:", error);
@@ -61,6 +74,12 @@ export default function Dashboard() {
       setLoading(false);
     }
   }, []);
+
+  const onRefresh = async () => {
+    setRefreshing(true);
+    await fetchData();
+    setRefreshing(false);
+  };
 
   useFocusEffect(
     useCallback(() => {
@@ -81,68 +100,80 @@ export default function Dashboard() {
       <ScrollView
         style={styles.container}
         contentContainerStyle={{ 
-          paddingHorizontal: 20, 
-          paddingTop: insets.top + 10, 
-          paddingBottom: 100 
+          paddingHorizontal: 24, 
+          paddingTop: insets.top + 8,
+          paddingBottom: 40 
         }}
         showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={theme.tint} />
+        }
       >
         {/* HEADER */}
         <View style={styles.topBar}>
           <View>
             <Text style={[styles.dateText, { color: theme.secondaryText }]}>
-              {new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric' }).toUpperCase()}
+              {new Date().toLocaleDateString('it-IT', { weekday: 'short', day: 'numeric', month: 'short' }).toUpperCase()}
             </Text>
-            <Text style={[styles.userName, { color: theme.text }]}>Hello, {userName}</Text>
+            <Text style={[styles.userName, { color: theme.text }]}>Ciao, {userName.split(' ')[0]}</Text>
           </View>
           <Pressable 
             onPress={() => router.push("/profile")}
-            style={[styles.profileButton, { backgroundColor: theme.card }]}
+            style={[styles.profileButton, { backgroundColor: theme.card, borderColor: theme.border }]}
           >
-            <Ionicons name="person" size={20} color={theme.text} />
+            <Ionicons name="person" size={18} color={theme.text} />
           </Pressable>
         </View>
 
-        {/* STATS */}
-        <View style={styles.metricsRow}>
-          <View style={[styles.metricBox, { borderRightWidth: 1, borderColor: theme.border }]}>
-            <Text style={[styles.metricLabel, { color: theme.secondaryText }]}>WORKERS</Text>
-            <Text style={[styles.metricValue, { color: theme.text }]}>{stats?.totalWorkers || 0}</Text>
+        {/* FINANCIAL OVERVIEW */}
+        <View style={[styles.mainCard, { backgroundColor: theme.card }]}>
+          <View style={styles.cardHeader}>
+            <View style={[styles.iconBadge, { backgroundColor: theme.tint + "10" }]}>
+              <Ionicons name="wallet" size={14} color={theme.tint} />
+            </View>
+            <Text style={[styles.cardTitle, { color: theme.text }]}>Monthly Budget</Text>
           </View>
-          <View style={[styles.metricBox, { borderRightWidth: 1, borderColor: theme.border }]}>
-            <Text style={[styles.metricLabel, { color: theme.secondaryText }]}>TOTAL SHIFTS</Text>
-            <Text style={[styles.metricValue, { color: theme.text }]}>{stats?.totalShifts || 0}</Text>
-          </View>
-          <View style={styles.metricBox}>
-            <Text style={[styles.metricLabel, { color: theme.tint }]}>OPEN</Text>
-            <Text style={[styles.metricValue, { color: theme.tint }]}>{stats?.openShifts || 0}</Text>
+
+          <View style={styles.spendingGrid}>
+            <View style={styles.spendingItem}>
+              <Text style={[styles.spendingLabel, { color: theme.secondaryText }]}>PLANNED</Text>
+              <Text style={[styles.spendingValue, { color: theme.text }]}>
+                €{stats?.totalSpending.toLocaleString('it-IT', { minimumFractionDigits: 0 })}
+              </Text>
+            </View>
+            
+            <View style={[styles.spendingItem, styles.effectiveItem, { backgroundColor: '#4CAF5010' }]}>
+              <Text style={[styles.spendingLabel, { color: '#4CAF50' }]}>EFFECTIVE</Text>
+              <Text style={[styles.spendingValue, { color: '#4CAF50' }]}>
+                €{stats?.effectiveSpending.toLocaleString('it-IT', { minimumFractionDigits: 0 })}
+              </Text>
+            </View>
           </View>
         </View>
 
-        {/* QUICK ACTIONS */}
-        <View style={styles.actionGrid}>
-          <QuickAction 
-            title="Create Shift" 
-            icon="add-circle" 
-            onPress={() => router.push("/createShift")} 
-            theme={theme} 
-          />
-          <QuickAction 
-            title="Manage Team" 
-            icon="people-sharp" 
-            onPress={() => {}} 
-            theme={theme} 
-          />
-        </View>
+        {/* QUICK ACTION - HISTORY & PENDING BADGE */}
+        <Pressable 
+          onPress={() => console.log("Navigate to history")}
+          style={({ pressed }) => [
+            styles.historyBar, 
+            { backgroundColor: theme.card, opacity: pressed ? 0.9 : 1 }
+          ]}
+        >
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+            <Ionicons name="time" size={18} color={theme.secondaryText} />
+            <Text style={[styles.historyText, { color: theme.text }]}>View Shift History</Text>
+          </View>
+          <Ionicons name="chevron-forward" size={16} color={theme.secondaryText} />
+        </Pressable>
 
-        {/* UPCOMING SHIFTS */}
+        {/* SECTION SHIFTS */}
         <View style={styles.sectionHeader}>
           <View>
             <Text style={[styles.sectionTitle, { color: theme.text }]}>Upcoming Shifts</Text>
-            <Text style={[styles.sectionSubtitle, { color: theme.secondaryText }]}>Your schedule for the next days</Text>
+            <View style={[styles.dotSeparator, { backgroundColor: theme.tint }]} />
           </View>
           <Pressable onPress={() => router.push("/(manager)/(tabs)/shift")}>
-             <Ionicons name="arrow-forward-circle" size={32} color={theme.text} />
+             <Text style={[styles.viewAll, { color: theme.tint }]}>View All</Text>
           </Pressable>
         </View>
 
@@ -157,8 +188,9 @@ export default function Dashboard() {
               />
             ))
           ) : (
-            <View style={[styles.emptyBox, { backgroundColor: theme.card, borderColor: theme.border }]}>
-              <Text style={[styles.emptyText, { color: theme.secondaryText }]}>No shifts scheduled</Text>
+            <View style={[styles.emptyBox, { backgroundColor: theme.card }]}>
+              <Ionicons name="calendar-outline" size={24} color={theme.secondaryText} style={{ opacity: 0.2 }} />
+              <Text style={[styles.emptyText, { color: theme.secondaryText }]}>No upcoming shifts</Text>
             </View>
           )}
         </View>
@@ -167,44 +199,33 @@ export default function Dashboard() {
   );
 }
 
-const QuickAction = ({ title, icon, onPress, theme }: any) => (
-  <Pressable 
-    onPress={onPress}
-    style={({ pressed }) => [
-      styles.actionBtn, 
-      { 
-        backgroundColor: theme.card,
-        opacity: pressed ? 0.8 : 1,
-        transform: [{ scale: pressed ? 0.96 : 1 }]
-      }
-    ]}
-  >
-    <View style={[styles.iconCircle, { backgroundColor: theme.tint + "15" }]}>
-        <Ionicons name={icon} size={20} color={theme.tint} />
-    </View>
-    <Text style={[styles.actionBtnText, { color: theme.text }]}>{title}</Text>
-  </Pressable>
-);
-
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  topBar: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 35, marginTop: 10 },
-  dateText: { fontSize: 12, fontWeight: "600", letterSpacing: 0.5, opacity: 0.6 },
-  userName: { fontSize: 28, fontWeight: "700", letterSpacing: -0.8 },
-  profileButton: { width: 45, height: 45, borderRadius: 22, justifyContent: 'center', alignItems: 'center', backgroundColor: '#FFF', shadowColor: "#000", shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.05, shadowRadius: 10, elevation: 2 },
-  metricsRow: { flexDirection: 'row', backgroundColor: '#FFF', borderRadius: 24, paddingVertical: 22, marginBottom: 30, shadowColor: "#000", shadowOffset: { width: 0, height: 10 }, shadowOpacity: 0.04, shadowRadius: 20, elevation: 3 },
-  metricBox: { flex: 1, alignItems: 'center', gap: 6 },
-  metricLabel: { fontSize: 11, fontWeight: "600", opacity: 0.5, letterSpacing: 0.3 },
-  metricValue: { fontSize: 24, fontWeight: "700" },
-  actionGrid: { flexDirection: 'row', gap: 16, marginBottom: 35 },
-  actionBtn: { flex: 1, paddingVertical: 14, paddingHorizontal: 12, borderRadius: 20, alignItems: 'center', justifyContent: 'center', gap: 10, backgroundColor: '#FFF' },
-  iconCircle: { width: 40, height: 40, borderRadius: 20, justifyContent: 'center', alignItems: 'center' },
-  actionBtnText: { fontSize: 13, fontWeight: "600" },
-  sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 18 },
-  sectionTitle: { fontSize: 20, fontWeight: "700", letterSpacing: -0.5 },
-  sectionSubtitle: { fontSize: 14, opacity: 0.6, marginTop: 2 },
-  shiftsList: { gap: 16 },
-  emptyBox: { height: 120, borderRadius: 24, backgroundColor: 'rgba(0,0,0,0.02)', borderWidth: 1, borderStyle: 'dashed', borderColor: 'rgba(0,0,0,0.1)', justifyContent: 'center', alignItems: 'center' },
-  emptyText: { fontSize: 14, fontWeight: "500", opacity: 0.5 },
+  topBar: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 },
+  dateText: { fontSize: 10, fontWeight: "700", letterSpacing: 1.2, opacity: 0.5 },
+  userName: { fontSize: 28, fontWeight: "900", letterSpacing: -0.5, marginTop: 2 },
+  profileButton: { width: 42, height: 42, borderRadius: 12, justifyContent: 'center', alignItems: 'center', borderWidth: 1, elevation: 2, shadowColor: "#000", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 5 },
+  
+  mainCard: { borderRadius: 24, padding: 14, marginBottom: 12, shadowColor: "#000", shadowOffset: { width: 0, height: 10 }, shadowOpacity: 0.05, shadowRadius: 20, elevation: 3 },
+  cardHeader: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 12 },
+  iconBadge: { padding: 6, borderRadius: 8 },
+  cardTitle: { fontSize: 13, fontWeight: '700', opacity: 0.8 },
+  spendingGrid: { flexDirection: 'row', gap: 10 },
+  spendingItem: { flex: 1, padding: 12, borderRadius: 16, justifyContent: 'center' },
+  effectiveItem: { borderWidth: 1, borderColor: '#4CAF5020' },
+  spendingLabel: { fontSize: 8, fontWeight: '800', marginBottom: 4, letterSpacing: 0.5 },
+  spendingValue: { fontSize: 18, fontWeight: '900' },
+
+  historyBar: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 14, borderRadius: 20, marginBottom: 25, elevation: 1 },
+  historyText: { fontSize: 14, fontWeight: '600' },
+  
+  sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 15 },
+  sectionTitle: { fontSize: 20, fontWeight: "900", letterSpacing: -0.5 },
+  dotSeparator: { width: 15, height: 3, borderRadius: 2, marginTop: 4 },
+  viewAll: { fontSize: 13, fontWeight: "700" },
+
+  shiftsList: { gap: 12 },
+  emptyBox: { height: 100, borderRadius: 24, justifyContent: 'center', alignItems: 'center', gap: 8, borderWidth: 1, borderStyle: 'dashed', borderColor: 'rgba(0,0,0,0.05)' },
+  emptyText: { fontSize: 13, fontWeight: "600", opacity: 0.3 },
   center: { flex: 1, justifyContent: "center", alignItems: "center" },
 });
