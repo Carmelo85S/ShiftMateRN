@@ -99,6 +99,14 @@ export default function ShiftDetail() {
                 </Text>
              </View>
           </View>
+          
+          {/** FAB EDIT SHIFT */}
+          <Pressable 
+            onPress={() => router.push({ pathname: "/(manager)/(tabs)/shift/editShift", params: { id: shift?.id } })}
+            style={[styles.enhancedFab, { backgroundColor: theme.text }]}
+          >
+            <Ionicons name="options-outline" size={24} color={theme.background} />
+          </Pressable>
         </View>
 
         <View style={[styles.mainContent, { backgroundColor: theme.background }]}>
@@ -192,14 +200,6 @@ export default function ShiftDetail() {
           </View>
         </View>
       </ScrollView>
-
-      {/* FAB - Edit Shift */}
-      <Pressable 
-        onPress={() => router.push({ pathname: "/(manager)/(tabs)/shift/editShift", params: { id: shift?.id } })}
-        style={[styles.enhancedFab, { backgroundColor: theme.text }]}
-      >
-        <Ionicons name="options-outline" size={24} color={theme.background} />
-      </Pressable>
     </View>
   );
 }

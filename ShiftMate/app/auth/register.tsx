@@ -16,7 +16,7 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 
-type UserRole = "worker" | "manager" | "owner";
+type UserRole = "worker" | "manager" | "owner" | "candidate";
 
 export default function Register() {
   const theme = Colors.light;
@@ -36,7 +36,7 @@ export default function Register() {
       return;
     }
 
-    if (role !== "owner" && !inviteCode) {
+    if (role !== "owner" && role !== "candidate" && !inviteCode) {
       Alert.alert("Invite Code", "Please enter the code provided by your manager.");
       return;
     }
@@ -133,9 +133,10 @@ export default function Register() {
           <View style={styles.roleWrapper}>
             <Text style={styles.inputLabel}>YOUR ROLE</Text>
             <View style={styles.roleContainer}>
+              <RoleCard label="OWNER" selected={role === "owner"} onPress={() => setRole("owner")} theme={theme} icon="business" />
               <RoleCard label="WORKER" selected={role === "worker"} onPress={() => setRole("worker")} theme={theme} icon="hammer" />
               <RoleCard label="MANAGER" selected={role === "manager"} onPress={() => setRole("manager")} theme={theme} icon="briefcase" />
-              <RoleCard label="OWNER" selected={role === "owner"} onPress={() => setRole("owner")} theme={theme} icon="business" />
+              <RoleCard label="CANDIDATE" selected={role === "candidate"} onPress={() => setRole("candidate")} theme={theme} icon="star" />
             </View>
           </View>
 
@@ -188,7 +189,7 @@ export default function Register() {
               />
             </View>
 
-            {role !== "owner" && (
+            {role !== "owner" && role!=="candidate" &&(
               <View style={styles.inputWrapper}>
                 <Text style={[styles.inputLabel, { color: theme.tint }]}>COMPANY INVITE CODE</Text>
                 <TextInput
@@ -211,7 +212,7 @@ export default function Register() {
               disabled={loading}
             >
               <Text style={[styles.buttonText, { color: theme.background }]}>
-                {loading ? "CREATING ACCOUNT..." : role === "owner" ? "REGISTER STRUCTURE" : "REQUEST ACCESS"}
+                {loading ? "CREATING ACCOUNT..." : role === "owner" ? "REGISTER STRUCTURE" : "REGISTER"}
               </Text>
               {!loading && <Ionicons name="arrow-forward" size={20} color={theme.background} />}
             </Pressable>
