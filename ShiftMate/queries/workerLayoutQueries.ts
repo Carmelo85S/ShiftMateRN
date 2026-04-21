@@ -7,7 +7,8 @@ export const fetchUnreadNotificationCount = async (userId: string) => {
     .from('notifications')
     .select('*', { count: 'exact', head: true })
     .eq('profile_id', userId)
-    .eq('is_read', false);
+    .eq('is_read', false)
+    .eq('is_archived', false)
 
   if (error) {
     console.error("Error fetching unread count:", error.message);

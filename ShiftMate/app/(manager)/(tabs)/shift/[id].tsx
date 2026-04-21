@@ -26,7 +26,7 @@ export default function ShiftDetail() {
   const insets = useSafeAreaInsets();
   const { id } = useLocalSearchParams();
 
-  // Unified state for shift details and applications
+  // Stato unificato. Inizializziamo le applicazioni come array vuoto per evitare undefined
   const [data, setData] = useState<{ shift: any; applications: any[] } | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -56,7 +56,9 @@ export default function ShiftDetail() {
     </View>
   );
 
-  const { shift, applications } = data || {};
+  // Estrazione sicura dei dati con fallback per TypeScript
+  const shift = data?.shift;
+  const applications = data?.applications ?? [];
 
   return (
     <View style={{ flex: 1, backgroundColor: theme.background }}>
@@ -87,12 +89,11 @@ export default function ShiftDetail() {
           
           <View style={[styles.heroContent, { bottom: 60 }]}>
              <View style={[styles.statusBadge, { backgroundColor: shift?.status === 'open' ? theme.tint : '#4CAF50' }]}>
-                <Text style={styles.statusBadgeText}>{shift?.status?.toUpperCase()}</Text>
+                <Text style={styles.statusBadgeText}>{shift?.status?.toUpperCase() || 'UNKNOWN'}</Text>
              </View>
              <Text style={styles.heroTitle}>{shift?.title}</Text>
              <View style={styles.locationRow}>
                 <Ionicons name="location" size={14} color="rgba(255,255,255,0.7)" />
-                {/* Dynamic Business Name */}
                 <Text style={styles.locationText}>
                   {shift?.businesses?.name || "Main Structure"}
                 </Text>
@@ -144,48 +145,55 @@ export default function ShiftDetail() {
             </Text>
           </View>
 
-          {/* APPLICANTS */}
+          {/* APPLICANTS SECTION - SCALABLE VERSION */}
           <View style={styles.sectionContainer}>
-            <View style={styles.sectionHeader}>
-              <Text style={[styles.sectionTitle, { color: theme.text }]}>Applicants</Text>
-              <Text style={[styles.appsCount, { color: theme.tint }]}>{applications?.length || 0} total</Text>
-            </View>
-
-            {!applications || applications.length === 0 ? (
-              <View style={styles.emptyAppsBox}>
-                <Ionicons name="people-outline" size={32} color={theme.text + "20"} />
-                <Text style={{ color: theme.text, opacity: 0.3, marginTop: 10 }}>No candidates yet</Text>
-              </View>
-            ) : (
-              <View style={styles.appsGrid}>
-                {applications.map((app: any) => (
-                  <Pressable
-                    key={app.id}
-                    onPress={() => router.push({ pathname: "/(manager)/candidate/[id]", params: { id: app.profile_id, shiftId: id }})}
-                    style={styles.candidateCard}
-                  >
-                    <View style={styles.avatarContainer}>
-                      <Image 
-                        source={app.profiles?.avatar_url ? { uri: app.profiles.avatar_url } : require("@/assets/images/icon.png")} 
-                        style={styles.newAvatar} 
-                      />
-                      <View style={[styles.statusIndicator, { 
-                        backgroundColor: app.status === 'accepted' ? '#4CAF50' : app.status === 'rejected' ? '#FF3B30' : '#FFCC00' 
-                      }]} />
+            <Pressable 
+              onPress={() => router.push({ pathname: "/(manager)/shift-application/[id]", params: { id: shift?.id } })}
+              style={[styles.manageAppsCard, { backgroundColor: theme.card }]}
+            >
+              <View style={styles.manageAppsInfo}>
+                <Text style={[styles.sectionTitle, { color: theme.text }]}>Candidates</Text>
+                <Text style={[styles.appsCount, { color: theme.tint }]}>
+                  {applications.length} applications to review
+                </Text>
+                
+                {/* Mini Preview Avatars - Gestione sicura degli undefined risolta qui */}
+                <View style={styles.avatarOverlap}>
+                  {applications.slice(0, 4).map((app: any, index: number) => (
+                    <Image 
+                      key={app.id}
+                      source={app.profiles?.avatar_url ? { uri: app.profiles.avatar_url } : require("@/assets/images/icon.png")} 
+                      style={[
+                        styles.overlapAvatar, 
+                        { 
+                          left: index * -12,
+                          zIndex: 10 - index, 
+                          borderColor: theme.card,
+                          backgroundColor: theme.background 
+                        }
+                      ]} 
+                    />
+                  ))}
+                  {applications.length > 4 && (
+                    <View style={[
+                      styles.moreBadge, 
+                      { left: 4 * -12, backgroundColor: theme.text + "10", borderColor: theme.card }
+                    ]}>
+                      <Text style={[styles.moreText, { color: theme.text }]}>+{applications.length - 4}</Text>
                     </View>
-                    <Text style={[styles.newAppName, { color: theme.text }]} numberOfLines={1}>
-                      {app.profiles?.name}
-                    </Text>
-                    <Text style={styles.appRole}>Worker</Text>
-                  </Pressable>
-                ))}
+                  )}
+                </View>
               </View>
-            )}
+              
+              <View style={[styles.actionCircle, { backgroundColor: theme.tint }]}>
+                <Ionicons name="chevron-forward" size={24} color="#FFF" />
+              </View>
+            </Pressable>
           </View>
         </View>
       </ScrollView>
 
-      {/* FAB */}
+      {/* FAB - Edit Shift */}
       <Pressable 
         onPress={() => router.push({ pathname: "/(manager)/(tabs)/shift/editShift", params: { id: shift?.id } })}
         style={[styles.enhancedFab, { backgroundColor: theme.text }]}
@@ -220,21 +228,47 @@ const styles = StyleSheet.create({
   deptIndicator: { width: 4, height: 20, borderRadius: 2 },
   deptText: { fontSize: 13, fontWeight: '600' },
   sectionContainer: { marginBottom: 32 },
-  sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 16 },
-  sectionTitle: { fontSize: 20, fontWeight: '800', letterSpacing: -0.5 },
+  sectionTitle: { fontSize: 20, fontWeight: '800', letterSpacing: -0.5, marginBottom: 8 },
   appsCount: { fontSize: 14, fontWeight: '600' },
   description: { fontSize: 15, lineHeight: 24, opacity: 0.7 },
-  appsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 16 },
-  candidateCard: { width: (width - 80) / 3, alignItems: 'center' },
-  avatarContainer: { position: 'relative', marginBottom: 8 },
-  newAvatar: { width: 64, height: 64, borderRadius: 22, backgroundColor: '#EEE' },
-  statusIndicator: { position: 'absolute', bottom: -2, right: -2, width: 14, height: 14, borderRadius: 7, borderWidth: 2, borderColor: '#FFF' },
-  newAppName: { fontSize: 13, fontWeight: '700' },
-  appRole: { fontSize: 11, opacity: 0.4, fontWeight: '600' },
-  emptyAppsBox: { padding: 40, alignItems: 'center', borderRadius: 24, borderStyle: 'dashed', borderWidth: 2, borderColor: 'rgba(0,0,0,0.05)' },
   enhancedFab: { 
     position: 'absolute', right: 24, bottom: 40, width: 60, height: 60, borderRadius: 20, 
     justifyContent: "center", alignItems: "center",
     shadowColor: "#000", shadowOffset: { width: 0, height: 10 }, shadowOpacity: 0.15, shadowRadius: 15, elevation: 8 
+  },
+  // Nuovi stili per la gestione scalabile
+  manageAppsCard: {
+    padding: 24,
+    borderRadius: 28,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    borderWidth: 1,
+    borderColor: 'rgba(0,0,0,0.05)',
+    marginTop: 10
+  },
+  manageAppsInfo: { flex: 1 },
+  avatarOverlap: { flexDirection: 'row', marginTop: 16, alignItems: 'center', marginLeft: 10 },
+  overlapAvatar: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    borderWidth: 3,
+  },
+  moreBadge: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 3,
+  },
+  moreText: { fontSize: 12, fontWeight: '800' },
+  actionCircle: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    justifyContent: 'center',
+    alignItems: 'center',
   }
 });
