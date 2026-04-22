@@ -11,7 +11,6 @@ interface ShiftCardProps {
     start_time: string;
     end_time: string;
     image_url: string | null;
-    // Nuovi campi necessari
     total_pay?: number; 
     hourly_rate?: number;
     department?: string;

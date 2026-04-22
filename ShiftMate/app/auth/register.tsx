@@ -87,7 +87,7 @@ export default function Register() {
 
       // 5. Redirezione
       if (role === "owner") {
-        router.replace("/(manager)/setupBusiness" as any);
+        router.replace("/(manager)/setupBusiness");
       } else {
        // Manager va in dashboard, Worker e Candidate vanno agli shifts
        const targetPath = (role === "manager")

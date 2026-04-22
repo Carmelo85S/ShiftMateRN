@@ -20,18 +20,20 @@ import { fetchGlobalShifts } from "@/queries/workerQueries";
 
 const { width } = Dimensions.get("window");
 
-// --- DEFINIZIONE TIPO AGGIORNATA ---
 type Shift = {
   id: string;
+  business_id: string;
   title: string;
   shift_date: string;
   start_time: string;
   end_time: string;
   image_url: string | null;
-  business_id: string;
-  total_pay: number;    // Necessario per la nuova Card
-  hourly_rate: number;  // Necessario per la nuova Card
-  department: string;   // Necessario per la nuova Card
+  total_pay: number;   
+  hourly_rate: number;
+  department: string; 
+  businesses?: {
+    name: string;
+  };
 };
 
 export default function WorkerShifts() {
@@ -39,33 +41,48 @@ export default function WorkerShifts() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
 
+  // Data States
   const [shifts, setShifts] = useState<Shift[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  
+  // Identity & Filter States
   const [isGuest, setIsGuest] = useState(true);
+  const [myBusinessId, setMyBusinessId] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<'all' | 'mine'>('all');
 
   const loadShiftsBoard = useCallback(async () => {
     try {
-      // 1. Controllo Sessione
+      // Session Check & Business ID Retrieval
       const { data: { session } } = await supabase.auth.getSession();
-      setIsGuest(!session);
+      const guestStatus = !session;
+      setIsGuest(guestStatus);
 
-      // 2. Fetch dei turni globali dal marketplace
+      if (!guestStatus && session.user) {
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("business_id")
+          .eq("id", session.user.id)
+          .single();
+        setMyBusinessId(profile?.business_id || null);
+      }
+
+      // Fetch Global Marketplace Shifts
       const shiftsData = await fetchGlobalShifts();
 
-      // 3. Normalizzazione dei dati con i nuovi campi economici
+      // Data Normalization
       const normalized: Shift[] = (shiftsData || []).map((s: any) => ({
         id: String(s.id),
+        business_id: s.business_id, 
         title: s.title,
         shift_date: s.shift_date,
         start_time: s.start_time,
         end_time: s.end_time,
         image_url: s.image_url ?? null,
-        business_id: s.business_id ?? (s.businesses?.id) ?? '',
-        // Mappatura nuovi campi dal database
         total_pay: Number(s.total_pay) || 0,
         hourly_rate: Number(s.hourly_rate) || 0,
-        department: s.department || 'hospitality'
+        department: s.department || 'hospitality',
+        businesses: s.businesses
       }));
       
       setShifts(normalized);
@@ -81,20 +98,30 @@ export default function WorkerShifts() {
     loadShiftsBoard();
   }, [loadShiftsBoard]);
 
+  // --- CLIENT-SIDE FILTERING ---
+  const displayedShifts = shifts.filter(shift => {
+    if (activeTab === 'mine') {
+      return shift.business_id === myBusinessId;
+    }
+    return true;
+  });
+
   const onRefresh = () => {
     setRefreshing(true);
     loadShiftsBoard();
   };
 
+  // Dynamic counts for tabs
+  const myShiftsCount = shifts.filter(s => s.business_id === myBusinessId).length;
+
   return (
     <View style={styles.container}>
       <StatusBar barStyle="dark-content" />
       
-      {/* Elemento decorativo di sfondo */}
       <View style={[styles.bgCircle, { top: -width * 0.1, right: -width * 0.1 }]} />
       
       <FlatList
-        data={shifts}
+        data={displayedShifts}
         keyExtractor={(item) => item.id}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={[
@@ -113,7 +140,7 @@ export default function WorkerShifts() {
             <View style={styles.headerTop}>
               <View style={{ flex: 1 }}>
                 <Text style={styles.businessBadge}>
-                  {isGuest ? "OPEN MARKETPLACE" : "DASHBOARD"}
+                  {isGuest ? "OPEN MARKETPLACE" : "WORKER DASHBOARD"}
                 </Text>
                 <Text style={styles.mainTitle} numberOfLines={1}>
                   {isGuest ? "Opportunities" : "Job Board"}
@@ -121,7 +148,7 @@ export default function WorkerShifts() {
               </View>
               <Pressable 
                 style={styles.profileBtn} 
-                onPress={() => isGuest ? router.push("/") : router.push("/profile")}
+                onPress={() => isGuest ? router.push("/") : router.push("/(worker)/(tabs)/profile")}
               >
                 <Ionicons 
                   name={isGuest ? "log-in-outline" : "person-circle-outline"} 
@@ -130,16 +157,33 @@ export default function WorkerShifts() {
                 />
               </Pressable>
             </View>
+
+            {/* --- TAB SELECTOR (Hidden for Guests) --- */}
+            {!isGuest && myBusinessId && (
+              <View style={styles.tabsContainer}>
+                <Pressable 
+                  style={[styles.tabButton, activeTab === 'all' && styles.activeTab]}
+                  onPress={() => setActiveTab('all')}
+                >
+                  <Text style={[styles.tabText, activeTab === 'all' && styles.activeTabText]}>
+                    Global ({shifts.length})
+                  </Text>
+                </Pressable>
+                <Pressable 
+                  style={[styles.tabButton, activeTab === 'mine' && styles.activeTab]}
+                  onPress={() => setActiveTab('mine')}
+                >
+                  <Text style={[styles.tabText, activeTab === 'mine' && styles.activeTabText]}>
+                    My Workplace ({myShiftsCount})
+                  </Text>
+                </Pressable>
+              </View>
+            )}
             
-            {/* Box informativo con conteggio dinamico */}
             <View style={[styles.infoBox, { backgroundColor: theme.tint + "08" }]}>
-               <Ionicons 
-                 name="flash" 
-                 size={18} 
-                 color={theme.tint} 
-               />
+               <Ionicons name="flash" size={18} color={theme.tint} />
                <Text style={[styles.infoText, { color: theme.text }]}>
-                 {shifts.length} {shifts.length === 1 ? 'shift available' : 'shifts available'} for you
+                 {displayedShifts.length} {displayedShifts.length === 1 ? 'shift available' : 'shifts available'}
                </Text>
             </View>
           </View>
@@ -161,9 +205,9 @@ export default function WorkerShifts() {
               </View>
               <Text style={styles.emptyTitle}>No shifts found</Text>
               <Text style={styles.emptySubtitle}>
-                {isGuest 
-                  ? "The marketplace is empty at the moment. Check back later!" 
-                  : "No shifts currently available for your business."}
+                {activeTab === 'mine' 
+                  ? "There are no extra shifts currently posted for your specific hotel." 
+                  : "The global marketplace is currently empty. Check back later!"}
               </Text>
             </View>
           ) : (
@@ -216,6 +260,31 @@ const styles = StyleSheet.create({
   profileBtn: { 
     backgroundColor: '#FFF',
     borderRadius: 50,
+  },
+  tabsContainer: {
+    flexDirection: 'row',
+    gap: 12,
+    marginBottom: 20,
+  },
+  tabButton: {
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    borderRadius: 25,
+    backgroundColor: '#F1F5F9',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+  },
+  activeTab: {
+    backgroundColor: '#0F172A',
+    borderColor: '#0F172A',
+  },
+  tabText: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#64748B',
+  },
+  activeTabText: {
+    color: '#FFFFFF',
   },
   infoBox: {
     flexDirection: 'row',

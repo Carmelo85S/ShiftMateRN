@@ -45,6 +45,7 @@ export const fetchGlobalShifts = async () => {
     .from("shifts")
     .select(`
       id, 
+      business_id,
       title, 
       shift_date, 
       start_time, 
@@ -54,6 +55,7 @@ export const fetchGlobalShifts = async () => {
       total_pay,
       department,
       businesses (
+        id,
         name
       )
     `)
@@ -188,7 +190,7 @@ export const markAllNotificationsAsRead = async (userId: string) => {
     .from('notifications')
     .update({ is_read: true })
     .eq('profile_id', userId)
-    .eq('is_read', false);
+    .eq('is_read', false)
 
   if (error) throw error;
   return true;
@@ -197,7 +199,10 @@ export const markAllNotificationsAsRead = async (userId: string) => {
 export const archiveNotification = async (notificationId: string) => {
   const { error } = await supabase
     .from("notifications")
-    .update({ is_archived: true })
+    .update({ 
+      is_archived: true,
+      is_read: true
+    })
     .eq("id", notificationId);
 
   if (error) throw error;
