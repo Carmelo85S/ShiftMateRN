@@ -1,13 +1,13 @@
 import { supabase } from "@/lib/supabase";
 
-// --- HELPERS (Interni per il calcolo del guadagno) ---
+// --- HELPERS (Internals for earnings calculation) ---
 const calculateTotalPay = (startTime: Date, endTime: Date, hourlyRate: string) => {
   const rate = parseFloat(hourlyRate) || 0;
   if (rate <= 0) return 0;
 
   let diffInMs = endTime.getTime() - startTime.getTime();
   
-  // Gestione turni notturni (se finisce il giorno dopo)
+  // Night shift management (if it ends the next day))
   if (diffInMs < 0) {
     diffInMs += 24 * 60 * 60 * 1000; 
   }
@@ -315,14 +315,48 @@ export const fetchManagerHistory = async (userId: string) => {
       )
     `)
     .eq("manager_id", userId)
-    .lt("shift_date", today) // Solo turni antecedenti a oggi
+    .lt("shift_date", today)
     .order("shift_date", { ascending: false });
 
   if (error) throw error;
-
-  // Filtriamo lato client per identificare il worker assegnato in ogni turno
+  
+  // Filter client-side to identify the worker assigned to each shift
   return data.map(shift => ({
     ...shift,
     assignedWorker: shift.applications?.find((app: any) => app.status === 'accepted')?.profiles || null
   }));
+};
+
+// Retrieves candidate profile along with their application status and relevant shift details.
+export type CandidateFullDetails = {
+  profile: any;
+  applicationStatus: string | null;
+  shiftStatus: string | null;
+  shiftInfo: {
+    title: string;
+    shift_date: string;
+    start_time: string;
+    end_time: string;
+  } | null;
+};
+
+export const fetchCandidateShiftDetails = async (
+  shiftId: string,
+  profileId: string
+): Promise<CandidateFullDetails> => {
+  const [profileRes, appRes, shiftRes] = await Promise.all([
+    supabase.from("profiles").select("id, name, surname, avatar_url, bio, experience, phone, job_role, department").eq("id", profileId).single(),
+    supabase.from("applications").select("status").eq("shift_id", shiftId).eq("profile_id", profileId).maybeSingle(),
+    supabase.from("shifts").select("status, title, shift_date, start_time, end_time").eq("id", shiftId).single(),
+  ]);
+
+  if (profileRes.error) throw profileRes.error;
+  if (shiftRes.error) throw shiftRes.error;
+
+  return {
+    profile: profileRes.data,
+    applicationStatus: appRes.data?.status || null,
+    shiftStatus: shiftRes.data?.status || null,
+    shiftInfo: shiftRes.data || null,
+  };
 };
