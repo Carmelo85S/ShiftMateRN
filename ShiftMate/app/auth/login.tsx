@@ -24,7 +24,7 @@ export default function Login() {
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
 
-  const handleLogin = async () => {
+const handleLogin = async () => {
     if (!email || !password) {
       Alert.alert("Error", "Please enter email and password");
       return;
@@ -35,21 +35,29 @@ export default function Login() {
       const { data, error } = await supabase.auth.signInWithPassword({ email, password });
       if (error) throw error;
 
+      // Usiamo maybeSingle() invece di single() per evitare l'errore JSON coercion
       const { data: profileData, error: profileError } = await supabase
         .from("profiles")
         .select("*")
         .eq("id", data.user.id)
-        .single();
+        .maybeSingle();
 
       if (profileError) throw profileError;
 
-      // Routing basato sul ruolo
-      if (profileData.role === "manager") {
+      if (!profileData) {
+        Alert.alert("Error", "Profile not found. Please contact support.");
+        return;
+      }
+
+      // ROUTING AGGIORNATO (Include Owner e Candidate)
+      if (profileData.role === "manager" || profileData.role === "owner") {
+        // Entrambi vanno alla sezione manager
         router.replace("/(manager)/(tabs)/dashboard");
-      } else if (profileData.role === "worker") {
+      } else if (profileData.role === "worker" || profileData.role === "candidate") {
+        // Entrambi vanno alla sezione worker
         router.replace("/(worker)/(tabs)/shifts");
       } else {
-        Alert.alert("Error", "Unknown role assigned to this account.");
+        Alert.alert("Error", `Unknown role: ${profileData.role}`);
       }
     } catch (error: any) {
       Alert.alert("Login Failed", error.message);

@@ -36,6 +36,7 @@ export default function Register() {
       return;
     }
 
+    // 1. Controllo validità codice (solo per Worker e Manager)
     if (role !== "owner" && role !== "candidate" && !inviteCode) {
       Alert.alert("Invite Code", "Please enter the code provided by your manager.");
       return;
@@ -45,19 +46,17 @@ export default function Register() {
     try {
       let businessId = null;
 
-      if (role !== "owner") {
-        const cleanCode = inviteCode.trim().toUpperCase(); // Normalizing the input
-        console.log("Searching for code:", cleanCode);
+      // 2. Cerchiamo il business SOLO se il ruolo prevede un codice (quindi NON owner e NON candidate)
+      if (role !== "owner" && role !== "candidate") {
+        const cleanCode = inviteCode.trim().toUpperCase();
+        
         const { data: business, error: businessError } = await supabase
           .from("businesses")
           .select("id")
-          .eq("invite_code", cleanCode) // Ensure column name matches exactly in DB
-          .maybeSingle(); // Better than .single() because it doesn't throw if 0 rows found
+          .eq("invite_code", cleanCode)
+          .maybeSingle();
 
-        if (businessError) {
-          console.error("Query Error:", businessError.message);
-          throw new Error("Connection error while checking the code.");
-        }
+        if (businessError) throw new Error("Connection error while checking the code.");
 
         if (!business) {
           throw new Error("Invalid code. Please check with your manager.");
@@ -66,6 +65,7 @@ export default function Register() {
         businessId = business.id;
       }
 
+      // 3. Creazione Auth
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email,
         password,
@@ -74,22 +74,25 @@ export default function Register() {
       if (authError) throw authError;
       if (!authData.user) throw new Error("Auth failed.");
 
+      // 4. Creazione Profilo
       const { error: profileError } = await supabase.from("profiles").insert({
         id: authData.user.id,
         name,
         surname,
         role,
-        business_id: businessId,
+        business_id: businessId, // Sarà null per i Candidate e Owner (inizialmente)
       });
 
       if (profileError) throw profileError;
 
+      // 5. Redirezione
       if (role === "owner") {
         router.replace("/(manager)/setupBusiness" as any);
       } else {
-        const targetPath = role === "manager" 
+       // Manager va in dashboard, Worker e Candidate vanno agli shifts
+       const targetPath = (role === "manager")
           ? "/(manager)/(tabs)/dashboard" 
-          : "/(worker)/(tabs)/shifts";
+          : "/(worker)/(tabs)/shifts"; 
         router.replace(targetPath as any);
       }
 
