@@ -1,76 +1,70 @@
-import { Colors } from "@/constants/theme";
-import { supabase } from "@/lib/supabase";
-import { useRouter, useLocalSearchParams } from "expo-router";
-import { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import {
-  Alert,
-  Pressable,
-  ScrollView,
   StyleSheet,
+  View,
   Text,
   TextInput,
-  View,
+  ScrollView,
+  Pressable,
   ActivityIndicator,
-  Platform,
-  Modal,
+  Alert,
   KeyboardAvoidingView,
+  Platform,
+  useColorScheme,
+  Modal,
 } from "react-native";
+import { supabase } from "@/lib/supabase";
+import { Colors } from "@/constants/theme";
+import { Ionicons } from "@expo/vector-icons";
+import { useRouter, useLocalSearchParams } from "expo-router";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import ShiftUploader from "@/components/imagePicker/imagePickerShift";
-import { Ionicons } from "@expo/vector-icons";
 import { deleteShift, getShiftForEdit, updateShift } from "@/queries/managerQueries";
 
-const INDUSTRIES = [
-  { id: 'hospitality', label: 'Hospitality', icon: 'restaurant-outline' },
-  { id: 'retail', label: 'Retail', icon: 'cart-outline' },
-  { id: 'events', label: 'Events', icon: 'star-outline' },
-  { id: 'logistics', label: 'Logistics', icon: 'bus-outline' },
-  { id: 'admin', label: 'Admin', icon: 'briefcase-outline' },
+const DEPARTMENTS = [
+  { id: 'kitchen', label: 'Kitchen', icon: 'restaurant-outline' },
+  { id: 'bar', label: 'Bar', icon: 'wine-outline' },
+  { id: 'hall', label: 'Floor/Hall', icon: 'people-outline' },
+  { id: 'reception', label: 'Front Desk', icon: 'key-outline' },
 ];
 
-const JOB_TITLES_BY_INDUSTRY: Record<string, string[]> = {
-  hospitality: ['Waiter/Waitress', 'Bartender', 'Chef', 'Runner', 'Dishwasher', 'Hostess'],
-  retail: ['Sales Assistant', 'Store Manager', 'Cashier', 'Visual Merchandiser'],
-  events: ['Promoter', 'Security', 'Event Host', 'Stage Hand', 'Photographer'],
-  logistics: ['Warehouse Worker', 'Delivery Driver', 'Forklift Operator', 'Packer'],
-  admin: ['Receptionist', 'Data Entry', 'Office Assistant', 'Secretary'],
+const TITLES_BY_DEPT: Record<string, string[]> = {
+  kitchen: ['Chef', 'Sous Chef', 'Commis', 'Dishwasher', 'Pizza Chef', 'Kitchen Porter'],
+  bar: ['Bartender', 'Barback', 'Mixologist', 'Bar Assistant'],
+  hall: ['Waiter/Waitress', 'Runner', 'Hostess', 'Maitre d\'', 'Sommelier'],
+  reception: ['Receptionist', 'Night Porter', 'Concierge'],
 };
 
 export default function EditShift() {
-  const theme = Colors.light;
   const router = useRouter();
   const { id } = useLocalSearchParams<{ id: string }>();
+  const insets = useSafeAreaInsets();
+  const colorScheme = useColorScheme();
+  const theme = Colors[colorScheme ?? "light"];
 
-  // --- STATE ---
-  const [title, setTitle] = useState("");
-  const [description, setDescription] = useState("");
-  const [department, setDepartment] = useState("");
-  const [hourlyRate, setHourlyRate] = useState("");
-  const [shiftDate, setShiftDate] = useState(new Date());
-  const [startTime, setStartTime] = useState(new Date());
-  const [endTime, setEndTime] = useState(new Date());
-  const [imageUrl, setImageUrl] = useState<string | null>(null);
-  
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [imageUrl, setImageUrl] = useState<string | null>(null);
+  
+  const [form, setForm] = useState({
+    title: "",
+    description: "",
+    department: "", 
+    industry: "hospitality", 
+    hourly_rate: "",
+    date: new Date(),
+    startTime: new Date(),
+    endTime: new Date(),
+  });
+
   const [picker, setPicker] = useState({
     show: false,
     mode: 'date' as 'date' | 'time',
     target: '' as 'date' | 'startTime' | 'endTime'
   });
 
-  // --- CALCOLO GUADAGNO ---
-  const estimatedEarnings = useMemo(() => {
-    const rate = parseFloat(hourlyRate);
-    if (isNaN(rate) || rate <= 0) return 0;
-    const diffInMs = endTime.getTime() - startTime.getTime();
-    const diffInHours = diffInMs / (1000 * 60 * 60);
-    const finalHours = diffInHours > 0 ? diffInHours : diffInHours + 24;
-    return (rate * finalHours).toFixed(2);
-  }, [hourlyRate, startTime, endTime]);
-
-  // --- FETCH DATA ---
   useEffect(() => {
     const fetchShift = async () => {
       if (!id) return;
@@ -81,15 +75,19 @@ export default function EditShift() {
           router.replace("/(manager)/(tabs)/shift");
           return;
         }
-        setTitle(data.title);
-        setDescription(data.description ?? "");
-        setDepartment(data.department ?? "");
-        setHourlyRate(data.hourly_rate?.toString() ?? "");
-        setShiftDate(new Date(data.shift_date));
-        setStartTime(new Date(`1970-01-01T${data.start_time}`));
-        setEndTime(new Date(`1970-01-01T${data.end_time}`));
+        setForm({
+          title: data.title,
+          description: data.description ?? "",
+          department: data.department ?? "",
+          industry: "hospitality",
+          hourly_rate: data.hourly_rate?.toString() ?? "",
+          date: new Date(data.shift_date),
+          startTime: new Date(`1970-01-01T${data.start_time}`),
+          endTime: new Date(`1970-01-01T${data.end_time}`),
+        });
         setImageUrl(data.image_url ?? null);
       } catch (err) {
+        console.error("Fetch error:", err);
       } finally {
         setLoading(false);
       }
@@ -97,72 +95,72 @@ export default function EditShift() {
     fetchShift();
   }, [id]);
 
-  const handleSave = async () => {
-    if (!title || !hourlyRate || !department) {
-      Alert.alert("Validation", "Please fill in Title, Industry and Hourly Rate");
+  const estimatedEarnings = useMemo(() => {
+    const rate = parseFloat(form.hourly_rate);
+    if (isNaN(rate) || rate <= 0) return 0;
+    const diffInMs = form.endTime.getTime() - form.startTime.getTime();
+    const diffInHours = diffInMs / (1000 * 60 * 60);
+    const finalHours = diffInHours > 0 ? diffInHours : diffInHours + 24;
+    return (rate * finalHours).toFixed(2);
+  }, [form.hourly_rate, form.startTime, form.endTime]);
+
+  const handleUpdate = async () => {
+    if (!form.title || !form.department || !form.hourly_rate) {
+      Alert.alert("Missing Info", "Department, Title and Hourly Rate are required.");
       return;
     }
+
     setSaving(true);
     try {
-      await updateShift(id!, {
-        title: title.trim(),
-        description: description.trim(),
-        shift_date: shiftDate,
-        start_time: startTime,
-        end_time: endTime,
-        image_url: imageUrl,
-        hourly_rate: hourlyRate,
-        department: department.trim()
-      });
-      router.back();
-    } catch (err) {
-      Alert.alert("Error", "Failed to update shift");
+      await updateShift(id!, { ...form, image_url: imageUrl } as any);
+      Alert.alert("Success", "Shift updated!", [{ text: "OK", onPress: () => router.back() }]);
+    } catch (err: any) {
+      Alert.alert("Error", err.message || "Update failed.");
     } finally {
       setSaving(false);
     }
   };
 
   const handleDelete = () => {
-    Alert.alert("Delete Shift", "Are you sure? This action is permanent.", [
+    Alert.alert("Delete Shift", "Are you sure? This cannot be undone.", [
       { text: "Cancel", style: "cancel" },
-      { text: "Delete", style: "destructive", onPress: async () => {
+      { 
+        text: "Delete", 
+        style: "destructive", 
+        onPress: async () => {
           setDeleting(true);
           try {
             await deleteShift(id!);
             router.replace("/(manager)/(tabs)/shift");
           } catch (err) {
-            Alert.alert("Error", "Could not delete the shift.");
+            Alert.alert("Error", "Could not delete shift.");
           } finally { setDeleting(false); }
-      }}
+        }
+      }
     ]);
   };
 
   const onPickerChange = (event: any, selectedDate?: Date) => {
     if (Platform.OS === 'android') setPicker({ ...picker, show: false });
-    if (selectedDate) {
-      if (picker.target === 'date') setShiftDate(selectedDate);
-      else if (picker.target === 'startTime') setStartTime(selectedDate);
-      else if (picker.target === 'endTime') setEndTime(selectedDate);
-    }
+    if (selectedDate) setForm({ ...form, [picker.target]: selectedDate });
   };
 
   const renderDatePicker = () => {
     if (!picker.show) return null;
-    const currentValue = picker.target === 'date' ? shiftDate : picker.target === 'startTime' ? startTime : endTime;
     return (
       <Modal transparent animationType="slide" visible={picker.show}>
         <Pressable style={styles.modalOverlay} onPress={() => setPicker({ ...picker, show: false })}>
           <View style={[styles.modalContent, { backgroundColor: theme.card }]}>
             <View style={styles.modalHeader}>
               <Pressable onPress={() => setPicker({ ...picker, show: false })}>
-                <Text style={{ color: theme.tint, fontWeight: '700', fontSize: 16 }}>Done</Text>
+                <Text style={{ color: theme.tint, fontWeight: '700' }}>Done</Text>
               </Pressable>
             </View>
             <DateTimePicker
-              value={currentValue}
+              value={(form as any)[picker.target]}
               mode={picker.mode}
               is24Hour={true}
-              display="spinner"
+              display={Platform.OS === 'ios' ? 'spinner' : 'default'}
               onChange={onPickerChange}
               textColor={theme.text}
               style={{ width: '100%', height: 250 }}
@@ -173,133 +171,164 @@ export default function EditShift() {
     );
   };
 
-  if (loading) return <View style={styles.center}><ActivityIndicator size="large" color={theme.tint} /></View>;
+  if (loading) return (
+    <View style={[styles.center, { backgroundColor: theme.background }]}>
+      <ActivityIndicator size="small" color={theme.tint} />
+    </View>
+  );
 
   return (
     <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={{ flex: 1, backgroundColor: theme.background }}>
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.container}>
-        <Text style={[styles.subtitle, { color: theme.text }]}>Modify the shift details</Text>
-
-        <View style={styles.card}>
-          <Text style={styles.sectionTitle}>Cover Image</Text>
-          <ShiftUploader initialUrl={imageUrl} onUpload={(url) => setImageUrl(url)} />
+      <ScrollView contentContainerStyle={[styles.scrollContent, { paddingTop: 20, paddingBottom: 120 }]} showsVerticalScrollIndicator={false}>
+        
+        <View style={styles.header}>
+          <Text style={[styles.title, { color: theme.text }]}>Edit Shift</Text>
+          <Text style={[styles.subtitle, { color: theme.secondaryText }]}>Update your hospitality shift details.</Text>
         </View>
 
-        {/* INDUSTRY & SUGGESTIONS */}
-        <View style={styles.card}>
-          <Text style={styles.sectionTitle}>Industry *</Text>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.categoryScroll}>
-            {INDUSTRIES.map((item) => (
+        <View style={styles.imageSection}>
+           <ShiftUploader initialUrl={imageUrl} onUpload={(url) => setImageUrl(url)} />
+        </View>
+
+        {/* DEPARTMENT SELECTOR */}
+        <View style={styles.inputWrapper}>
+          <Text style={[styles.label, { color: theme.text }]}>Department *</Text>
+          <View style={styles.deptGrid}>
+            {DEPARTMENTS.map((dept) => (
               <Pressable
-                key={item.id}
-                onPress={() => setDepartment(item.id)}
-                style={[styles.categoryChip, { backgroundColor: department === item.id ? theme.tint : theme.background, borderColor: theme.border }]}
+                key={dept.id}
+                onPress={() => setForm({ ...form, department: dept.id, title: "" })}
+                style={[
+                  styles.deptChip,
+                  { backgroundColor: form.department === dept.id ? theme.tint : theme.card, borderColor: theme.border }
+                ]}
               >
-                <Ionicons name={item.icon as any} size={16} color={department === item.id ? "#FFF" : theme.text} />
-                <Text style={[styles.categoryText, { color: department === item.id ? "#FFF" : theme.text }]}>{item.label}</Text>
+                <Ionicons name={dept.icon as any} size={18} color={form.department === dept.id ? "#FFF" : theme.secondaryText} />
+                <Text style={[styles.deptText, { color: form.department === dept.id ? "#FFF" : theme.text }]}>{dept.label}</Text>
               </Pressable>
             ))}
-          </ScrollView>
-
-          {department && (
-            <View style={{ marginTop: 20 }}>
-              <Text style={styles.miniLabel}>Suggested Job Titles</Text>
-              <View style={styles.titleContainer}>
-                {JOB_TITLES_BY_INDUSTRY[department]?.map((t) => (
-                  <Pressable
-                    key={t}
-                    onPress={() => setTitle(t)}
-                    style={[styles.titleChip, { backgroundColor: title === t ? theme.tint + "20" : "transparent", borderColor: title === t ? theme.tint : theme.border }]}
-                  >
-                    <Text style={[styles.titleChipText, { color: title === t ? theme.tint : theme.text }]}>{t}</Text>
-                  </Pressable>
-                ))}
-              </View>
-            </View>
-          )}
+          </View>
         </View>
 
-        <View style={styles.card}>
-          <Text style={styles.sectionTitle}>Job Details</Text>
-          
-          <Text style={styles.label}>Shift Title</Text>
-          <TextInput value={title} onChangeText={setTitle} placeholder="e.g. Waiter" style={styles.input} />
+        {/* SUGGESTED TITLES */}
+        {form.department && (
+          <View style={styles.inputWrapper}>
+            <Text style={[styles.label, { color: theme.text }]}>Suggested Roles</Text>
+            <View style={styles.titleContainer}>
+              {TITLES_BY_DEPT[form.department]?.map((title) => (
+                <Pressable
+                  key={title}
+                  onPress={() => setForm({ ...form, title })}
+                  style={[
+                    styles.titleChip,
+                    { backgroundColor: form.title === title ? theme.tint : theme.card, borderColor: form.title === title ? theme.tint : theme.border }
+                  ]}
+                >
+                  <Text style={[styles.titleChipText, { color: form.title === title ? "#FFF" : theme.text }]}>{title}</Text>
+                </Pressable>
+              ))}
+            </View>
+          </View>
+        )}
 
-          <Text style={styles.label}>Rate (€/h)</Text>
+        <View style={styles.inputWrapper}>
+          <Text style={[styles.label, { color: theme.text }]}>Position Title *</Text>
+          <TextInput
+            style={[styles.input, { backgroundColor: theme.card, color: theme.text, borderColor: theme.border }]}
+            value={form.title}
+            onChangeText={(text) => setForm({ ...form, title: text })}
+          />
+        </View>
+
+        <View style={styles.inputWrapper}>
+          <Text style={[styles.label, { color: theme.text }]}>Hourly Rate (€/hr) *</Text>
           <View style={styles.rateRow}>
-            <TextInput 
-              value={hourlyRate} 
-              onChangeText={setHourlyRate} 
-              keyboardType="numeric" 
-              placeholder="15.00" 
-              style={[styles.input, { flex: 0.8, marginBottom: 0 }]} 
+            <TextInput
+              style={[styles.input, { flex: 1, backgroundColor: theme.card, color: theme.text, borderColor: theme.border }]}
+              keyboardType="decimal-pad"
+              value={form.hourly_rate}
+              onChangeText={(text) => setForm({ ...form, hourly_rate: text })}
             />
             <View style={[styles.earningsBox, { backgroundColor: theme.tint + "10" }]}>
-              <Text style={[styles.earningsLabel, { color: theme.tint }]}>WIN FOR WORKER</Text>
+              <Text style={[styles.earningsLabel, { color: theme.tint }]}>ESTIMATED TOTAL</Text>
               <Text style={[styles.earningsValue, { color: theme.tint }]}>€{estimatedEarnings}</Text>
             </View>
           </View>
-
-          <Text style={[styles.label, { marginTop: 16 }]}>Description</Text>
-          <TextInput value={description} onChangeText={setDescription} multiline maxLength={300} placeholder="Describe tasks..." style={styles.textarea} />
-          <Text style={styles.counter}>{description.length}/300</Text>
         </View>
 
-        <View style={styles.card}>
-          <Text style={styles.sectionTitle}>Timing</Text>
-          <Pressable style={styles.row} onPress={() => setPicker({ show: true, mode: 'date', target: 'date' })}>
-            <Text style={styles.rowLabel}>Date</Text>
-            <View style={styles.pickerTrigger}><Text>{shiftDate.toLocaleDateString()}</Text></View>
-          </Pressable>
-          <Pressable style={styles.row} onPress={() => setPicker({ show: true, mode: 'time', target: 'startTime' })}>
-            <Text style={styles.rowLabel}>Starts</Text>
-            <View style={styles.pickerTrigger}><Text>{startTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</Text></View>
-          </Pressable>
+        <View style={styles.inputWrapper}>
+          <Text style={[styles.label, { color: theme.text }]}>Description</Text>
+          <TextInput
+            style={[styles.input, styles.textArea, { backgroundColor: theme.card, color: theme.text, borderColor: theme.border }]}
+            value={form.description}
+            onChangeText={(text) => setForm({ ...form, description: text })}
+            multiline
+          />
         </View>
 
-        <Pressable onPress={handleSave} style={[styles.button, { backgroundColor: theme.text }]} disabled={saving}>
-          {saving ? <ActivityIndicator color={theme.background} /> : <Text style={[styles.buttonText, { color: theme.background }]}>Update Shift</Text>}
+        <View style={styles.row}>
+          <View style={{ flex: 1.5 }}>
+            <Text style={[styles.label, { color: theme.text }]}>Date</Text>
+            <Pressable onPress={() => setPicker({ show: true, mode: 'date', target: 'date' })} style={[styles.input, styles.pickerButton, { backgroundColor: theme.card, borderColor: theme.border }]}>
+              <Text style={{ color: theme.text }}>{form.date.toLocaleDateString('en-GB')}</Text>
+            </Pressable>
+          </View>
+          <View style={{ flex: 1 }}>
+            <Text style={[styles.label, { color: theme.text }]}>Start</Text>
+            <Pressable onPress={() => setPicker({ show: true, mode: 'time', target: 'startTime' })} style={[styles.input, styles.pickerButton, { backgroundColor: theme.card, borderColor: theme.border }]}>
+              <Text style={{ color: theme.text, fontWeight: '700' }}>{form.startTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</Text>
+            </Pressable>
+          </View>
+        </View>
+
+        <Pressable
+          style={({ pressed }) => [styles.submitButton, { backgroundColor: theme.text, opacity: pressed || saving ? 0.8 : 1 }]}
+          onPress={handleUpdate}
+          disabled={saving}
+        >
+          {saving ? <ActivityIndicator color={theme.background} /> : <Text style={[styles.submitText, { color: theme.background }]}>Update Shift</Text>}
         </Pressable>
 
-        <Pressable onPress={handleDelete} style={styles.deleteButton}>
-          <Ionicons name="trash-outline" size={18} color="#FF3B30" />
-          <Text style={styles.deleteButtonText}>Delete Shift</Text>
+        <Pressable onPress={handleDelete} style={styles.deleteButton} disabled={deleting}>
+          {deleting ? <ActivityIndicator size="small" color="#FF3B30" /> : (
+            <><Ionicons name="trash-outline" size={18} color="#FF3B30" /><Text style={styles.deleteButtonText}>Delete Shift</Text></>
+          )}
         </Pressable>
+
+        {renderDatePicker()}
       </ScrollView>
-      {renderDatePicker()}
     </KeyboardAvoidingView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { padding: 24, paddingBottom: 60 },
   center: { flex: 1, justifyContent: "center", alignItems: "center" },
-  subtitle: { fontSize: 15, opacity: 0.5, marginBottom: 25 },
-  card: { borderRadius: 24, padding: 20, marginBottom: 20, backgroundColor: "#fff", shadowColor: "#000", shadowOpacity: 0.04, shadowRadius: 20, elevation: 3 },
-  sectionTitle: { fontSize: 18, fontWeight: "700", marginBottom: 16 },
-  miniLabel: { fontSize: 12, fontWeight: "600", marginBottom: 10, opacity: 0.5, textTransform: 'uppercase' },
-  label: { fontSize: 11, fontWeight: "700", marginBottom: 8, opacity: 0.4, textTransform: 'uppercase', padding: 8 },
-  rateRow: { flexDirection: 'row', gap: 12, alignItems: 'center' },
-  input: { height: 58, backgroundColor: 'rgba(0,0,0,0.02)', borderRadius: 16, paddingHorizontal: 16, fontSize: 15, borderWidth: 1, borderColor: 'rgba(0,0,0,0.05)' },
-  earningsBox: { flex: 1, height: 58, borderRadius: 18, justifyContent: 'center', alignItems: 'center' },
-  earningsLabel: { fontSize: 8, fontWeight: "800", marginBottom: 2 },
-  earningsValue: { fontSize: 16, fontWeight: "900" },
-  textarea: { backgroundColor: 'rgba(0,0,0,0.02)', borderRadius: 16, padding: 16, fontSize: 15, minHeight: 100, textAlignVertical: "top" },
-  counter: { textAlign: "right", fontSize: 12, opacity: 0.3, marginTop: 4 },
-  categoryScroll: { flexDirection: 'row' },
-  categoryChip: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 10, borderRadius: 14, marginRight: 10, borderWidth: 1, gap: 8 },
-  categoryText: { fontSize: 14, fontWeight: "600" },
+  scrollContent: { paddingHorizontal: 28 },
+  header: { marginBottom: 30 },
+  title: { fontSize: 32, fontWeight: "900", letterSpacing: -1 },
+  subtitle: { fontSize: 14, fontWeight: "600", opacity: 0.5 },
+  inputWrapper: { marginBottom: 25 },
+  label: { fontSize: 11, fontWeight: "800", marginBottom: 12, textTransform: 'uppercase', opacity: 0.6 },
+  input: { height: 60, paddingHorizontal: 18, borderRadius: 20, fontSize: 16, borderWidth: 1, fontWeight: '600' },
+  pickerButton: { justifyContent: 'center' },
+  textArea: { height: 100, textAlignVertical: "top", paddingTop: 16 },
+  row: { flexDirection: "row", gap: 12, marginBottom: 20 },
+  deptGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
+  deptChip: { flex: 1, minWidth: '45%', flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: 14, borderRadius: 18, borderWidth: 1, gap: 8 },
+  deptText: { fontSize: 14, fontWeight: "700" },
   titleContainer: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  titleChip: { paddingHorizontal: 12, paddingVertical: 8, borderRadius: 10, borderWidth: 1 },
+  titleChip: { paddingHorizontal: 16, paddingVertical: 10, borderRadius: 14, borderWidth: 1 },
   titleChipText: { fontSize: 13, fontWeight: "600" },
-  row: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: 'rgba(0,0,0,0.03)' },
-  rowLabel: { fontSize: 15, fontWeight: "600" },
-  pickerTrigger: { backgroundColor: 'rgba(0,0,0,0.02)', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 10 },
-  button: { padding: 20, borderRadius: 22, alignItems: "center", marginTop: 10 },
-  buttonText: { fontWeight: "800", fontSize: 17 },
+  rateRow: { flexDirection: 'row', gap: 12 },
+  earningsBox: { flex: 1, borderRadius: 20, paddingHorizontal: 15, justifyContent: 'center', alignItems: 'center' },
+  earningsLabel: { fontSize: 8, fontWeight: "900", marginBottom: 2 },
+  earningsValue: { fontSize: 18, fontWeight: "900" },
+  submitButton: { height: 64, borderRadius: 24, justifyContent: "center", alignItems: "center", marginTop: 20 },
+  submitText: { fontSize: 17, fontWeight: "800" },
   deleteButton: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, marginTop: 25, padding: 15 },
   deleteButtonText: { color: "#FF3B30", fontWeight: "700", fontSize: 15 },
+  imageSection: { marginBottom: 30 },
   modalOverlay: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.4)' },
-  modalContent: { height: 380, borderTopLeftRadius: 28, borderTopRightRadius: 28, paddingBottom: 30, alignItems: 'center' },
-  modalHeader: { width: '100%', height: 50, flexDirection: 'row', justifyContent: 'flex-end', alignItems: 'center', paddingHorizontal: 20 },
+  modalContent: { borderTopLeftRadius: 32, borderTopRightRadius: 32, paddingBottom: 40, alignItems: 'center' },
+  modalHeader: { width: '100%', height: 60, flexDirection: 'row', justifyContent: 'flex-end', alignItems: 'center', paddingHorizontal: 25 },
 });

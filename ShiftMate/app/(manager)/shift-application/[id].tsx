@@ -60,6 +60,7 @@ export default function ShiftApplicationsScreen() {
     <View style={{ flex: 1, backgroundColor: theme.background }}>
       <Stack.Screen options={{ 
         headerTitle: "Applicants",
+        headerBackButtonDisplayMode: "minimal",
         headerShadowVisible: false,
         headerStyle: { backgroundColor: theme.background },
         headerTintColor: theme.text
@@ -128,7 +129,6 @@ export default function ShiftApplicationsScreen() {
                 <View style={[styles.statusBadge, { backgroundColor: getStatusColor(item.status) + "20" }]}>
                   <Text style={[styles.statusText, { color: getStatusColor(item.status) }]}>{item.status}</Text>
                 </View>
-                {/* Esempio di info extra per il manager */}
                 <Text style={styles.metaText}>• {item.profiles?.job_role || 'Worker'}</Text>
               </View>
             </View>

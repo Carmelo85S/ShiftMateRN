@@ -128,7 +128,7 @@ const styles = StyleSheet.create({
   },
   logoutButton: {
     backgroundColor: '#111827',
-    width: 44, // Leggermente più grande per facilitare il touch
+    width: 44,
     height: 44,
     borderRadius: 22,
     justifyContent: 'center',

@@ -69,7 +69,6 @@ export default function EditProfileScreen() {
   };
 
   const handleSave = async () => {
-    // --- VALIDAZIONE TELEFONO ---
     const phoneTrimmed = form.phone?.trim();
     
     if (!phoneTrimmed) {
@@ -77,7 +76,6 @@ export default function EditProfileScreen() {
       return;
     }
 
-    // Check basico: deve iniziare con + o essere un numero svedese valido (min 8 cifre)
     const phoneRegex = /^\+?[0-9\s-]{8,20}$/;
     if (!phoneRegex.test(phoneTrimmed)) {
       Alert.alert("Invalid Phone", "Please enter a valid phone number (e.g. +46 123 456 789)");
@@ -89,8 +87,6 @@ export default function EditProfileScreen() {
             "International Format", 
             "We recommend starting with '+' and country code (e.g. +46) for better connectivity."
         );
-        // Non blocchiamo necessariamente qui se vuoi essere flessibile, 
-        // ma per le emergenze è meglio suggerirlo caldamente.
     }
 
     setSaving(true);
@@ -101,7 +97,7 @@ export default function EditProfileScreen() {
         surname: form.surname,
         job_role: form.job_role,
         bio: form.bio,
-        phone: phoneTrimmed, // salviamo la versione senza spazi inutili
+        phone: phoneTrimmed,
         experience: form.experience,
         department: form.department,
         avatar_url: form.avatar_url,

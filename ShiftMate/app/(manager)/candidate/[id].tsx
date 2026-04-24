@@ -144,14 +144,14 @@ export default function CandidateProfile() {
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
       <StatusBar barStyle={colorScheme === "dark" ? "light-content" : "dark-content"} />
-      <Stack.Screen 
-        options={{ 
-          title: fullName, 
-          headerStyle: { backgroundColor: theme.background }, 
-          headerTintColor: theme.text,
-          headerShadowVisible: false 
-        }} 
-      />
+        <Stack.Screen 
+          options={{ 
+            title: fullName, 
+            headerStyle: { backgroundColor: theme.background }, 
+            headerTintColor: theme.text,
+            headerShadowVisible: false 
+          }} 
+        />
       
       <ScrollView contentContainerStyle={[styles.scrollContent, { paddingBottom: insets.bottom + 120 }]}>
         {/* HEADER PROFILO */}

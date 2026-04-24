@@ -1,4 +1,4 @@
-import { Tabs } from "expo-router";
+import { router, Tabs } from "expo-router";
 import { IconSymbol } from "@/components/ui/icon-symbol"; 
 import { Colors } from "@/constants/theme";
 import { useState, useEffect } from "react"; // Aggiunto useEffect
@@ -74,13 +74,21 @@ export default function TabLayout() {
           tabBarIcon: ({color}) => <IconSymbol name="speedometer" color={color} /> 
         }} 
       />
-      <Tabs.Screen 
+      <Tabs.Screen
         name="shift"
-        options={{ 
-          title: "Shifts", 
-          tabBarIcon: ({color}) => <IconSymbol name="calendar" color={color} /> 
-        }} 
+        listeners={{
+          tabPress: (e) => {
+            e.preventDefault();
+            router.replace("/shift");
+          },
+        }}
+        options={{
+          tabBarIcon: ({ color }) => (
+            <IconSymbol name="calendar" color={color} />
+          ),
+        }}
       />
+      
       <Tabs.Screen 
         name="createShift"
         options={{ 
@@ -90,8 +98,14 @@ export default function TabLayout() {
       />
       <Tabs.Screen 
         name="profile"
+        listeners={{
+          tabPress: (e) => {
+            e.preventDefault();
+            router.replace("/profile")
+          }
+        }}
         options={{ 
-          title: "Account", 
+          title: "Account",
           tabBarIcon: ({color}) => <IconSymbol name="person.fill" color={color} /> 
         }} 
       />

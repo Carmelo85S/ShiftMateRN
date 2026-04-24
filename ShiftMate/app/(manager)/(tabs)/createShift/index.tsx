@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useMemo } from "react";
+import React, { useState, useCallback, useMemo, useEffect } from "react";
 import {
   StyleSheet,
   View,
@@ -20,23 +20,21 @@ import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import ShiftUploader from "@/components/imagePicker/imagePickerShift";
-import { createShift } from "@/queries/managerQueries";
+import { createShift, fetchUserProfile } from "@/queries/managerQueries";
 
-// Configurazione Industrie e Job Titles
-const INDUSTRIES = [
-  { id: 'hospitality', label: 'Hospitality', icon: 'restaurant-outline' },
-  { id: 'retail', label: 'Retail', icon: 'cart-outline' },
-  { id: 'events', label: 'Events', icon: 'star-outline' },
-  { id: 'logistics', label: 'Logistics', icon: 'bus-outline' },
-  { id: 'admin', label: 'Admin', icon: 'briefcase-outline' },
+// Hospitality Departments
+const DEPARTMENTS = [
+  { id: 'kitchen', label: 'Kitchen', icon: 'restaurant-outline' },
+  { id: 'bar', label: 'Bar', icon: 'wine-outline' },
+  { id: 'hall', label: 'Floor/Hall', icon: 'people-outline' },
+  { id: 'reception', label: 'Front Desk', icon: 'key-outline' },
 ];
 
-const JOB_TITLES_BY_INDUSTRY: Record<string, string[]> = {
-  hospitality: ['Waiter/Waitress', 'Bartender', 'Chef', 'Runner', 'Dishwasher', 'Hostess'],
-  retail: ['Sales Assistant', 'Store Manager', 'Cashier', 'Visual Merchandiser'],
-  events: ['Promoter', 'Security', 'Event Host', 'Stage Hand', 'Photographer'],
-  logistics: ['Warehouse Worker', 'Delivery Driver', 'Forklift Operator', 'Packer'],
-  admin: ['Receptionist', 'Data Entry', 'Office Assistant', 'Secretary'],
+const TITLES_BY_DEPT: Record<string, string[]> = {
+  kitchen: ['Chef', 'Sous Chef', 'Commis', 'Dishwasher', 'Pizza Chef', 'Kitchen Porter'],
+  bar: ['Bartender', 'Barback', 'Mixologist', 'Bar Assistant'],
+  hall: ['Waiter/Waitress', 'Runner', 'Hostess', 'Maitre d\'', 'Sommelier'],
+  reception: ['Receptionist', 'Night Porter', 'Concierge'],
 };
 
 export default function CreateShift() {
@@ -52,11 +50,26 @@ export default function CreateShift() {
     title: "",
     description: "",
     department: "", 
+    industry: "hospitality", 
     hourly_rate: "",
     date: new Date(),
     startTime: new Date(new Date().setHours(new Date().getHours() + 1, 0)),
     endTime: new Date(new Date().setHours(new Date().getHours() + 9, 0)),
   });
+
+  // Sync with manager's profile department on mount
+  useEffect(() => {
+    const loadProfile = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        const profile = await fetchUserProfile(user.id);
+        if (profile?.department) {
+          setForm(prev => ({ ...prev, department: profile.department }));
+        }
+      }
+    };
+    loadProfile();
+  }, []);
 
   const [picker, setPicker] = useState({
     show: false,
@@ -64,7 +77,6 @@ export default function CreateShift() {
     target: '' as 'date' | 'startTime' | 'endTime'
   });
 
-  // Guadagno stimato in tempo reale
   const estimatedEarnings = useMemo(() => {
     const rate = parseFloat(form.hourly_rate);
     if (isNaN(rate) || rate <= 0) return 0;
@@ -76,34 +88,17 @@ export default function CreateShift() {
 
   const handleCreate = async () => {
     if (!form.title || !form.department || !form.hourly_rate) {
-      Alert.alert("Missing Info", "Title, Industry and Hourly Rate are required.");
+      Alert.alert("Missing Info", "Please select a department, title, and hourly rate.");
       return;
     }
-
-    const now = new Date();
-    const shiftStart = new Date(form.date);
-    shiftStart.setHours(form.startTime.getHours(), form.startTime.getMinutes());
-
-    if (shiftStart < now) {
-      Alert.alert("Invalid Time", "You cannot post a shift that starts in the past!");
-      return;
-    }
-
     setLoading(true);
     try {
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error("No user found");
-      
-      await createShift(user.id, imageUrl, {
-        ...form,
-        hourly_rate: form.hourly_rate 
-      } as any);
-
-      Alert.alert("Success", "Shift posted successfully!", [
-        { text: "OK", onPress: () => router.push("/(manager)/(tabs)/shift") },
-      ]);
+      if (!user) throw new Error("User not found");
+      await createShift(user.id, imageUrl, form as any);
+      router.push("/(manager)/(tabs)/shift");
     } catch (err: any) {
-      Alert.alert("Error", err.message || "Could not create shift.");
+      Alert.alert("Error", err.message);
     } finally {
       setLoading(false);
     }
@@ -111,57 +106,33 @@ export default function CreateShift() {
 
   const onPickerChange = (event: any, selectedDate?: Date) => {
     if (Platform.OS === 'android') setPicker({ ...picker, show: false });
-    if (selectedDate) {
-      const now = new Date();
-      let validatedDate = selectedDate;
-
-      // Logica Anti-Passato istantanea
-      if (picker.target === 'startTime' || picker.target === 'date') {
-        const isToday = (picker.target === 'date' ? selectedDate : form.date).toDateString() === now.toDateString();
-        if (isToday && selectedDate.getTime() < now.getTime() && picker.mode === 'time') {
-          validatedDate = new Date();
-        }
-      }
-      setForm({ ...form, [picker.target]: validatedDate });
-    }
+    if (selectedDate) setForm({ ...form, [picker.target]: selectedDate });
   };
 
   const renderDatePicker = () => {
     if (!picker.show) return null;
-    const now = new Date();
-    const isToday = form.date.toDateString() === now.toDateString();
-    const minDate = (picker.mode === 'time' && isToday) ? now : (picker.mode === 'date' ? now : undefined);
-
-    const pickerElement = (
-      <DateTimePicker
-        value={(form as any)[picker.target]}
-        mode={picker.mode}
-        is24Hour={true}
-        display={Platform.OS === 'ios' ? 'spinner' : 'default'}
-        onChange={onPickerChange}
-        textColor={theme.text}
-        minimumDate={minDate}
-        style={{ width: '100%', height: 250 }}
-      />
-    );
-
-    if (Platform.OS === 'ios') {
-      return (
-        <Modal transparent animationType="slide" visible={picker.show}>
-          <Pressable style={styles.modalOverlay} onPress={() => setPicker({ ...picker, show: false })}>
-            <View style={[styles.modalContent, { backgroundColor: theme.card }]}>
-              <View style={styles.modalHeader}>
-                <Pressable onPress={() => setPicker({ ...picker, show: false })}>
-                  <Text style={{ color: theme.tint, fontWeight: '700', fontSize: 16 }}>Done</Text>
-                </Pressable>
-              </View>
-              {pickerElement}
+    return (
+      <Modal transparent animationType="slide" visible={picker.show}>
+        <Pressable style={styles.modalOverlay} onPress={() => setPicker({ ...picker, show: false })}>
+          <View style={[styles.modalContent, { backgroundColor: theme.card }]}>
+            <View style={styles.modalHeader}>
+              <Pressable onPress={() => setPicker({ ...picker, show: false })}>
+                <Text style={{ color: theme.tint, fontWeight: '700', fontSize: 16 }}>Done</Text>
+              </Pressable>
             </View>
-          </Pressable>
-        </Modal>
-      );
-    }
-    return pickerElement;
+            <DateTimePicker
+              value={(form as any)[picker.target]}
+              mode={picker.mode}
+              is24Hour={true}
+              display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+              onChange={onPickerChange}
+              textColor={theme.text}
+              style={{ width: '100%', height: 250 }}
+            />
+          </View>
+        </Pressable>
+      </Modal>
+    );
   };
 
   return (
@@ -175,68 +146,74 @@ export default function CreateShift() {
       >
         <View style={styles.header}>
           <Text style={[styles.title, { color: theme.text }]}>New Shift</Text>
-          <Text style={[styles.subtitle, { color: theme.text }]}>Attract workers with clear rates and titles.</Text>
+          <Text style={[styles.subtitle, { color: theme.secondaryText }]}>Hospitality Focus</Text>
         </View>
 
         <View style={styles.imageSection}>
            <ShiftUploader initialUrl={imageUrl} onUpload={(url) => setImageUrl(url)} />
         </View>
 
-        {/* INDUSTRY SELECTOR */}
+        {/* DEPARTMENT SELECTOR */}
         <View style={styles.inputWrapper}>
-          <Text style={[styles.label, { color: theme.text }]}>Industry *</Text>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.categoryScroll}>
-            {INDUSTRIES.map((item) => (
+          <Text style={[styles.label, { color: theme.text }]}>Department *</Text>
+          <View style={styles.deptGrid}>
+            {DEPARTMENTS.map((dept) => (
               <Pressable
-                key={item.id}
-                onPress={() => setForm({ ...form, department: item.id, title: "" })}
+                key={dept.id}
+                onPress={() => setForm({ ...form, department: dept.id, title: "" })}
                 style={[
-                  styles.categoryChip,
-                  { backgroundColor: form.department === item.id ? theme.tint : theme.card, borderColor: theme.border }
+                  styles.deptChip,
+                  { 
+                    backgroundColor: form.department === dept.id ? theme.tint : theme.card, 
+                    borderColor: theme.border 
+                  }
                 ]}
               >
-                <Ionicons name={item.icon as any} size={16} color={form.department === item.id ? "#FFF" : theme.secondaryText} />
-                <Text style={[styles.categoryText, { color: form.department === item.id ? "#FFF" : theme.text }]}>{item.label}</Text>
+                <Ionicons 
+                  name={dept.icon as any} 
+                  size={18} 
+                  color={form.department === dept.id ? "#FFF" : theme.secondaryText} 
+                />
+                <Text style={[styles.deptText, { color: form.department === dept.id ? "#FFF" : theme.text }]}>
+                  {dept.label}
+                </Text>
               </Pressable>
             ))}
-          </ScrollView>
+          </View>
         </View>
 
-        {/* SUGGESTED JOB TITLES */}
+        {/* SUGGESTED TITLES */}
         {form.department && (
-  <View style={styles.inputWrapper}>
-    <Text style={[styles.label, { color: theme.text }]}>Suggested Titles</Text>
-    <View style={styles.titleContainer}>
-      {JOB_TITLES_BY_INDUSTRY[form.department]?.map((title) => (
-        <Pressable
-          key={title}
-          onPress={() => setForm({ ...form, title })}
-          style={[
-            styles.titleChip,
-            { 
-              backgroundColor: form.title === title ? theme.tint : theme.card,
-              borderColor: form.title === title ? theme.tint : theme.border 
-            }
-          ]}
-        >
-          <Text style={[
-            styles.titleChipText, 
-            { color: form.title === title ? "#FFF" : theme.text }
-          ]}>
-            {title}
-          </Text>
-        </Pressable>
-      ))}
-    </View>
-  </View>
-)}
+          <View style={styles.inputWrapper}>
+            <Text style={[styles.label, { color: theme.text }]}>Suggested Roles for {form.department}</Text>
+            <View style={styles.titleContainer}>
+              {TITLES_BY_DEPT[form.department]?.map((title) => (
+                <Pressable
+                  key={title}
+                  onPress={() => setForm({ ...form, title })}
+                  style={[
+                    styles.titleChip,
+                    { 
+                      backgroundColor: form.title === title ? theme.tint : theme.card,
+                      borderColor: form.title === title ? theme.tint : theme.border 
+                    }
+                  ]}
+                >
+                  <Text style={[styles.titleChipText, { color: form.title === title ? "#FFF" : theme.text }]}>
+                    {title}
+                  </Text>
+                </Pressable>
+              ))}
+            </View>
+          </View>
+        )}
 
         <View style={styles.inputWrapper}>
-          <Text style={[styles.label, { color: theme.text }]}>Job Title *</Text>
+          <Text style={[styles.label, { color: theme.text }]}>Position Title *</Text>
           <TextInput
             style={[styles.input, { backgroundColor: theme.card, color: theme.text, borderColor: theme.border }]}
-            placeholder="e.g. Senior Barman"
-            placeholderTextColor={theme.text + "40"}
+            placeholder="e.g. Head Waiter"
+            placeholderTextColor={theme.text + "30"}
             value={form.title}
             onChangeText={(text) => setForm({ ...form, title: text })}
           />
@@ -253,41 +230,23 @@ export default function CreateShift() {
               onChangeText={(text) => setForm({ ...form, hourly_rate: text })}
             />
             <View style={[styles.earningsBox, { backgroundColor: theme.tint + "10" }]}>
-              <Text style={[styles.earningsLabel, { color: theme.tint }]}>WIN FOR WORKER</Text>
+              <Text style={[styles.earningsLabel, { color: theme.tint }]}>ESTIMATED TOTAL</Text>
               <Text style={[styles.earningsValue, { color: theme.tint }]}>€{estimatedEarnings}</Text>
             </View>
           </View>
         </View>
 
-        <View style={styles.inputWrapper}>
-          <Text style={[styles.label, { color: theme.text }]}>Description</Text>
-          <TextInput
-            style={[styles.input, styles.textArea, { backgroundColor: theme.card, color: theme.text, borderColor: theme.border }]}
-            placeholder="Describe the main tasks..."
-            value={form.description}
-            onChangeText={(text) => setForm({ ...form, description: text })}
-            multiline
-          />
-        </View>
-
-        <View style={styles.inputWrapper}>
-          <Text style={[styles.label, { color: theme.text }]}>Date *</Text>
-          <Pressable onPress={() => setPicker({ show: true, mode: 'date', target: 'date' })} style={[styles.input, styles.pickerButton, { backgroundColor: theme.card, borderColor: theme.border }]}>
-            <Text style={{ color: theme.text }}>{form.date.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}</Text>
-          </Pressable>
-        </View>
-
         <View style={styles.row}>
-          <View style={{ flex: 1 }}>
-            <Text style={[styles.label, { color: theme.text }]}>Start *</Text>
-            <Pressable onPress={() => setPicker({ show: true, mode: 'time', target: 'startTime' })} style={[styles.input, styles.pickerButton, { backgroundColor: theme.card, borderColor: theme.border }]}>
-              <Text style={{ color: theme.text }}>{form.startTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</Text>
+          <View style={{ flex: 1.5 }}>
+            <Text style={[styles.label, { color: theme.text }]}>Date</Text>
+            <Pressable onPress={() => setPicker({ show: true, mode: 'date', target: 'date' })} style={[styles.input, styles.pickerButton, { backgroundColor: theme.card, borderColor: theme.border }]}>
+              <Text style={{ color: theme.text }}>{form.date.toLocaleDateString('en-GB')}</Text>
             </Pressable>
           </View>
           <View style={{ flex: 1 }}>
-            <Text style={[styles.label, { color: theme.text }]}>End *</Text>
-            <Pressable onPress={() => setPicker({ show: true, mode: 'time', target: 'endTime' })} style={[styles.input, styles.pickerButton, { backgroundColor: theme.card, borderColor: theme.border }]}>
-              <Text style={{ color: theme.text }}>{form.endTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</Text>
+            <Text style={[styles.label, { color: theme.text }]}>Start</Text>
+            <Pressable onPress={() => setPicker({ show: true, mode: 'time', target: 'startTime' })} style={[styles.input, styles.pickerButton, { backgroundColor: theme.card, borderColor: theme.border }]}>
+              <Text style={{ color: theme.text, fontWeight: '700' }}>{form.startTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</Text>
             </Pressable>
           </View>
         </View>
@@ -309,28 +268,27 @@ export default function CreateShift() {
 const styles = StyleSheet.create({
   scrollContent: { paddingHorizontal: 28 },
   header: { marginBottom: 30 },
-  title: { fontSize: 28, fontWeight: "900", letterSpacing: -1 },
-  subtitle: { fontSize: 15, opacity: 0.5, marginTop: 4 },
-  inputWrapper: { marginBottom: 20 },
-  label: { fontSize: 13, fontWeight: "700", marginBottom: 10, textTransform: 'uppercase', letterSpacing: 0.5 },
-  input: { height: 58, paddingHorizontal: 16, borderRadius: 18, fontSize: 16, borderWidth: 1 },
+  title: { fontSize: 32, fontWeight: "900", letterSpacing: -1 },
+  subtitle: { fontSize: 14, fontWeight: "600", opacity: 0.5 },
+  inputWrapper: { marginBottom: 25 },
+  label: { fontSize: 11, fontWeight: "800", marginBottom: 12, textTransform: 'uppercase', letterSpacing: 1, opacity: 0.6 },
+  input: { height: 60, paddingHorizontal: 18, borderRadius: 20, fontSize: 16, borderWidth: 1, fontWeight: '600' },
   pickerButton: { justifyContent: 'center' },
-  textArea: { height: 100, textAlignVertical: "top", paddingTop: 16 },
   row: { flexDirection: "row", gap: 12, marginBottom: 20 },
-  categoryScroll: { flexDirection: 'row', marginBottom: 5 },
-  categoryChip: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 10, borderRadius: 14, marginRight: 10, borderWidth: 1, gap: 8 },
-  categoryText: { fontSize: 14, fontWeight: "600" },
-  titleContainer: {flexDirection: 'row',flexWrap: 'wrap', gap: 8,marginTop: 5,},
-  titleChip: {paddingHorizontal: 16,paddingVertical: 10,borderRadius: 14,borderWidth: 1},
-  titleChipText: {fontSize: 14,fontWeight: "600"},
+  deptGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
+  deptChip: { flex: 1, minWidth: '45%', flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: 14, borderRadius: 18, borderWidth: 1, gap: 8 },
+  deptText: { fontSize: 14, fontWeight: "700" },
+  titleContainer: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  titleChip: { paddingHorizontal: 16, paddingVertical: 10, borderRadius: 14, borderWidth: 1 },
+  titleChipText: { fontSize: 13, fontWeight: "600" },
   rateRow: { flexDirection: 'row', gap: 12 },
-  earningsBox: { flex: 1, borderRadius: 18, paddingHorizontal: 15, justifyContent: 'center', alignItems: 'center' },
-  earningsLabel: { fontSize: 9, fontWeight: "800", marginBottom: 2 },
+  earningsBox: { flex: 1, borderRadius: 20, paddingHorizontal: 15, justifyContent: 'center', alignItems: 'center' },
+  earningsLabel: { fontSize: 8, fontWeight: "900", marginBottom: 2 },
   earningsValue: { fontSize: 18, fontWeight: "900" },
-  submitButton: { marginTop: 10, height: 60, borderRadius: 20, justifyContent: "center", alignItems: "center" },
-  submitText: { fontSize: 16, fontWeight: "700" },
-  imageSection: { marginBottom: 25 },
+  submitButton: { height: 64, borderRadius: 24, justifyContent: "center", alignItems: "center", marginTop: 20 },
+  submitText: { fontSize: 17, fontWeight: "800" },
+  imageSection: { marginBottom: 30 },
   modalOverlay: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.4)' },
-  modalContent: { height: 380, borderTopLeftRadius: 30, borderTopRightRadius: 30, paddingBottom: 30, alignItems: 'center' },
-  modalHeader: { width: '100%', height: 60, flexDirection: 'row', justifyContent: 'flex-end', alignItems: 'center', paddingHorizontal: 25, borderBottomWidth: 0.5, borderBottomColor: 'rgba(0,0,0,0.1)' },
+  modalContent: { borderTopLeftRadius: 32, borderTopRightRadius: 32, paddingBottom: 40, alignItems: 'center' },
+  modalHeader: { width: '100%', height: 60, flexDirection: 'row', justifyContent: 'flex-end', alignItems: 'center', paddingHorizontal: 25 },
 });

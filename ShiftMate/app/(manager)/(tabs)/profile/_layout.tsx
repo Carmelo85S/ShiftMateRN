@@ -22,7 +22,11 @@ export default function ProfileStackLayout() {
           }}
         >
       <Stack.Screen name="index" options={{ title: "Profile" }} />
-        <Stack.Screen name="editProfile" options={{title: "Edit account", headerBackVisible: true, headerBackButtonDisplayMode: "minimal"}} />
+        <Stack.Screen name="editProfile" options={{
+          title: "", 
+          presentation: "modal",
+          headerBackVisible: false,
+          }} />
      </Stack>
   );
 }

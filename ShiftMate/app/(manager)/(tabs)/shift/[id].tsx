@@ -62,12 +62,6 @@ export default function ShiftDetail() {
 
   return (
     <View style={{ flex: 1, backgroundColor: theme.background }}>
-      <Stack.Screen options={{ 
-        headerTitle: "",
-        headerTransparent: true,
-        headerTintColor: "#FFF",
-      }} />
-
       <ScrollView
         showsVerticalScrollIndicator={false}
         refreshControl={

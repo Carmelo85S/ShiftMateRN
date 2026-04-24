@@ -9,23 +9,23 @@ import {
   View, 
   Image, 
   ScrollView, 
-  ActivityIndicator, 
+  ActivityIndicator,
+  useColorScheme, 
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-
-// Importiamo la tua query specifica
 import { fetchUserProfile } from "@/queries/managerQueries";
 
 export default function ProfileManager() {
-  const theme = Colors.light; 
+  const colorScheme = useColorScheme();
+  const theme = Colors[colorScheme ?? "light"];
   const router = useRouter();
   const insets = useSafeAreaInsets();
 
   const [profile, setProfile] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
-  // Load data function
+  // Load profile data from Supabase
   const loadData = useCallback(async () => {
     try {
       const { data: userData } = await supabase.auth.getUser();
@@ -40,7 +40,7 @@ export default function ProfileManager() {
     }
   }, []);
 
-  // Reload data when returning to this screen
+  // Reload data every time the screen comes into focus
   useFocusEffect(
     useCallback(() => { 
       loadData(); 
@@ -58,7 +58,7 @@ export default function ProfileManager() {
       <ScrollView
         contentContainerStyle={{ 
           paddingTop: insets.top + 20, 
-          paddingHorizontal: 20, 
+          paddingHorizontal: 28, // Aligned with Shift screens
           paddingBottom: 40 
         }}
         showsVerticalScrollIndicator={false}
@@ -85,7 +85,7 @@ export default function ProfileManager() {
           <View style={styles.infoItem}>
             <Text style={[styles.infoLabel, { color: theme.secondaryText }]}>ROLE</Text>
             <Text style={[styles.infoValue, { color: theme.text }]}>
-              {profile?.job_role || "Administrator"}
+              {profile?.job_role || "Manager"}
             </Text>
           </View>
           <View style={[styles.verticalDivider, { backgroundColor: theme.border }]} />
@@ -132,17 +132,16 @@ export default function ProfileManager() {
   );
 }
 
-// Sottocomponente per le righe del menu
 const MenuRow = ({ label, icon, onPress, theme }: any) => (
   <Pressable 
     onPress={onPress} 
     style={({ pressed }) => [
       styles.menuRow, 
-      { opacity: pressed ? 0.6 : 1 }
+      { backgroundColor: pressed ? theme.card : 'transparent' }
     ]}
   >
     <View style={styles.menuLeft}>
-      <View style={[styles.iconCircle, { backgroundColor: 'rgba(0,0,0,0.03)' }]}>
+      <View style={[styles.iconCircle, { backgroundColor: theme.card }]}>
         <Ionicons name={icon} size={20} color={theme.text} />
       </View>
       <Text style={[styles.menuLabel, { color: theme.text }]}>{label}</Text>
@@ -155,32 +154,31 @@ const styles = StyleSheet.create({
   center: { flex: 1, justifyContent: "center", alignItems: "center" },
   headerRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 40, marginTop: 10 },
   welcomeText: { fontSize: 14, fontWeight: "600", opacity: 0.5, letterSpacing: 0.5, textTransform: 'uppercase' },
-  nameTitle: { fontSize: 30, fontWeight: "700", letterSpacing: -0.8 },
+  nameTitle: { fontSize: 32, fontWeight: "900", letterSpacing: -1 },
   avatarFrame: { 
-    width: 70, height: 70, borderRadius: 25, justifyContent: 'center', alignItems: 'center',
-    shadowColor: "#000", shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.08, shadowRadius: 12, elevation: 3,
+    width: 74, height: 74, borderRadius: 28, justifyContent: 'center', alignItems: 'center',
+    borderWidth: 1,
   },
-  avatar: { width: '100%', height: '100%', borderRadius: 25 },
+  avatar: { width: '100%', height: '100%', borderRadius: 27 },
   infoCard: { 
-    flexDirection: 'row', borderRadius: 24, padding: 24, marginBottom: 40,
-    shadowColor: "#000", shadowOffset: { width: 0, height: 10 }, shadowOpacity: 0.04, shadowRadius: 20, elevation: 2,
+    flexDirection: 'row', borderRadius: 24, padding: 24, marginBottom: 40, borderWidth: 1,
   },
   infoItem: { flex: 1, gap: 6 },
-  infoLabel: { fontSize: 11, fontWeight: "600", opacity: 0.4, letterSpacing: 0.5 },
+  infoLabel: { fontSize: 11, fontWeight: "800", opacity: 0.4, letterSpacing: 0.6 },
   infoValue: { fontSize: 16, fontWeight: "700" },
-  verticalDivider: { width: 1, height: '80%', alignSelf: 'center', marginHorizontal: 20, opacity: 0.1 },
+  verticalDivider: { width: 1, height: '80%', alignSelf: 'center', marginHorizontal: 20 },
   statusBadge: { 
     flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: 'rgba(52, 199, 89, 0.1)', 
     paddingHorizontal: 10, paddingVertical: 4, borderRadius: 10, alignSelf: 'flex-start'
   },
   statusDot: { width: 6, height: 6, borderRadius: 3 },
   statusText: { fontSize: 12, fontWeight: "700" },
-  bioSection: { marginBottom: 30, paddingHorizontal: 4 },
-  sectionTitle: { fontSize: 18, fontWeight: "700", marginBottom: 10, letterSpacing: -0.3 },
-  bioDescription: { fontSize: 15, lineHeight: 22, fontWeight: "400", opacity: 0.7 },
-  menuList: { marginTop: 10, gap: 8 },
-  menuRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 14, paddingHorizontal: 12, borderRadius: 16 },
+  bioSection: { marginBottom: 35 },
+  sectionTitle: { fontSize: 18, fontWeight: "800", marginBottom: 10 },
+  bioDescription: { fontSize: 15, lineHeight: 22, opacity: 0.7 },
+  menuList: { gap: 4 },
+  menuRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 12, paddingHorizontal: 12, borderRadius: 20 },
   menuLeft: { flexDirection: 'row', alignItems: 'center', gap: 16 },
-  iconCircle: { width: 42, height: 42, borderRadius: 14, justifyContent: 'center', alignItems: 'center' },
-  menuLabel: { fontSize: 16, fontWeight: "500", opacity: 0.9 },
+  iconCircle: { width: 46, height: 46, borderRadius: 16, justifyContent: 'center', alignItems: 'center' },
+  menuLabel: { fontSize: 16, fontWeight: "600" },
 });
