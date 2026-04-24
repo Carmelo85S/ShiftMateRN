@@ -161,6 +161,15 @@ export const fetchWorkerProfile = async (userId: string) => {
   return data;
 };
 
+export const deleteWorkerAccount = async () => {
+  const { data, error } = await supabase.functions.invoke('delete-self');
+  
+  if (error) throw error;
+  
+  await supabase.auth.signOut();
+  return data;
+};
+
 // --- NOTIFICATIONS ---
 
 export const fetchWorkerNotifications = async (userId: string) => {

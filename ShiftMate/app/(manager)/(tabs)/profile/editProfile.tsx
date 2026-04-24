@@ -93,6 +93,36 @@ export default function EditProfileScreen() {
     }
   };
 
+  const handleDeleteProfile = async () => {
+  Alert.alert(
+    "Delete Account",
+    "Are you sure? This action is permanent and will delete your profile, applications, and all associated data.",
+    [
+      { text: "Cancel", style: "cancel" },
+      { 
+        text: "Delete Everything", 
+        style: "destructive", 
+        onPress: async () => {
+          setSaving(true);
+          try {
+            const { data, error } = await supabase.functions.invoke('delete-user');
+            
+            if (error) throw error;
+            await supabase.auth.signOut();
+            
+            Alert.alert("Account Deleted", "Your data has been successfully removed.");
+            router.replace("/");
+          } catch (error: any) {
+            Alert.alert("Error", error.message || "Could not delete account");
+          } finally {
+            setSaving(false);
+          }
+        }
+      }
+    ]
+  );
+};
+
   const selectDepartment = () => {
     const deps: Department[] = ['bar', 'kitchen', 'restaurant', 'housekeeping', 'reception', 'maintenance'];
     Alert.alert("Department", "Select your area", [
@@ -219,6 +249,29 @@ export default function EditProfileScreen() {
           >
             {saving ? <ActivityIndicator color={theme.background} /> : <Text style={[styles.saveBtnText, { color: theme.background }]}>Save Changes</Text>}
           </Pressable>
+
+          <Pressable
+            onPress={handleDeleteProfile}
+            disabled={saving}
+            style={({ pressed }) => [
+              styles.deleteBtn,
+              { 
+                borderColor: theme.delete + "30", // Bordo rosso leggero (trasparenza 30)
+                opacity: (saving || pressed) ? 0.7 : 1 
+              }
+            ]}
+          >
+            {saving ? (
+              <ActivityIndicator size="small" color={theme.delete} />
+            ) : (
+              <>
+                <Ionicons name="trash-outline" size={20} color={theme.delete} />
+                <Text style={[styles.deleteBtnText, { color: theme.delete }]}>
+                  Delete Account
+                </Text>
+              </>
+            )}
+          </Pressable>
         </View>
       </ScrollView>
     </KeyboardAvoidingView>
@@ -247,4 +300,6 @@ const styles = StyleSheet.create({
   bioField: { fontSize: 16, fontWeight: "500", lineHeight: 24, textAlignVertical: "top" },
   saveBtn: { height: 64, borderRadius: 24, justifyContent: 'center', alignItems: 'center', marginTop: 40 },
   saveBtnText: { fontSize: 18, fontWeight: "800" },
+  deleteBtn: {flexDirection: 'row',height: 64,borderRadius: 24,justifyContent: 'center',alignItems: 'center',marginTop: 20,borderWidth: 1.5,backgroundColor: 'transparent', gap: 10},
+  deleteBtnText: {fontSize: 16,fontWeight: "700",letterSpacing: -0.2},
 });
