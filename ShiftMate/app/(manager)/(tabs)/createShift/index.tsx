@@ -22,19 +22,22 @@ import DateTimePicker from "@react-native-community/datetimepicker";
 import ShiftUploader from "@/components/imagePicker/imagePickerShift";
 import { createShift, fetchUserProfile } from "@/queries/managerQueries";
 
-// Hospitality Departments
 const DEPARTMENTS = [
   { id: 'kitchen', label: 'Kitchen', icon: 'restaurant-outline' },
   { id: 'bar', label: 'Bar', icon: 'wine-outline' },
-  { id: 'hall', label: 'Floor/Hall', icon: 'people-outline' },
-  { id: 'reception', label: 'Front Desk', icon: 'key-outline' },
+  { id: 'service', label: 'Floor/Hall', icon: 'people-outline' },
+  { id: 'admin', label: 'Reception/Admin', icon: 'key-outline' }, 
+  { id: 'events', label: 'Events', icon: 'star-outline' },         
+  { id: 'other', label: 'Other', icon: 'ellipsis-horizontal-outline' },
 ];
 
 const TITLES_BY_DEPT: Record<string, string[]> = {
   kitchen: ['Chef', 'Sous Chef', 'Commis', 'Dishwasher', 'Pizza Chef', 'Kitchen Porter'],
   bar: ['Bartender', 'Barback', 'Mixologist', 'Bar Assistant'],
-  hall: ['Waiter/Waitress', 'Runner', 'Hostess', 'Maitre d\'', 'Sommelier'],
-  reception: ['Receptionist', 'Night Porter', 'Concierge'],
+  service: ['Waiter/Waitress', 'Runner', 'Hostess', 'Maitre', 'Sommelier'],
+  admin: ['Receptionist', 'Night Porter', 'Concierge', 'Office Assistant'],
+  events: ['Event Staff', 'Security', 'Promoter'],
+  other: ['General Help'],
 };
 
 export default function CreateShift() {
@@ -57,7 +60,6 @@ export default function CreateShift() {
     endTime: new Date(new Date().setHours(new Date().getHours() + 9, 0)),
   });
 
-  // Sync with manager's profile department on mount
   useEffect(() => {
     const loadProfile = async () => {
       const { data: { user } } = await supabase.auth.getUser();
@@ -79,23 +81,32 @@ export default function CreateShift() {
 
   const estimatedEarnings = useMemo(() => {
     const rate = parseFloat(form.hourly_rate);
-    if (isNaN(rate) || rate <= 0) return 0;
+    if (isNaN(rate) || rate <= 0) return "0.00";
     const diffInMs = form.endTime.getTime() - form.startTime.getTime();
-    const diffInHours = diffInMs / (1000 * 60 * 60);
-    const finalHours = diffInHours > 0 ? diffInHours : diffInHours + 24;
-    return (rate * finalHours).toFixed(2);
+    let diffInHours = diffInMs / (1000 * 60 * 60);
+    if (diffInHours < 0) diffInHours += 24;
+    return (rate * diffInHours).toFixed(2);
   }, [form.hourly_rate, form.startTime, form.endTime]);
 
   const handleCreate = async () => {
     if (!form.title || !form.department || !form.hourly_rate) {
-      Alert.alert("Missing Info", "Please select a department, title, and hourly rate.");
+      Alert.alert("Missing Info", "Please fill in all required fields.");
       return;
     }
     setLoading(true);
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("User not found");
-      await createShift(user.id, imageUrl, form as any);
+
+      // Payload allineato ai campi attesi dalle query
+      const payload = {
+        ...form,
+        shift_date: form.date,
+        start_time: form.startTime,
+        end_time: form.endTime,
+      };
+
+      await createShift(user.id, imageUrl, payload as any);
       router.push("/(manager)/(tabs)/shift");
     } catch (err: any) {
       Alert.alert("Error", err.message);
@@ -107,32 +118,6 @@ export default function CreateShift() {
   const onPickerChange = (event: any, selectedDate?: Date) => {
     if (Platform.OS === 'android') setPicker({ ...picker, show: false });
     if (selectedDate) setForm({ ...form, [picker.target]: selectedDate });
-  };
-
-  const renderDatePicker = () => {
-    if (!picker.show) return null;
-    return (
-      <Modal transparent animationType="slide" visible={picker.show}>
-        <Pressable style={styles.modalOverlay} onPress={() => setPicker({ ...picker, show: false })}>
-          <View style={[styles.modalContent, { backgroundColor: theme.card }]}>
-            <View style={styles.modalHeader}>
-              <Pressable onPress={() => setPicker({ ...picker, show: false })}>
-                <Text style={{ color: theme.tint, fontWeight: '700', fontSize: 16 }}>Done</Text>
-              </Pressable>
-            </View>
-            <DateTimePicker
-              value={(form as any)[picker.target]}
-              mode={picker.mode}
-              is24Hour={true}
-              display={Platform.OS === 'ios' ? 'spinner' : 'default'}
-              onChange={onPickerChange}
-              textColor={theme.text}
-              style={{ width: '100%', height: 250 }}
-            />
-          </View>
-        </Pressable>
-      </Modal>
-    );
   };
 
   return (
@@ -150,10 +135,10 @@ export default function CreateShift() {
         </View>
 
         <View style={styles.imageSection}>
-           <ShiftUploader initialUrl={imageUrl} onUpload={(url) => setImageUrl(url)} />
+           <ShiftUploader initialUrl={imageUrl} onUpload={setImageUrl} />
         </View>
 
-        {/* DEPARTMENT SELECTOR */}
+        {/* DEPARTMENT */}
         <View style={styles.inputWrapper}>
           <Text style={[styles.label, { color: theme.text }]}>Department *</Text>
           <View style={styles.deptGrid}>
@@ -163,29 +148,20 @@ export default function CreateShift() {
                 onPress={() => setForm({ ...form, department: dept.id, title: "" })}
                 style={[
                   styles.deptChip,
-                  { 
-                    backgroundColor: form.department === dept.id ? theme.tint : theme.card, 
-                    borderColor: theme.border 
-                  }
+                  { backgroundColor: form.department === dept.id ? theme.tint : theme.card, borderColor: theme.border }
                 ]}
               >
-                <Ionicons 
-                  name={dept.icon as any} 
-                  size={18} 
-                  color={form.department === dept.id ? "#FFF" : theme.secondaryText} 
-                />
-                <Text style={[styles.deptText, { color: form.department === dept.id ? "#FFF" : theme.text }]}>
-                  {dept.label}
-                </Text>
+                <Ionicons name={dept.icon as any} size={18} color={form.department === dept.id ? "#FFF" : theme.secondaryText} />
+                <Text style={[styles.deptText, { color: form.department === dept.id ? "#FFF" : theme.text }]}>{dept.label}</Text>
               </Pressable>
             ))}
           </View>
         </View>
 
-        {/* SUGGESTED TITLES */}
+        {/* TITLES */}
         {form.department && (
           <View style={styles.inputWrapper}>
-            <Text style={[styles.label, { color: theme.text }]}>Suggested Roles for {form.department}</Text>
+            <Text style={[styles.label, { color: theme.text }]}>Suggested Roles</Text>
             <View style={styles.titleContainer}>
               {TITLES_BY_DEPT[form.department]?.map((title) => (
                 <Pressable
@@ -193,15 +169,10 @@ export default function CreateShift() {
                   onPress={() => setForm({ ...form, title })}
                   style={[
                     styles.titleChip,
-                    { 
-                      backgroundColor: form.title === title ? theme.tint : theme.card,
-                      borderColor: form.title === title ? theme.tint : theme.border 
-                    }
+                    { backgroundColor: form.title === title ? theme.tint : theme.card, borderColor: theme.border }
                   ]}
                 >
-                  <Text style={[styles.titleChipText, { color: form.title === title ? "#FFF" : theme.text }]}>
-                    {title}
-                  </Text>
+                  <Text style={[styles.titleChipText, { color: form.title === title ? "#FFF" : theme.text }]}>{title}</Text>
                 </Pressable>
               ))}
             </View>
@@ -213,7 +184,7 @@ export default function CreateShift() {
           <TextInput
             style={[styles.input, { backgroundColor: theme.card, color: theme.text, borderColor: theme.border }]}
             placeholder="e.g. Head Waiter"
-            placeholderTextColor={theme.text + "30"}
+            placeholderTextColor={theme.secondaryText}
             value={form.title}
             onChangeText={(text) => setForm({ ...form, title: text })}
           />
@@ -230,10 +201,24 @@ export default function CreateShift() {
               onChangeText={(text) => setForm({ ...form, hourly_rate: text })}
             />
             <View style={[styles.earningsBox, { backgroundColor: theme.tint + "10" }]}>
-              <Text style={[styles.earningsLabel, { color: theme.tint }]}>ESTIMATED TOTAL</Text>
+              <Text style={[styles.earningsLabel, { color: theme.tint }]}>EST. TOTAL</Text>
               <Text style={[styles.earningsValue, { color: theme.tint }]}>€{estimatedEarnings}</Text>
             </View>
           </View>
+        </View>
+
+        {/* DESCRIZIONE (AGGIUNTO) */}
+        <View style={styles.inputWrapper}>
+          <Text style={[styles.label, { color: theme.text }]}>Description</Text>
+          <TextInput
+            style={[styles.input, styles.textArea, { backgroundColor: theme.card, color: theme.text, borderColor: theme.border }]}
+            placeholder="Specify uniform requirements, specific tasks, etc."
+            placeholderTextColor={theme.secondaryText}
+            value={form.description}
+            onChangeText={(text) => setForm({ ...form, description: text })}
+            multiline
+            numberOfLines={4}
+          />
         </View>
 
         <View style={styles.row}>
@@ -259,7 +244,29 @@ export default function CreateShift() {
           {loading ? <ActivityIndicator color={theme.background} /> : <Text style={[styles.submitText, { color: theme.background }]}>Post Shift</Text>}
         </Pressable>
 
-        {renderDatePicker()}
+        {/* PICKER MODAL */}
+        {picker.show && (
+          <Modal transparent animationType="fade" visible={picker.show}>
+            <Pressable style={styles.modalOverlay} onPress={() => setPicker({ ...picker, show: false })}>
+              <View style={[styles.modalContent, { backgroundColor: theme.card }]}>
+                <View style={styles.modalHeader}>
+                  <Pressable onPress={() => setPicker({ ...picker, show: false })}>
+                    <Text style={{ color: theme.tint, fontWeight: '700', fontSize: 16 }}>Done</Text>
+                  </Pressable>
+                </View>
+                <DateTimePicker
+                  value={(form as any)[picker.target]}
+                  mode={picker.mode}
+                  is24Hour={true}
+                  display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                  onChange={onPickerChange}
+                  textColor={theme.text}
+                  style={{ width: '100%', height: 250 }}
+                />
+              </View>
+            </Pressable>
+          </Modal>
+        )}
       </ScrollView>
     </KeyboardAvoidingView>
   );
@@ -273,6 +280,7 @@ const styles = StyleSheet.create({
   inputWrapper: { marginBottom: 25 },
   label: { fontSize: 11, fontWeight: "800", marginBottom: 12, textTransform: 'uppercase', letterSpacing: 1, opacity: 0.6 },
   input: { height: 60, paddingHorizontal: 18, borderRadius: 20, fontSize: 16, borderWidth: 1, fontWeight: '600' },
+  textArea: { height: 120, textAlignVertical: 'top', paddingTop: 15 },
   pickerButton: { justifyContent: 'center' },
   row: { flexDirection: "row", gap: 12, marginBottom: 20 },
   deptGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },

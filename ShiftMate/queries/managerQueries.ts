@@ -245,20 +245,37 @@ export const markAllNotificationsAsRead = async (userId: string) => {
 // --- USER PROFILE ---
 
 export const fetchUserProfile = async (userId: string) => {
-  const { data, error } = await supabase
-    .from("profiles")
-    .select("id, name, surname, job_role, bio, phone, department, avatar_url")
-    .eq("id", userId)
-    .single();
+  try {
+    const { data, error } = await supabase
+      .from("profiles")
+      .select("id, name, surname, job_role, bio, phone, department, avatar_url")
+      .eq("id", userId)
+      .maybeSingle();
 
-  if (error) throw error;
-  return data;
+    if (error) {
+      if (error.code === 'PGRST116') return null;
+      throw error;
+    }
+    return data;
+  } catch (err) {
+    console.error("Error in fetchUserProfile:", err);
+    return null;
+  }
 };
 
 export const updateUserProfile = async (userId: string, updates: any) => {
   const { error } = await supabase
     .from("profiles")
-    .update(updates)
+    .update({
+      name: updates.name,
+      surname: updates.surname,
+      job_role: updates.job_role,
+      bio: updates.bio,
+      phone: updates.phone,
+      department: updates.department,
+      avatar_url: updates.avatar_url,
+      updated_at: new Date().toISOString(),
+    })
     .eq("id", userId);
 
   if (error) throw error;

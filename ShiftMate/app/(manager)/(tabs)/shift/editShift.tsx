@@ -25,15 +25,19 @@ import { deleteShift, getShiftForEdit, updateShift } from "@/queries/managerQuer
 const DEPARTMENTS = [
   { id: 'kitchen', label: 'Kitchen', icon: 'restaurant-outline' },
   { id: 'bar', label: 'Bar', icon: 'wine-outline' },
-  { id: 'hall', label: 'Floor/Hall', icon: 'people-outline' },
-  { id: 'reception', label: 'Front Desk', icon: 'key-outline' },
+  { id: 'service', label: 'Floor/Hall', icon: 'people-outline' },
+  { id: 'reception', label: 'Front Desk', icon: 'key-outline' }, 
+  { id: 'events', label: 'Events', icon: 'star-outline' },         
+  { id: 'other', label: 'Other', icon: 'ellipsis-horizontal-outline' },
 ];
 
 const TITLES_BY_DEPT: Record<string, string[]> = {
   kitchen: ['Chef', 'Sous Chef', 'Commis', 'Dishwasher', 'Pizza Chef', 'Kitchen Porter'],
   bar: ['Bartender', 'Barback', 'Mixologist', 'Bar Assistant'],
-  hall: ['Waiter/Waitress', 'Runner', 'Hostess', 'Maitre d\'', 'Sommelier'],
-  reception: ['Receptionist', 'Night Porter', 'Concierge'],
+  service: ['Waiter/Waitress', 'Runner', 'Hostess', 'Maitre', 'Sommelier'],
+  reception: ['Receptionist', 'Night Porter', 'Concierge', 'Office Assistant'],
+  events: ['Event Staff', 'Security', 'Promoter', 'Host'],
+  other: ['General Help', 'Maintenance'],
 };
 
 export default function EditShift() {
@@ -75,6 +79,8 @@ export default function EditShift() {
           router.replace("/(manager)/(tabs)/shift");
           return;
         }
+
+        // Mapping dei dati dal DB allo stato del form
         setForm({
           title: data.title,
           description: data.description ?? "",
@@ -82,6 +88,7 @@ export default function EditShift() {
           industry: "hospitality",
           hourly_rate: data.hourly_rate?.toString() ?? "",
           date: new Date(data.shift_date),
+          // Creiamo oggetti Date validi per i picker partendo dalle stringhe TIME
           startTime: new Date(`1970-01-01T${data.start_time}`),
           endTime: new Date(`1970-01-01T${data.end_time}`),
         });
@@ -97,35 +104,44 @@ export default function EditShift() {
 
   const estimatedEarnings = useMemo(() => {
     const rate = parseFloat(form.hourly_rate);
-    if (isNaN(rate) || rate <= 0) return 0;
+    if (isNaN(rate) || rate <= 0) return "0.00";
     const diffInMs = form.endTime.getTime() - form.startTime.getTime();
-    const diffInHours = diffInMs / (1000 * 60 * 60);
-    const finalHours = diffInHours > 0 ? diffInHours : diffInHours + 24;
-    return (rate * finalHours).toFixed(2);
+    let diffInHours = diffInMs / (1000 * 60 * 60);
+    if (diffInHours < 0) diffInHours += 24;
+    return (rate * diffInHours).toFixed(2);
   }, [form.hourly_rate, form.startTime, form.endTime]);
 
   const handleUpdate = async () => {
     if (!form.title || !form.department || !form.hourly_rate) {
-      Alert.alert("Missing Info", "Department, Title and Hourly Rate are required.");
+      Alert.alert("Dati mancanti", "Dipartimento, Titolo e Tariffa Oraria sono obbligatori.");
       return;
     }
 
     setSaving(true);
     try {
-      await updateShift(id!, { ...form, image_url: imageUrl } as any);
-      Alert.alert("Success", "Shift updated!", [{ text: "OK", onPress: () => router.back() }]);
+      // Invia il form mappando correttamente i nomi per il DB se necessario nella query
+      await updateShift(id!, { 
+        ...form, 
+        image_url: imageUrl,
+        // Assicuriamoci di passare i valori corretti per le query
+        shift_date: form.date,
+        start_time: form.startTime,
+        end_time: form.endTime 
+      } as any);
+      
+      Alert.alert("Successo", "Turno aggiornato!", [{ text: "OK", onPress: () => router.back() }]);
     } catch (err: any) {
-      Alert.alert("Error", err.message || "Update failed.");
+      Alert.alert("Errore", err.message || "Aggiornamento fallito.");
     } finally {
       setSaving(false);
     }
   };
 
   const handleDelete = () => {
-    Alert.alert("Delete Shift", "Are you sure? This cannot be undone.", [
-      { text: "Cancel", style: "cancel" },
+    Alert.alert("Elimina Turno", "Sei sicuro? L'azione è irreversibile.", [
+      { text: "Annulla", style: "cancel" },
       { 
-        text: "Delete", 
+        text: "Elimina", 
         style: "destructive", 
         onPress: async () => {
           setDeleting(true);
@@ -133,7 +149,7 @@ export default function EditShift() {
             await deleteShift(id!);
             router.replace("/(manager)/(tabs)/shift");
           } catch (err) {
-            Alert.alert("Error", "Could not delete shift.");
+            Alert.alert("Errore", "Impossibile eliminare il turno.");
           } finally { setDeleting(false); }
         }
       }
@@ -148,12 +164,12 @@ export default function EditShift() {
   const renderDatePicker = () => {
     if (!picker.show) return null;
     return (
-      <Modal transparent animationType="slide" visible={picker.show}>
+      <Modal transparent animationType="fade" visible={picker.show}>
         <Pressable style={styles.modalOverlay} onPress={() => setPicker({ ...picker, show: false })}>
           <View style={[styles.modalContent, { backgroundColor: theme.card }]}>
             <View style={styles.modalHeader}>
               <Pressable onPress={() => setPicker({ ...picker, show: false })}>
-                <Text style={{ color: theme.tint, fontWeight: '700' }}>Done</Text>
+                <Text style={{ color: theme.tint, fontWeight: '700', fontSize: 16 }}>Fine</Text>
               </Pressable>
             </View>
             <DateTimePicker
@@ -179,20 +195,20 @@ export default function EditShift() {
 
   return (
     <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={{ flex: 1, backgroundColor: theme.background }}>
-      <ScrollView contentContainerStyle={[styles.scrollContent, { paddingTop: 20, paddingBottom: 120 }]} showsVerticalScrollIndicator={false}>
+      <ScrollView contentContainerStyle={[styles.scrollContent, { paddingTop: insets.top + 10, paddingBottom: 120 }]} showsVerticalScrollIndicator={false}>
         
         <View style={styles.header}>
-          <Text style={[styles.title, { color: theme.text }]}>Edit Shift</Text>
-          <Text style={[styles.subtitle, { color: theme.secondaryText }]}>Update your hospitality shift details.</Text>
+          <Text style={[styles.title, { color: theme.text }]}>Modifica Turno</Text>
+          <Text style={[styles.subtitle, { color: theme.secondaryText }]}>Aggiorna i dettagli del turno hospitality.</Text>
         </View>
 
         <View style={styles.imageSection}>
            <ShiftUploader initialUrl={imageUrl} onUpload={(url) => setImageUrl(url)} />
         </View>
 
-        {/* DEPARTMENT SELECTOR */}
+        {/* DEPARTMENT */}
         <View style={styles.inputWrapper}>
-          <Text style={[styles.label, { color: theme.text }]}>Department *</Text>
+          <Text style={[styles.label, { color: theme.text }]}>Dipartimento *</Text>
           <View style={styles.deptGrid}>
             {DEPARTMENTS.map((dept) => (
               <Pressable
@@ -210,10 +226,10 @@ export default function EditShift() {
           </View>
         </View>
 
-        {/* SUGGESTED TITLES */}
+        {/* TITLES */}
         {form.department && (
           <View style={styles.inputWrapper}>
-            <Text style={[styles.label, { color: theme.text }]}>Suggested Roles</Text>
+            <Text style={[styles.label, { color: theme.text }]}>Ruoli Suggeriti</Text>
             <View style={styles.titleContainer}>
               {TITLES_BY_DEPT[form.department]?.map((title) => (
                 <Pressable
@@ -221,7 +237,7 @@ export default function EditShift() {
                   onPress={() => setForm({ ...form, title })}
                   style={[
                     styles.titleChip,
-                    { backgroundColor: form.title === title ? theme.tint : theme.card, borderColor: form.title === title ? theme.tint : theme.border }
+                    { backgroundColor: form.title === title ? theme.tint : theme.card, borderColor: theme.border }
                   ]}
                 >
                   <Text style={[styles.titleChipText, { color: form.title === title ? "#FFF" : theme.text }]}>{title}</Text>
@@ -232,16 +248,18 @@ export default function EditShift() {
         )}
 
         <View style={styles.inputWrapper}>
-          <Text style={[styles.label, { color: theme.text }]}>Position Title *</Text>
+          <Text style={[styles.label, { color: theme.text }]}>Titolo Posizione *</Text>
           <TextInput
             style={[styles.input, { backgroundColor: theme.card, color: theme.text, borderColor: theme.border }]}
             value={form.title}
             onChangeText={(text) => setForm({ ...form, title: text })}
+            placeholder="es. Cameriere ai piani"
+            placeholderTextColor={theme.secondaryText}
           />
         </View>
 
         <View style={styles.inputWrapper}>
-          <Text style={[styles.label, { color: theme.text }]}>Hourly Rate (€/hr) *</Text>
+          <Text style={[styles.label, { color: theme.text }]}>Tariffa Oraria (€/hr) *</Text>
           <View style={styles.rateRow}>
             <TextInput
               style={[styles.input, { flex: 1, backgroundColor: theme.card, color: theme.text, borderColor: theme.border }]}
@@ -250,31 +268,33 @@ export default function EditShift() {
               onChangeText={(text) => setForm({ ...form, hourly_rate: text })}
             />
             <View style={[styles.earningsBox, { backgroundColor: theme.tint + "10" }]}>
-              <Text style={[styles.earningsLabel, { color: theme.tint }]}>ESTIMATED TOTAL</Text>
+              <Text style={[styles.earningsLabel, { color: theme.tint }]}>TOTALE STIMATO</Text>
               <Text style={[styles.earningsValue, { color: theme.tint }]}>€{estimatedEarnings}</Text>
             </View>
           </View>
         </View>
 
         <View style={styles.inputWrapper}>
-          <Text style={[styles.label, { color: theme.text }]}>Description</Text>
+          <Text style={[styles.label, { color: theme.text }]}>Descrizione</Text>
           <TextInput
             style={[styles.input, styles.textArea, { backgroundColor: theme.card, color: theme.text, borderColor: theme.border }]}
             value={form.description}
             onChangeText={(text) => setForm({ ...form, description: text })}
             multiline
+            placeholder="Dettagli extra, divisa, ecc."
+            placeholderTextColor={theme.secondaryText}
           />
         </View>
 
         <View style={styles.row}>
           <View style={{ flex: 1.5 }}>
-            <Text style={[styles.label, { color: theme.text }]}>Date</Text>
+            <Text style={[styles.label, { color: theme.text }]}>Data</Text>
             <Pressable onPress={() => setPicker({ show: true, mode: 'date', target: 'date' })} style={[styles.input, styles.pickerButton, { backgroundColor: theme.card, borderColor: theme.border }]}>
               <Text style={{ color: theme.text }}>{form.date.toLocaleDateString('en-GB')}</Text>
             </Pressable>
           </View>
           <View style={{ flex: 1 }}>
-            <Text style={[styles.label, { color: theme.text }]}>Start</Text>
+            <Text style={[styles.label, { color: theme.text }]}>Inizio</Text>
             <Pressable onPress={() => setPicker({ show: true, mode: 'time', target: 'startTime' })} style={[styles.input, styles.pickerButton, { backgroundColor: theme.card, borderColor: theme.border }]}>
               <Text style={{ color: theme.text, fontWeight: '700' }}>{form.startTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</Text>
             </Pressable>
@@ -286,12 +306,12 @@ export default function EditShift() {
           onPress={handleUpdate}
           disabled={saving}
         >
-          {saving ? <ActivityIndicator color={theme.background} /> : <Text style={[styles.submitText, { color: theme.background }]}>Update Shift</Text>}
+          {saving ? <ActivityIndicator color={theme.background} /> : <Text style={[styles.submitText, { color: theme.background }]}>Aggiorna Turno</Text>}
         </Pressable>
 
         <Pressable onPress={handleDelete} style={styles.deleteButton} disabled={deleting}>
           {deleting ? <ActivityIndicator size="small" color="#FF3B30" /> : (
-            <><Ionicons name="trash-outline" size={18} color="#FF3B30" /><Text style={styles.deleteButtonText}>Delete Shift</Text></>
+            <><Ionicons name="trash-outline" size={18} color="#FF3B30" /><Text style={styles.deleteButtonText}>Elimina Turno</Text></>
           )}
         </Pressable>
 
@@ -311,7 +331,7 @@ const styles = StyleSheet.create({
   label: { fontSize: 11, fontWeight: "800", marginBottom: 12, textTransform: 'uppercase', opacity: 0.6 },
   input: { height: 60, paddingHorizontal: 18, borderRadius: 20, fontSize: 16, borderWidth: 1, fontWeight: '600' },
   pickerButton: { justifyContent: 'center' },
-  textArea: { height: 100, textAlignVertical: "top", paddingTop: 16 },
+  textArea: { height: 120, textAlignVertical: "top", paddingTop: 16 },
   row: { flexDirection: "row", gap: 12, marginBottom: 20 },
   deptGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
   deptChip: { flex: 1, minWidth: '45%', flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: 14, borderRadius: 18, borderWidth: 1, gap: 8 },
