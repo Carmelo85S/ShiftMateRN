@@ -21,24 +21,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import ShiftUploader from "@/components/imagePicker/imagePickerShift";
 import { deleteShift, getShiftForEdit, updateShift } from "@/queries/managerQueries";
-
-const DEPARTMENTS = [
-  { id: 'kitchen', label: 'Kitchen', icon: 'restaurant-outline' },
-  { id: 'bar', label: 'Bar', icon: 'wine-outline' },
-  { id: 'service', label: 'Floor/Hall', icon: 'people-outline' },
-  { id: 'reception', label: 'Front Desk', icon: 'key-outline' }, 
-  { id: 'events', label: 'Events', icon: 'star-outline' },         
-  { id: 'other', label: 'Other', icon: 'ellipsis-horizontal-outline' },
-];
-
-const TITLES_BY_DEPT: Record<string, string[]> = {
-  kitchen: ['Chef', 'Sous Chef', 'Commis', 'Dishwasher', 'Pizza Chef', 'Kitchen Porter'],
-  bar: ['Bartender', 'Barback', 'Mixologist', 'Bar Assistant'],
-  service: ['Waiter/Waitress', 'Runner', 'Hostess', 'Maitre', 'Sommelier'],
-  reception: ['Receptionist', 'Night Porter', 'Concierge', 'Office Assistant'],
-  events: ['Event Staff', 'Security', 'Promoter', 'Host'],
-  other: ['General Help', 'Maintenance'],
-};
+import { DEPARTMENTS, TITLES_BY_DEPT } from "@/constants/departments-titles";
 
 export default function EditShift() {
   const router = useRouter();
@@ -106,7 +89,7 @@ export default function EditShift() {
     if (isNaN(rate) || rate <= 0) return "0.00";
     let diffInMs = form.endTime.getTime() - form.startTime.getTime();
     let diffInHours = diffInMs / (1000 * 60 * 60);
-    if (diffInHours < 0) diffInHours += 24; // Handle shifts crossing midnight
+    if (diffInHours < 0) diffInHours += 24;
     return (rate * diffInHours).toFixed(2);
   }, [form.hourly_rate, form.startTime, form.endTime]);
 

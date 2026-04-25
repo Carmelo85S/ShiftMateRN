@@ -21,26 +21,11 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import ShiftUploader from "@/components/imagePicker/imagePickerShift";
 import { createShift, fetchUserProfile } from "@/queries/managerQueries";
-
-const DEPARTMENTS = [
-  { id: 'kitchen', label: 'Kitchen', icon: 'restaurant-outline' },
-  { id: 'bar', label: 'Bar', icon: 'wine-outline' },
-  { id: 'service', label: 'Floor/Hall', icon: 'people-outline' },
-  { id: 'admin', label: 'Reception/Admin', icon: 'key-outline' }, 
-  { id: 'events', label: 'Events', icon: 'star-outline' },         
-  { id: 'other', label: 'Other', icon: 'ellipsis-horizontal-outline' },
-];
-
-const TITLES_BY_DEPT: Record<string, string[]> = {
-  kitchen: ['Chef', 'Sous Chef', 'Commis', 'Dishwasher', 'Pizza Chef', 'Kitchen Porter'],
-  bar: ['Bartender', 'Barback', 'Mixologist', 'Bar Assistant'],
-  service: ['Waiter/Waitress', 'Runner', 'Hostess', 'Maitre', 'Sommelier'],
-  admin: ['Receptionist', 'Night Porter', 'Concierge', 'Office Assistant'],
-  events: ['Event Staff', 'Security', 'Promoter'],
-  other: ['General Help'],
-};
+import { DEPARTMENTS, TITLES_BY_DEPT } from "@/constants/departments-titles";
+import { useShiftForm } from "@/hooks/useShiftForm";
 
 export default function CreateShift() {
+  const {form, setForm, picker, setPicker, estimatedEarnings, onPickerChange, openPicker} = useShiftForm()
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const colorScheme = useColorScheme();
@@ -48,17 +33,6 @@ export default function CreateShift() {
 
   const [loading, setLoading] = useState(false);
   const [imageUrl, setImageUrl] = useState<string | null>(null);
-  
-  const [form, setForm] = useState({
-    title: "",
-    description: "",
-    department: "", 
-    industry: "hospitality", 
-    hourly_rate: "",
-    date: new Date(),
-    startTime: new Date(new Date().setHours(new Date().getHours() + 1, 0)),
-    endTime: new Date(new Date().setHours(new Date().getHours() + 9, 0)),
-  });
 
   useEffect(() => {
     const loadProfile = async () => {
@@ -73,52 +47,32 @@ export default function CreateShift() {
     loadProfile();
   }, []);
 
-  const [picker, setPicker] = useState({
-    show: false,
-    mode: 'date' as 'date' | 'time',
-    target: '' as 'date' | 'startTime' | 'endTime'
-  });
-
-  const estimatedEarnings = useMemo(() => {
-    const rate = parseFloat(form.hourly_rate);
-    if (isNaN(rate) || rate <= 0) return "0.00";
-    const diffInMs = form.endTime.getTime() - form.startTime.getTime();
-    let diffInHours = diffInMs / (1000 * 60 * 60);
-    if (diffInHours < 0) diffInHours += 24;
-    return (rate * diffInHours).toFixed(2);
-  }, [form.hourly_rate, form.startTime, form.endTime]);
-
   const handleCreate = async () => {
-    if (!form.title || !form.department || !form.hourly_rate) {
-      Alert.alert("Missing Info", "Please fill in all required fields.");
-      return;
-    }
-    setLoading(true);
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error("User not found");
+  if (!form.title || !form.department || !form.hourly_rate) {
+    Alert.alert("Missing Info", "Please fill in all required fields.");
+    return;
+  }
+  setLoading(true);
+  try {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error("User not found");
 
-      // Payload allineato ai campi attesi dalle query
-      const payload = {
-        ...form,
-        shift_date: form.date,
-        start_time: form.startTime,
-        end_time: form.endTime,
-      };
+    const payload = {
+      ...form,
+      shift_date: form.date.toISOString().split('T')[0], // YYYY-MM-DD
+      start_time: form.startTime.toLocaleTimeString('it-IT', { hour12: false }), // HH:mm:ss
+      end_time: form.endTime.toLocaleTimeString('it-IT', { hour12: false }),
+    };
 
-      await createShift(user.id, imageUrl, payload as any);
-      router.push("/(manager)/(tabs)/shift");
-    } catch (err: any) {
-      Alert.alert("Error", err.message);
-    } finally {
-      setLoading(false);
-    }
+    await createShift(user.id, imageUrl, payload as any);
+    router.push("/(manager)/(tabs)/shift");
+  } catch (err: any) {
+    Alert.alert("Error", err.message);
+  } finally {
+    setLoading(false);
+  }
   };
 
-  const onPickerChange = (event: any, selectedDate?: Date) => {
-    if (Platform.OS === 'android') setPicker({ ...picker, show: false });
-    if (selectedDate) setForm({ ...form, [picker.target]: selectedDate });
-  };
 
   return (
     <KeyboardAvoidingView 
@@ -224,14 +178,28 @@ export default function CreateShift() {
         <View style={styles.row}>
           <View style={{ flex: 1.5 }}>
             <Text style={[styles.label, { color: theme.text }]}>Date</Text>
-            <Pressable onPress={() => setPicker({ show: true, mode: 'date', target: 'date' })} style={[styles.input, styles.pickerButton, { backgroundColor: theme.card, borderColor: theme.border }]}>
+            <Pressable 
+              onPress={() => openPicker('date', 'date')}
+              style={[styles.input, styles.pickerButton, { backgroundColor: theme.card, borderColor: theme.border }]}>
               <Text style={{ color: theme.text }}>{form.date.toLocaleDateString('en-GB')}</Text>
             </Pressable>
           </View>
           <View style={{ flex: 1 }}>
             <Text style={[styles.label, { color: theme.text }]}>Start</Text>
-            <Pressable onPress={() => setPicker({ show: true, mode: 'time', target: 'startTime' })} style={[styles.input, styles.pickerButton, { backgroundColor: theme.card, borderColor: theme.border }]}>
+            <Pressable 
+              onPress={() => openPicker('time', 'startTime')}
+              style={[styles.input, styles.pickerButton, { backgroundColor: theme.card, borderColor: theme.border }]}>
               <Text style={{ color: theme.text, fontWeight: '700' }}>{form.startTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</Text>
+            </Pressable>
+          </View>
+          <View style={{ flex: 1 }}>
+            <Text style={[styles.label, { color: theme.text }]}>End</Text>
+            <Pressable 
+              onPress={() => openPicker('time', 'endTime')}
+              style={[styles.input, styles.pickerButton, { backgroundColor: theme.card, borderColor: theme.border }]}>
+              <Text style={{ color: theme.text, fontWeight: '700' }}>
+                {form.endTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+              </Text>
             </Pressable>
           </View>
         </View>
