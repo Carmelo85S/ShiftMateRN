@@ -23,7 +23,6 @@ export const useEditShiftActions = (
   const [deleting, setDeleting] = useState(false);
 
   const handleUpdate = async () => {
-    // Validazione robusta
     if (!id) return;
     if (!form.title || !form.department || !form.hourly_rate) {
       Alert.alert("Missing Info", "Department, Title, and Hourly Rate are required.");

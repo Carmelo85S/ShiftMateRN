@@ -20,10 +20,10 @@ import { DepartmentSelector } from "@/components/shared/shift/DepartmentSelector
 import { HourlyRate } from "@/components/shared/shift/HourlyRate";
 import { Description } from "@/components/shared/shift/Description";
 import { ShiftScheduling } from "@/components/shared/shift/ShiftScheduling";
-import { useShiftForm } from "@/hooks/useShiftForm";
+import { useShiftForm } from "@/hooks/manager/useShiftForm";
 import { ShiftDatePickerModal } from "@/components/shared/shift/ShiftDatePickerModal";
-import { useFetchShift } from "@/hooks/useFetchShift";
-import { useEditShiftActions } from "@/hooks/useEditShiftAction";
+import { useFetchShift } from "@/hooks/manager/useFetchShift";
+import { useEditShiftActions } from "@/hooks/manager/useEditShiftAction";
 
 export default function EditShift() {
   const { id } = useLocalSearchParams<{ id: string }>();
