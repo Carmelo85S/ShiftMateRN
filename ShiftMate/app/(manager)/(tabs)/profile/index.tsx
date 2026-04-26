@@ -9,17 +9,16 @@ import {
 import { useRouter, useFocusEffect } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-// Theme
 import { Colors } from "@/constants/theme";
 
-// Custom Hooks
 import { useHandleProfile } from "@/hooks/manager/useHandleProfile";
 
-// Atomic Components (Shared)
+// Components (Shared)
 import { ProfileHeader } from "@/components/shared/profile/ProfileHeader";
 import { ProfileInfoCard } from "@/components/shared/profile/ProfileInfoCard";
 import { BiographySection } from "@/components/shared/profile/BiographySection";
 import { MenuRowProfile } from "@/components/manager/MenuRowProfile";
+import { ScreenWrapper } from "@/components/shared/wrapper/layout-wrapper";
 
 export default function ProfileManager() {
   const theme = Colors[useColorScheme() ?? "light"];
@@ -44,6 +43,7 @@ export default function ProfileManager() {
   );
 
   return (
+    <ScreenWrapper>
     <View style={{ flex: 1, backgroundColor: theme.background }}>
       <ScrollView
         contentContainerStyle={[
@@ -99,6 +99,7 @@ export default function ProfileManager() {
         </View>
       </ScrollView>
     </View>
+    </ScreenWrapper>
   );
 }
 

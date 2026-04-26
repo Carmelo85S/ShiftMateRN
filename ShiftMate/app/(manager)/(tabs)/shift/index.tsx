@@ -16,6 +16,7 @@ import { ShiftCard } from "@/components/shiftCard/ShiftCard";
 import { Ionicons } from "@expo/vector-icons";
 import { fetchManagerShifts } from "@/queries/managerQueries";
 import { supabase } from "@/lib/supabase";
+import { ScreenWrapper } from "@/components/shared/wrapper/layout-wrapper";
 
 interface Shift {
   id: string;
@@ -73,6 +74,7 @@ export default function ShiftsManager() {
   }
 
   return (
+    <ScreenWrapper scrollable={false}>
     <View style={{ flex: 1, backgroundColor: theme.background }}>
       <FlatList
         data={shifts}
@@ -112,23 +114,8 @@ export default function ShiftsManager() {
           </View>
         )}
       />
-
-      <View style={[styles.fabContainer, { bottom: insets.bottom + 20 }]}>
-        <Pressable 
-          onPress={() => router.push("/(manager)/(tabs)/createShift")}
-          style={({ pressed }) => [
-            styles.fab, 
-            { 
-              backgroundColor: theme.text,
-              opacity: pressed ? 0.9 : 1,
-              transform: [{ scale: pressed ? 0.92 : 1 }]
-            }
-          ]}
-        >
-          <Ionicons name="add" size={32} color={theme.background} />
-        </Pressable>
-      </View>
     </View>
+    </ScreenWrapper>
   );
 }
 

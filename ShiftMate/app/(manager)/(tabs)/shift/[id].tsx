@@ -225,44 +225,12 @@ const styles = StyleSheet.create({
   sectionTitle: { fontSize: 20, fontWeight: '800', letterSpacing: -0.5, marginBottom: 8 },
   appsCount: { fontSize: 14, fontWeight: '600' },
   description: { fontSize: 15, lineHeight: 24, opacity: 0.7 },
-  enhancedFab: { 
-    position: 'absolute', right: 24, bottom: 40, width: 60, height: 60, borderRadius: 20, 
-    justifyContent: "center", alignItems: "center",
-    shadowColor: "#000", shadowOffset: { width: 0, height: 10 }, shadowOpacity: 0.15, shadowRadius: 15, elevation: 8 
-  },
-  // Nuovi stili per la gestione scalabile
-  manageAppsCard: {
-    padding: 24,
-    borderRadius: 28,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    borderWidth: 1,
-    borderColor: 'rgba(0,0,0,0.05)',
-    marginTop: 10
-  },
+  enhancedFab: {position: 'absolute', right: 24, bottom: 40, width: 60, height: 60, borderRadius: 20,justifyContent: "center", alignItems: "center",shadowColor: "#000", shadowOffset: { width: 0, height: 10 }, shadowOpacity: 0.15, shadowRadius: 15, elevation: 8 },
+  manageAppsCard: {padding: 24,borderRadius: 28,flexDirection: 'row',alignItems: 'center',justifyContent: 'space-between',borderWidth: 1,borderColor: 'rgba(0,0,0,0.05)',marginTop: 10},
   manageAppsInfo: { flex: 1 },
   avatarOverlap: { flexDirection: 'row', marginTop: 16, alignItems: 'center', marginLeft: 10 },
-  overlapAvatar: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
-    borderWidth: 3,
-  },
-  moreBadge: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 3,
-  },
+  overlapAvatar: {width: 38,height: 38,borderRadius: 19,borderWidth: 3,},
+  moreBadge: {width: 38,height: 38,borderRadius: 19,justifyContent: 'center',alignItems: 'center',borderWidth: 3,},
   moreText: { fontSize: 12, fontWeight: '800' },
-  actionCircle: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    justifyContent: 'center',
-    alignItems: 'center',
-  }
+  actionCircle: {width: 48,height: 48,borderRadius: 24,justifyContent: 'center',alignItems: 'center',}
 });

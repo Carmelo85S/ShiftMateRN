@@ -17,6 +17,7 @@ import { DashboardHeader } from "@/components/manager/DashboardHeader";
 import { FinancialOverview } from "@/components/manager/FInancialOverview";
 import { HistoryBar } from "@/components/manager/HistoryBar";
 import { UpcomingShifts } from "@/components/manager/UpcomingShifts";
+import { ScreenWrapper } from "@/components/shared/wrapper/layout-wrapper";
 
 export default function Dashboard() {
   const colorScheme = useColorScheme();
@@ -49,48 +50,50 @@ export default function Dashboard() {
   }
 
   return (
-    <View style={{ flex: 1, backgroundColor: theme.background }}>
-      <ScrollView
-        style={styles.container}
-        contentContainerStyle={{ 
-          paddingHorizontal: 24, 
-          paddingTop: insets.top + 8,
-          paddingBottom: 40 
-        }}
-        showsVerticalScrollIndicator={false}
-        refreshControl={
-          <RefreshControl 
-            refreshing={refreshing} 
-            onRefresh={onRefresh} 
-            tintColor={theme.tint} 
+    <ScreenWrapper>
+      <View style={{ flex: 1, backgroundColor: theme.background }}>
+        <ScrollView
+          style={styles.container}
+          contentContainerStyle={{ 
+            paddingHorizontal: 24, 
+            paddingTop: insets.top + 8,
+            paddingBottom: 40 
+          }}
+          showsVerticalScrollIndicator={false}
+          refreshControl={
+            <RefreshControl 
+              refreshing={refreshing} 
+              onRefresh={onRefresh} 
+              tintColor={theme.tint} 
+            />
+          }
+        >
+          {/* HEADER */}
+          <DashboardHeader 
+            userName={userName} 
+            theme={theme} 
+            onProfilePress={() => router.push("/profile")} 
           />
-        }
-      >
-        {/* HEADER */}
-        <DashboardHeader 
-          userName={userName} 
-          theme={theme} 
-          onProfilePress={() => router.push("/profile")} 
-        />
 
-        {/* FINANCIAL OVERVIEW */}
-        <FinancialOverview stats={stats} theme={theme} />
-        
-        {/* HISTORY BAR */}
-        <HistoryBar 
-          theme={theme} 
-          onPress={() => router.push("/history")} 
-        />
+          {/* FINANCIAL OVERVIEW */}
+          <FinancialOverview stats={stats} theme={theme} />
+          
+          {/* HISTORY BAR */}
+          <HistoryBar 
+            theme={theme} 
+            onPress={() => router.push("/history")} 
+          />
 
-        {/* SECTION SHIFTS */}
-        <UpcomingShifts 
-          shifts={upcomingShifts} 
-          theme={theme} 
-          onViewAll={() => router.push("/(manager)/(tabs)/shift")}
-          onShiftPress={(id: string) => router.push(`/(manager)/(tabs)/shift/${id}`)}
-        />
-      </ScrollView>
-    </View>
+          {/* SECTION SHIFTS */}
+          <UpcomingShifts 
+            shifts={upcomingShifts} 
+            theme={theme} 
+            onViewAll={() => router.push("/(manager)/(tabs)/shift")}
+            onShiftPress={(id: string) => router.push(`/(manager)/(tabs)/shift/${id}`)}
+          />
+        </ScrollView>
+      </View>
+    </ScreenWrapper>
   );
 }
 
