@@ -1,16 +1,12 @@
+import React, { useCallback } from "react";
 import {
-  ScrollView,
   StyleSheet,
-  Text,
   View,
   ActivityIndicator,
   useColorScheme,
-  Pressable,
-  RefreshControl,
 } from "react-native";
 import { Colors } from "@/constants/theme";
 import { useFocusEffect, useRouter } from "expo-router";
-import { useCallback } from "react";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useDashboardData } from "@/hooks/manager/useFetchDataDashboard";
 import { DashboardHeader } from "@/components/manager/DashboardHeader";
@@ -20,8 +16,7 @@ import { UpcomingShifts } from "@/components/manager/UpcomingShifts";
 import { ScreenWrapper } from "@/components/shared/wrapper/layout-wrapper";
 
 export default function Dashboard() {
-  const colorScheme = useColorScheme();
-  const theme = Colors[colorScheme ?? "light"];
+  const theme = Colors[useColorScheme() ?? "light"];
   const insets = useSafeAreaInsets();
   const router = useRouter();
 
@@ -35,13 +30,14 @@ export default function Dashboard() {
     onRefresh 
   } = useDashboardData();
 
+  // Refresh automatico quando la pagina torna in focus
   useFocusEffect(
     useCallback(() => {
       fetchData();
     }, [fetchData])
   );
 
-  if (loading) {
+  if (loading && !refreshing) {
     return (
       <View style={[styles.center, { backgroundColor: theme.background }]}>
         <ActivityIndicator size="small" color={theme.text} />
@@ -50,54 +46,54 @@ export default function Dashboard() {
   }
 
   return (
-    <ScreenWrapper>
-      <View style={{ flex: 1, backgroundColor: theme.background }}>
-        <ScrollView
-          style={styles.container}
-          contentContainerStyle={{ 
-            paddingHorizontal: 24, 
-            paddingTop: insets.top + 8,
-            paddingBottom: 40 
-          }}
-          showsVerticalScrollIndicator={false}
-          refreshControl={
-            <RefreshControl 
-              refreshing={refreshing} 
-              onRefresh={onRefresh} 
-              tintColor={theme.tint} 
-            />
-          }
-        >
-          {/* HEADER */}
-          <DashboardHeader 
-            userName={userName} 
-            theme={theme} 
-            onProfilePress={() => router.push("/profile")} 
-          />
+    <ScreenWrapper 
+      scrollable={true}
+      onRefresh={onRefresh}
+      refreshing={refreshing}
+      style={styles.wrapperCustom}
+    >
+      <View style={[styles.mainContent, { paddingTop: insets.top + 8 }]}>
+        
+        {/* HEADER: Saluto e Profilo */}
+        <DashboardHeader 
+          userName={userName} 
+          theme={theme} 
+          onProfilePress={() => router.push("/profile")} 
+        />
 
-          {/* FINANCIAL OVERVIEW */}
-          <FinancialOverview stats={stats} theme={theme} />
-          
-          {/* HISTORY BAR */}
-          <HistoryBar 
-            theme={theme} 
-            onPress={() => router.push("/history")} 
-          />
+        {/* FINANCIAL: KPI e Statistiche */}
+        <FinancialOverview stats={stats} theme={theme} />
+        
+        {/* HISTORY: Accesso rapido allo storico */}
+        <HistoryBar 
+          theme={theme} 
+          onPress={() => router.push("/history")} 
+        />
 
-          {/* SECTION SHIFTS */}
-          <UpcomingShifts 
-            shifts={upcomingShifts} 
-            theme={theme} 
-            onViewAll={() => router.push("/(manager)/(tabs)/shift")}
-            onShiftPress={(id: string) => router.push(`/(manager)/(tabs)/shift/${id}`)}
-          />
-        </ScrollView>
+        {/* SHIFTS: Prossimi turni in arrivo */}
+        <UpcomingShifts 
+          shifts={upcomingShifts} 
+          theme={theme} 
+          onViewAll={() => router.push("/(manager)/(tabs)/shift")}
+          onShiftPress={(id: string) => router.push(`/(manager)/(tabs)/shift/${id}`)}
+        />
+        
       </View>
     </ScreenWrapper>
   );
 }
 
 const styles = StyleSheet.create({
-  center: { flex: 1, justifyContent: "center", alignItems: "center" },
-  container: { flex: 1 },
+  center: { 
+    flex: 1, 
+    justifyContent: "center", 
+    alignItems: "center" 
+  },
+  wrapperCustom: {
+    paddingHorizontal: 24,
+  },
+  mainContent: {
+    flex: 1,
+    paddingBottom: 20, // Spazio extra prima del padding della TabBar gestito dal wrapper
+  },
 });

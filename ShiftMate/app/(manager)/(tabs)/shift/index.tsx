@@ -74,7 +74,13 @@ export default function ShiftsManager() {
   }
 
   return (
-    <ScreenWrapper scrollable={false}>
+    
+    <ScreenWrapper 
+      scrollable={false}
+      onRefresh={onRefresh}
+      refreshing={refreshing}
+      style={styles.wrapperCustom}
+    >
     <View style={{ flex: 1, backgroundColor: theme.background }}>
       <FlatList
         data={shifts}
@@ -120,6 +126,9 @@ export default function ShiftsManager() {
 }
 
 const styles = StyleSheet.create({
+  wrapperCustom: {
+    paddingHorizontal: 24,
+  },
   center: { flex: 1, justifyContent: "center", alignItems: "center" },
   listContent: { paddingHorizontal: 24 },
   headerArea: { marginBottom: 30, marginTop: 15 },

@@ -1,14 +1,13 @@
+import React from "react";
 import {
   StyleSheet,
   View,
   Text,
-  ScrollView,
   Pressable,
   ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
   useColorScheme,
-  Modal,
 } from "react-native";
 import { Colors } from "@/constants/theme";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -22,32 +21,37 @@ import { HourlyRate } from "@/components/shared/shift/HourlyRate";
 import { Description } from "@/components/shared/shift/Description";
 import { ShiftScheduling } from "@/components/shared/shift/ShiftScheduling";
 import { ShiftDatePickerModal } from "@/components/shared/shift/ShiftDatePickerModal";
+import { ScreenWrapper } from "@/components/shared/wrapper/layout-wrapper";
 
 export default function CreateShift() {
-  const {form, setForm, picker, setPicker, estimatedEarnings, onPickerChange, openPicker} = useShiftForm()
+  const { form, setForm, picker, setPicker, estimatedEarnings, onPickerChange, openPicker } = useShiftForm();
   const { handleCreate, loading, imageUrl, setImageUrl } = useHandleCreateShift();
+  
   const insets = useSafeAreaInsets();
-  const colorScheme = useColorScheme();
-  const theme = Colors[colorScheme ?? "light"];
+  const theme = Colors[useColorScheme() ?? "light"];
 
   useLoadProfile(setForm);
 
   return (
-    <KeyboardAvoidingView 
-      behavior={Platform.OS === "ios" ? "padding" : "height"} 
+    <KeyboardAvoidingView
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
       style={{ flex: 1, backgroundColor: theme.background }}
+      // offset per non coprire l'input attivo con la tastiera
+      keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 20} 
     >
-      <ScrollView 
-        contentContainerStyle={[styles.scrollContent, { paddingTop: insets.top + 20, paddingBottom: 120 }]}
-        showsVerticalScrollIndicator={false}
+      <ScreenWrapper 
+        scrollable={true} 
+        style={styles.wrapper}
+        // Non passiamo onRefresh qui perché solitamente 
+        // non si fa pull-to-refresh in un form di creazione
       >
-        <View style={styles.header}>
+        <View style={[styles.header, { paddingTop: insets.top + 20 }]}>
           <Text style={[styles.title, { color: theme.text }]}>New Shift</Text>
           <Text style={[styles.subtitle, { color: theme.secondaryText }]}>Hospitality Focus</Text>
         </View>
 
         <View style={styles.imageSection}>
-           <ShiftUploader initialUrl={imageUrl} onUpload={setImageUrl} />
+          <ShiftUploader initialUrl={imageUrl} onUpload={setImageUrl} />
         </View>
 
         {/* DEPARTMENT */}
@@ -65,7 +69,7 @@ export default function CreateShift() {
           theme={theme} 
         />
 
-        {/*HOURLY RATE */}
+        {/* HOURLY RATE */}
         <HourlyRate 
           value={form.hourly_rate}
           onChange={(text) => setForm({ ...form, hourly_rate: text })}
@@ -80,7 +84,7 @@ export default function CreateShift() {
           theme={theme}
         />
 
-        {/**SHIFT SCHEDULING */}
+        {/** SHIFT SCHEDULING */}
         <ShiftScheduling 
           openPicker={openPicker}
           form={form}
@@ -88,11 +92,18 @@ export default function CreateShift() {
         />
 
         <Pressable
-          style={({ pressed }) => [styles.submitButton, { backgroundColor: theme.text, opacity: pressed || loading ? 0.8 : 1 }]}
+          style={({ pressed }) => [
+            styles.submitButton, 
+            { backgroundColor: theme.text, opacity: pressed || loading ? 0.8 : 1 }
+          ]}
           onPress={() => handleCreate(form)}
           disabled={loading}
         >
-          {loading ? <ActivityIndicator color={theme.background} /> : <Text style={[styles.submitText, { color: theme.background }]}>Post Shift</Text>}
+          {loading ? (
+            <ActivityIndicator color={theme.background} />
+          ) : (
+            <Text style={[styles.submitText, { color: theme.background }]}>Post Shift</Text>
+          )}
         </Pressable>
 
         {/* PICKER MODAL */}
@@ -103,17 +114,24 @@ export default function CreateShift() {
           onChange={onPickerChange}
           theme={theme}
         />
-      </ScrollView>
+      </ScreenWrapper>
     </KeyboardAvoidingView>
   );
 }
 
 const styles = StyleSheet.create({
-  scrollContent: { paddingHorizontal: 28 },
+  wrapper: { paddingHorizontal: 28 },
   header: { marginBottom: 30 },
   title: { fontSize: 32, fontWeight: "900", letterSpacing: -1 },
   subtitle: { fontSize: 14, fontWeight: "600", opacity: 0.5 },
-  submitButton: { height: 64, borderRadius: 24, justifyContent: "center", alignItems: "center", marginTop: 20 },
+  submitButton: { 
+    height: 64, 
+    borderRadius: 24, 
+    justifyContent: "center", 
+    alignItems: "center", 
+    marginTop: 20,
+    marginBottom: 40
+  },
   submitText: { fontSize: 17, fontWeight: "800" },
   imageSection: { marginBottom: 30 },
 });

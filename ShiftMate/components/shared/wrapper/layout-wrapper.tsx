@@ -1,5 +1,12 @@
 import React from "react";
-import { View, StyleSheet, ScrollView, ViewStyle, Platform } from "react-native";
+import { 
+  View, 
+  StyleSheet, 
+  ScrollView, 
+  ViewStyle, 
+  Platform, 
+  RefreshControl 
+} from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useColorScheme } from "react-native";
 import { Colors } from "@/constants/theme";
@@ -8,12 +15,19 @@ interface ScreenWrapperProps {
   children: React.ReactNode;
   style?: ViewStyle;
   scrollable?: boolean;
+  onRefresh?: () => void;
+  refreshing?: boolean;
 }
 
-export const ScreenWrapper = ({ children, style, scrollable = true }: ScreenWrapperProps) => {
+export const ScreenWrapper = ({ 
+  children, 
+  style, 
+  scrollable = true, 
+  onRefresh,
+  refreshing = false
+}: ScreenWrapperProps) => {
   const insets = useSafeAreaInsets();
-  const colorScheme = useColorScheme();
-  const theme = Colors[colorScheme ?? "light"];
+  const theme = Colors[useColorScheme() ?? "light"];
 
   const TAB_BAR_HEIGHT = 74 + 10 + insets.bottom;
 
@@ -25,7 +39,7 @@ export const ScreenWrapper = ({ children, style, scrollable = true }: ScreenWrap
 
   const contentStyle = {
     paddingBottom: TAB_BAR_HEIGHT + 20, 
-    paddingTop: Platform.OS === 'ios' ? 0 : 20,
+    paddingTop: Platform.OS === 'android' ? insets.top + 10 : 0, 
   };
 
   if (scrollable) {
@@ -34,6 +48,17 @@ export const ScreenWrapper = ({ children, style, scrollable = true }: ScreenWrap
         style={containerStyle}
         contentContainerStyle={contentStyle}
         showsVerticalScrollIndicator={false}
+        // Il RefreshControl è ora gestito internamente
+        refreshControl={
+          onRefresh ? (
+            <RefreshControl 
+              refreshing={refreshing} 
+              onRefresh={onRefresh} 
+              tintColor={theme.tint} // Colore rotellina iOS
+              colors={[theme.tint]}  // Colore rotellina Android
+            />
+          ) : undefined
+        }
       >
         {children}
       </ScrollView>
@@ -41,14 +66,12 @@ export const ScreenWrapper = ({ children, style, scrollable = true }: ScreenWrap
   }
 
   return (
-    <View style={[containerStyle, contentStyle, { flex: 1 }]}>
+    <View style={[containerStyle, { flex: 1, paddingBottom: contentStyle.paddingBottom }]}>
       {children}
     </View>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
+  container: { flex: 1 },
 });

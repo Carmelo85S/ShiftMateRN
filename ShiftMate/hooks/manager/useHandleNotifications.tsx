@@ -1,37 +1,48 @@
 import { supabase } from "@/lib/supabase";
-import { archiveNotification, fetchUserNotifications, markAllNotificationsAsRead, markNotificationAsRead } from "@/queries/managerQueries";
-import { router, useFocusEffect } from "expo-router";
+import { 
+  archiveNotification, 
+  fetchUserNotifications, 
+  markAllNotificationsAsRead, 
+  markNotificationAsRead 
+} from "@/queries/managerQueries";
+import { useRouter, useFocusEffect } from "expo-router";
 import { useCallback, useEffect, useState } from "react";
 import { Alert } from "react-native";
 
 export const useHandleNotifications = () => {
-    const [notifications, setNotifications] = useState<any[]>([]);
-    const [loading, setLoading] = useState(true);
-    const [refreshing, setRefreshing] = useState(false);
+  const router = useRouter();
+  const [notifications, setNotifications] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
       
-    const fetchNotifications = useCallback(async () => {
-        try {
-          const { data: { user } } = await supabase.auth.getUser();
-          if (!user) return;
+  const fetchNotifications = useCallback(async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
 
-          const data = await fetchUserNotifications(user.id);
-          setNotifications(data || []);
-        } catch (error) {
-          console.error("Fetch error:", error);
-        } finally {
-          setLoading(false);
-          setRefreshing(false);
-        }
-    }, []);
+      const data = await fetchUserNotifications(user.id);
+      setNotifications(data || []);
+    } catch (error) {
+      console.error("Fetch error:", error);
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  }, []);
 
-useEffect(() => {
+  // --- LOGICA REFRESH PER SCREENWRAPPER / FLATLIST ---
+  const onRefresh = useCallback(() => {
+    setRefreshing(true);
+    fetchNotifications();
+  }, [fetchNotifications]);
+
+  useEffect(() => {
     let channel: any;
 
     const setupRealtime = async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      // Listen for changes on the 'notifications' table only for this user
       channel = supabase
         .channel(`user-notifications-${user.id}`)
         .on(
@@ -43,7 +54,6 @@ useEffect(() => {
             filter: `profile_id=eq.${user.id}` 
           }, 
           () => {
-            // When something happens in the DB, refresh the list
             fetchNotifications();
           }
         )
@@ -57,20 +67,22 @@ useEffect(() => {
     };
   }, [fetchNotifications]);
 
-  // Reload when the screen comes into focus
   useFocusEffect(
     useCallback(() => {
       fetchNotifications();
     }, [fetchNotifications])
   );
 
-  // Handle delete and mark as read
   const handleDeleteNotification = async (id: string) => {
     try {
-      await archiveNotification(id);
+      // Ottimismo: rimuoviamo subito dalla UI
+      const previousNotifications = [...notifications];
       setNotifications((prev) => prev.filter((n) => n.id !== id));
+      
+      await archiveNotification(id);
     } catch (err) {
       Alert.alert("Error", "Could not remove notification.");
+      fetchNotifications(); // Rollback in caso di errore
     }
   };
 
@@ -80,7 +92,8 @@ useEffect(() => {
       if (!user) return;
       
       await markAllNotificationsAsRead(user.id);
-      fetchNotifications();
+      // Aggiorniamo localmente per istantaneità
+      setNotifications(prev => prev.map(n => ({ ...n, is_read: true })));
     } catch (error) {
       Alert.alert("Error", "Failed to mark all as read");
     }
@@ -98,6 +111,7 @@ useEffect(() => {
       }
     }
 
+    // Navigazione specifica basata sul tipo di notifica
     if (item.shift_id) {
       router.push({ 
         pathname: "/(manager)/(tabs)/shift/[id]", 
@@ -105,16 +119,16 @@ useEffect(() => {
       });
     }
   };
+
   return {
     notifications,
     loading,
     refreshing,
-    setRefreshing,
+    onRefresh, // Esposto per il pull-to-refresh
     fetchNotifications,
     handleDeleteNotification,
     handleMarkAllRead,
     handleNotificationPress,
-    unreadCount: notifications.filter(n => !n.is_read).length // Extra molto utile!
+    unreadCount: notifications.filter(n => !n.is_read).length
   };
-}
-
+};
