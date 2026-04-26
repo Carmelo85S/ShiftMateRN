@@ -18,7 +18,6 @@ function OrbitTabBar({ state, descriptors, navigation, badgeCount, theme, isGues
 
   return (
     <View style={styles.masterWrapper}>
-      {/* Base solida per coprire lo scroll */}
       <View style={[styles.solidBase, { backgroundColor: theme.background, height: BAR_ZONE_HEIGHT }]} />
 
       <View style={[styles.contentWrapper, { bottom: insets.bottom + 10 }]}>
@@ -27,7 +26,7 @@ function OrbitTabBar({ state, descriptors, navigation, badgeCount, theme, isGues
             const { options } = descriptors[route.key];
             const isFocused = state.index === index;
             
-            // Logica di protezione Guest
+            
             const isProtected = route.name === "profile" || route.name === "notifications";
 
             const onPress = () => {
@@ -85,7 +84,6 @@ function OrbitTabBar({ state, descriptors, navigation, badgeCount, theme, isGues
   );
 }
 
-// --- 2. MAIN LAYOUT ---
 export default function TabLayout() {
   const colorScheme = useColorScheme();
   const theme = Colors[colorScheme ?? "light"];
@@ -155,7 +153,6 @@ export default function TabLayout() {
   );
 }
 
-// --- 3. STYLES ---
 const styles = StyleSheet.create({
   masterWrapper: {
     position: "absolute",
