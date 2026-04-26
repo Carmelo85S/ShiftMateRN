@@ -25,5 +25,5 @@ export const useHandleProfile = () => {
           loadData(); 
         }, [loadData])
       );
-    return {setProfile, setLoading, loadData}
+    return {profile,setProfile, loading, setLoading, loadData}
 }
