@@ -1,7 +1,7 @@
 import React from "react";
 import { View, Text, Pressable, StyleSheet } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { ShiftCard } from "@/components/shiftCard/ShiftCard";
+import { ShiftCard } from "../shared/shiftCard/ShiftCard";
 
 export const UpcomingShifts = ({ shifts, theme, onViewAll, onShiftPress }: any) => (
   <View>

@@ -15,7 +15,7 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { ShiftCard } from "@/components/shiftCard/ShiftCard";
+import { ShiftCard } from "@/components/shared/shiftCard/ShiftCard";
 import { fetchGlobalShifts } from "@/queries/workerQueries";
 
 const { width } = Dimensions.get("window");

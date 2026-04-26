@@ -4,8 +4,8 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Colors } from "@/constants/theme";
 import { Ionicons } from "@expo/vector-icons";
 import { ScreenWrapper } from "@/components/shared/wrapper/layout-wrapper";
-import { ShiftCard } from "@/components/shiftCard/ShiftCard";
-import { useManagerShift } from "@/components/manager/useManagerShift";
+import { ShiftCard } from "@/components/shared/shiftCard/ShiftCard";
+import { useManagerShift } from "@/hooks/manager/useManagerShift";
 
 export default function ShiftsManager() {
   const router = useRouter();

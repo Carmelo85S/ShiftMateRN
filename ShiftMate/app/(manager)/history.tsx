@@ -4,7 +4,7 @@ import { supabase } from "@/lib/supabase";
 import { Colors } from "@/constants/theme";
 import { useFocusEffect, Stack, router } from "expo-router";
 import { fetchManagerHistory } from "@/queries/managerQueries";
-import { ShiftCard } from "@/components/shiftCard/ShiftCard";
+import { ShiftCard } from "@/components/shared/shiftCard/ShiftCard";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 
@@ -25,7 +25,6 @@ export default function HistoryScreen() {
       const data = await fetchManagerHistory(session.user.id);
       setHistory(data);
 
-      // Calcola il totale speso storicamente (solo turni assegnati/completati)
       const total = data.reduce((acc, shift) => acc + (Number(shift.total_pay) || 0), 0);
       setTotalHistorySpending(total);
     } catch (error) {
