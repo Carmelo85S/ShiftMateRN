@@ -119,12 +119,9 @@ const styles = StyleSheet.create({
   header: { marginBottom: 30 },
   title: { fontSize: 32, fontWeight: "900", letterSpacing: -1 },
   subtitle: { fontSize: 14, fontWeight: "600", opacity: 0.5 },
+  imageSection: { marginBottom: 30 },
   submitButton: { height: 64, borderRadius: 24, justifyContent: "center", alignItems: "center", marginTop: 20 },
   submitText: { fontSize: 17, fontWeight: "800" },
   deleteButton: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, marginTop: 25, padding: 15 },
   deleteButtonText: { color: "#FF3B30", fontWeight: "700", fontSize: 15 },
-  imageSection: { marginBottom: 30 },
-  modalOverlay: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.4)' },
-  modalContent: { borderTopLeftRadius: 32, borderTopRightRadius: 32, paddingBottom: 40, alignItems: 'center' },
-  modalHeader: { width: '100%', height: 60, flexDirection: 'row', justifyContent: 'flex-end', alignItems: 'center', paddingHorizontal: 25 },
 });

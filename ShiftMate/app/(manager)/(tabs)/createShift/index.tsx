@@ -12,7 +12,6 @@ import {
 } from "react-native";
 import { Colors } from "@/constants/theme";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import DateTimePicker from "@react-native-community/datetimepicker";
 import ShiftUploader from "@/components/imagePicker/imagePickerShift";
 import { useShiftForm } from "@/hooks/manager/useShiftForm";
 import { useLoadProfile } from "@/hooks/manager/useLoadProfile";
@@ -114,26 +113,7 @@ const styles = StyleSheet.create({
   header: { marginBottom: 30 },
   title: { fontSize: 32, fontWeight: "900", letterSpacing: -1 },
   subtitle: { fontSize: 14, fontWeight: "600", opacity: 0.5 },
-  inputWrapper: { marginBottom: 25 },
-  label: { fontSize: 11, fontWeight: "800", marginBottom: 12, textTransform: 'uppercase', letterSpacing: 1, opacity: 0.6 },
-  input: { height: 60, paddingHorizontal: 18, borderRadius: 20, fontSize: 16, borderWidth: 1, fontWeight: '600' },
-  textArea: { height: 120, textAlignVertical: 'top', paddingTop: 15 },
-  pickerButton: { justifyContent: 'center' },
-  row: { flexDirection: "row", gap: 12, marginBottom: 20 },
-  deptGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
-  deptChip: { flex: 1, minWidth: '45%', flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: 14, borderRadius: 18, borderWidth: 1, gap: 8 },
-  deptText: { fontSize: 14, fontWeight: "700" },
-  titleContainer: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  titleChip: { paddingHorizontal: 16, paddingVertical: 10, borderRadius: 14, borderWidth: 1 },
-  titleChipText: { fontSize: 13, fontWeight: "600" },
-  rateRow: { flexDirection: 'row', gap: 12 },
-  earningsBox: { flex: 1, borderRadius: 20, paddingHorizontal: 15, justifyContent: 'center', alignItems: 'center' },
-  earningsLabel: { fontSize: 8, fontWeight: "900", marginBottom: 2 },
-  earningsValue: { fontSize: 18, fontWeight: "900" },
   submitButton: { height: 64, borderRadius: 24, justifyContent: "center", alignItems: "center", marginTop: 20 },
   submitText: { fontSize: 17, fontWeight: "800" },
   imageSection: { marginBottom: 30 },
-  modalOverlay: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.4)' },
-  modalContent: { borderTopLeftRadius: 32, borderTopRightRadius: 32, paddingBottom: 40, alignItems: 'center' },
-  modalHeader: { width: '100%', height: 60, flexDirection: 'row', justifyContent: 'flex-end', alignItems: 'center', paddingHorizontal: 25 },
 });
