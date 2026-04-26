@@ -1,78 +1,37 @@
-import React, { useState, useCallback, useMemo, useEffect } from "react";
 import {
   StyleSheet,
   View,
   Text,
-  TextInput,
   ScrollView,
   Pressable,
   ActivityIndicator,
-  Alert,
   KeyboardAvoidingView,
   Platform,
   useColorScheme,
   Modal,
 } from "react-native";
-import { supabase } from "@/lib/supabase";
 import { Colors } from "@/constants/theme";
-import { Ionicons } from "@expo/vector-icons";
-import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import ShiftUploader from "@/components/imagePicker/imagePickerShift";
-import { createShift, fetchUserProfile } from "@/queries/managerQueries";
-import { DEPARTMENTS, TITLES_BY_DEPT } from "@/constants/departments-titles";
 import { useShiftForm } from "@/hooks/useShiftForm";
+import { useLoadProfile } from "@/hooks/useLoadProfile";
+import { useHandleCreateShift } from "@/hooks/useHandleCreateShift";
+import { DepartmentSelector } from "@/components/shared/shift/DepartmentSelector";
+import { TitleSuggestions } from "@/components/shared/shift/TitleSuggestion";
+import { HourlyRate } from "@/components/shared/shift/HourlyRate";
+import { Description } from "@/components/shared/shift/Description";
+import { ShiftScheduling } from "@/components/shared/shift/ShiftScheduling";
+import { ShiftDatePickerModal } from "@/components/shared/shift/ShiftDatePickerModal";
 
 export default function CreateShift() {
   const {form, setForm, picker, setPicker, estimatedEarnings, onPickerChange, openPicker} = useShiftForm()
-  const router = useRouter();
+  const { handleCreate, loading, imageUrl, setImageUrl } = useHandleCreateShift();
   const insets = useSafeAreaInsets();
   const colorScheme = useColorScheme();
   const theme = Colors[colorScheme ?? "light"];
 
-  const [loading, setLoading] = useState(false);
-  const [imageUrl, setImageUrl] = useState<string | null>(null);
-
-  useEffect(() => {
-    const loadProfile = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
-        const profile = await fetchUserProfile(user.id);
-        if (profile?.department) {
-          setForm(prev => ({ ...prev, department: profile.department }));
-        }
-      }
-    };
-    loadProfile();
-  }, []);
-
-  const handleCreate = async () => {
-  if (!form.title || !form.department || !form.hourly_rate) {
-    Alert.alert("Missing Info", "Please fill in all required fields.");
-    return;
-  }
-  setLoading(true);
-  try {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) throw new Error("User not found");
-
-    const payload = {
-      ...form,
-      shift_date: form.date.toISOString().split('T')[0], // YYYY-MM-DD
-      start_time: form.startTime.toLocaleTimeString('it-IT', { hour12: false }), // HH:mm:ss
-      end_time: form.endTime.toLocaleTimeString('it-IT', { hour12: false }),
-    };
-
-    await createShift(user.id, imageUrl, payload as any);
-    router.push("/(manager)/(tabs)/shift");
-  } catch (err: any) {
-    Alert.alert("Error", err.message);
-  } finally {
-    setLoading(false);
-  }
-  };
-
+  useLoadProfile(setForm);
 
   return (
     <KeyboardAvoidingView 
@@ -93,148 +52,58 @@ export default function CreateShift() {
         </View>
 
         {/* DEPARTMENT */}
-        <View style={styles.inputWrapper}>
-          <Text style={[styles.label, { color: theme.text }]}>Department *</Text>
-          <View style={styles.deptGrid}>
-            {DEPARTMENTS.map((dept) => (
-              <Pressable
-                key={dept.id}
-                onPress={() => setForm({ ...form, department: dept.id, title: "" })}
-                style={[
-                  styles.deptChip,
-                  { backgroundColor: form.department === dept.id ? theme.tint : theme.card, borderColor: theme.border }
-                ]}
-              >
-                <Ionicons name={dept.icon as any} size={18} color={form.department === dept.id ? "#FFF" : theme.secondaryText} />
-                <Text style={[styles.deptText, { color: form.department === dept.id ? "#FFF" : theme.text }]}>{dept.label}</Text>
-              </Pressable>
-            ))}
-          </View>
-        </View>
+        <DepartmentSelector 
+          selectedId={form.department} 
+          onSelect={(id) => setForm({ ...form, department: id, title: "" })} 
+          theme={theme} 
+        />
 
         {/* TITLES */}
-        {form.department && (
-          <View style={styles.inputWrapper}>
-            <Text style={[styles.label, { color: theme.text }]}>Suggested Roles</Text>
-            <View style={styles.titleContainer}>
-              {TITLES_BY_DEPT[form.department]?.map((title) => (
-                <Pressable
-                  key={title}
-                  onPress={() => setForm({ ...form, title })}
-                  style={[
-                    styles.titleChip,
-                    { backgroundColor: form.title === title ? theme.tint : theme.card, borderColor: theme.border }
-                  ]}
-                >
-                  <Text style={[styles.titleChipText, { color: form.title === title ? "#FFF" : theme.text }]}>{title}</Text>
-                </Pressable>
-              ))}
-            </View>
-          </View>
-        )}
+        <TitleSuggestions 
+          department={form.department} 
+          titleValue={form.title} 
+          onTitleChange={(text) => setForm({ ...form, title: text })} 
+          theme={theme} 
+        />
 
-        <View style={styles.inputWrapper}>
-          <Text style={[styles.label, { color: theme.text }]}>Position Title *</Text>
-          <TextInput
-            style={[styles.input, { backgroundColor: theme.card, color: theme.text, borderColor: theme.border }]}
-            placeholder="e.g. Head Waiter"
-            placeholderTextColor={theme.secondaryText}
-            value={form.title}
-            onChangeText={(text) => setForm({ ...form, title: text })}
-          />
-        </View>
+        {/*HOURLY RATE */}
+        <HourlyRate 
+          value={form.hourly_rate}
+          onChange={(text) => setForm({ ...form, hourly_rate: text })}
+          estimatedEarnings={estimatedEarnings}
+          theme={theme}
+        />
 
-        <View style={styles.inputWrapper}>
-          <Text style={[styles.label, { color: theme.text }]}>Hourly Rate (€/hr) *</Text>
-          <View style={styles.rateRow}>
-            <TextInput
-              style={[styles.input, { flex: 1, backgroundColor: theme.card, color: theme.text, borderColor: theme.border }]}
-              placeholder="0.00"
-              keyboardType="decimal-pad"
-              value={form.hourly_rate}
-              onChangeText={(text) => setForm({ ...form, hourly_rate: text })}
-            />
-            <View style={[styles.earningsBox, { backgroundColor: theme.tint + "10" }]}>
-              <Text style={[styles.earningsLabel, { color: theme.tint }]}>EST. TOTAL</Text>
-              <Text style={[styles.earningsValue, { color: theme.tint }]}>€{estimatedEarnings}</Text>
-            </View>
-          </View>
-        </View>
+        {/* DESCRIPTION */}
+        <Description 
+          value={form.description}
+          onChange={(text) => setForm({ ...form, description: text })}
+          theme={theme}
+        />
 
-        {/* DESCRIZIONE (AGGIUNTO) */}
-        <View style={styles.inputWrapper}>
-          <Text style={[styles.label, { color: theme.text }]}>Description</Text>
-          <TextInput
-            style={[styles.input, styles.textArea, { backgroundColor: theme.card, color: theme.text, borderColor: theme.border }]}
-            placeholder="Specify uniform requirements, specific tasks, etc."
-            placeholderTextColor={theme.secondaryText}
-            value={form.description}
-            onChangeText={(text) => setForm({ ...form, description: text })}
-            multiline
-            numberOfLines={4}
-          />
-        </View>
-
-        <View style={styles.row}>
-          <View style={{ flex: 1.5 }}>
-            <Text style={[styles.label, { color: theme.text }]}>Date</Text>
-            <Pressable 
-              onPress={() => openPicker('date', 'date')}
-              style={[styles.input, styles.pickerButton, { backgroundColor: theme.card, borderColor: theme.border }]}>
-              <Text style={{ color: theme.text }}>{form.date.toLocaleDateString('en-GB')}</Text>
-            </Pressable>
-          </View>
-          <View style={{ flex: 1 }}>
-            <Text style={[styles.label, { color: theme.text }]}>Start</Text>
-            <Pressable 
-              onPress={() => openPicker('time', 'startTime')}
-              style={[styles.input, styles.pickerButton, { backgroundColor: theme.card, borderColor: theme.border }]}>
-              <Text style={{ color: theme.text, fontWeight: '700' }}>{form.startTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</Text>
-            </Pressable>
-          </View>
-          <View style={{ flex: 1 }}>
-            <Text style={[styles.label, { color: theme.text }]}>End</Text>
-            <Pressable 
-              onPress={() => openPicker('time', 'endTime')}
-              style={[styles.input, styles.pickerButton, { backgroundColor: theme.card, borderColor: theme.border }]}>
-              <Text style={{ color: theme.text, fontWeight: '700' }}>
-                {form.endTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-              </Text>
-            </Pressable>
-          </View>
-        </View>
+        {/**SHIFT SCHEDULING */}
+        <ShiftScheduling 
+          openPicker={openPicker}
+          form={form}
+          theme={theme}
+        />
 
         <Pressable
           style={({ pressed }) => [styles.submitButton, { backgroundColor: theme.text, opacity: pressed || loading ? 0.8 : 1 }]}
-          onPress={handleCreate}
+          onPress={() => handleCreate(form)}
           disabled={loading}
         >
           {loading ? <ActivityIndicator color={theme.background} /> : <Text style={[styles.submitText, { color: theme.background }]}>Post Shift</Text>}
         </Pressable>
 
         {/* PICKER MODAL */}
-        {picker.show && (
-          <Modal transparent animationType="fade" visible={picker.show}>
-            <Pressable style={styles.modalOverlay} onPress={() => setPicker({ ...picker, show: false })}>
-              <View style={[styles.modalContent, { backgroundColor: theme.card }]}>
-                <View style={styles.modalHeader}>
-                  <Pressable onPress={() => setPicker({ ...picker, show: false })}>
-                    <Text style={{ color: theme.tint, fontWeight: '700', fontSize: 16 }}>Done</Text>
-                  </Pressable>
-                </View>
-                <DateTimePicker
-                  value={(form as any)[picker.target]}
-                  mode={picker.mode}
-                  is24Hour={true}
-                  display={Platform.OS === 'ios' ? 'spinner' : 'default'}
-                  onChange={onPickerChange}
-                  textColor={theme.text}
-                  style={{ width: '100%', height: 250 }}
-                />
-              </View>
-            </Pressable>
-          </Modal>
-        )}
+        <ShiftDatePickerModal 
+          picker={picker}
+          form={form}
+          onClose={() => setPicker({ ...picker, show: false })}
+          onChange={onPickerChange}
+          theme={theme}
+        />
       </ScrollView>
     </KeyboardAvoidingView>
   );
