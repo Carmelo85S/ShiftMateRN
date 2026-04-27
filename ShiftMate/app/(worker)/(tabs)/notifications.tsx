@@ -17,8 +17,9 @@ import { useLoadNotifications } from "@/hooks/worker/notifications/useLoadNotifi
 import { useRealTimeNotifications } from "@/hooks/worker/notifications/useRealTimeNotifications";
 import { useNotificationsActions } from "@/hooks/worker/notifications/useNotificationsActions";
 import { useHandleNotificationsPress } from "@/hooks/worker/notifications/useHandleNotificationsPress";
-import { NotificationCard } from "@/components/worker/NotificationCard";
+import { NotificationCard } from "@/components/worker/notifications/NotificationCard";
 import { ScreenWrapper } from "@/components/shared/wrapper/layout-wrapper";
+import { ScreenHeader } from "@/components/shared/Header";
 
 export default function NotificationsScreen() {
   const colorScheme = useColorScheme();
@@ -61,8 +62,12 @@ export default function NotificationsScreen() {
           }
           ListHeaderComponent={() => (
             <View style={styles.headerArea}>
-              <Text style={[styles.screenTitle, { color: theme.text }]}>Notifications</Text>
-              {notifications.some(n => !n.is_read) && (
+              <ScreenHeader 
+                kpi="Updates" 
+                title="Notification" 
+                theme={theme} 
+              /> 
+               {notifications.some(n => !n.is_read) && (
                 <Pressable onPress={handleMarkAllRead} style={{ padding: 8 }}> 
                   <Text style={{ color: theme.tint, fontWeight: "600" }}>Mark all as read</Text>
                 </Pressable>
