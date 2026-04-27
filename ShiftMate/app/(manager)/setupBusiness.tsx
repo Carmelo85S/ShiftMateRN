@@ -1,65 +1,21 @@
-import React, { useState } from "react";
+import React from "react";
 import { 
   View, 
-  Text, 
-  TextInput, 
-  Pressable, 
   StyleSheet, 
-  Alert, 
-  ActivityIndicator,
-  KeyboardAvoidingView,
-  Platform,
-  ScrollView
+  KeyboardAvoidingView, 
+  Platform, 
+  ScrollView 
 } from "react-native";
-import { supabase } from "@/lib/supabase";
-import { useRouter } from "expo-router";
 import { Colors } from "@/constants/theme";
-import { Ionicons } from "@expo/vector-icons";
-import { createBusinessAndAssignOwner } from "@/queries/managerQueries";
+import { useSetupBusiness } from "@/hooks/manager/useSetupBusiness";
+import { SetupHeader } from "@/components/manager/SetupHeader";
+import { SetupInfoBox } from "@/components/manager/SetupInfoBox";
+import { SetupInput } from "@/components/manager/SetupInput";
+import { SetupButton } from "@/components/manager/SetupButton";
 
 export default function SetupBusiness() {
-  const [businessName, setBusinessName] = useState("");
-  const [loading, setLoading] = useState(false);
-  const router = useRouter();
   const theme = Colors.light;
-
-  const generateInviteCode = () => {
-    const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
-    let result = "";
-    for (let i = 0; i < 6; i++) {
-      result += chars.charAt(Math.floor(Math.random() * chars.length));
-    }
-    return result;
-  };
-
-  const handleCreateBusiness = async () => {
-    if (!businessName.trim()) {
-      Alert.alert("Attention", "Please enter your business name.");
-      return;
-    }
-
-    setLoading(true);
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error("User not found.");
-
-      const inviteCode = generateInviteCode();
-
-      // Create business and assign owner in one operation
-      await createBusinessAndAssignOwner(user.id, businessName, inviteCode);
-
-      Alert.alert(
-        "Business Created!",
-        `Invite code: ${inviteCode}. Share it with your team to let them join.`,
-        [{ text: "LET'S START", onPress: () => router.replace("/(manager)/(tabs)/dashboard") }]
-      );
-
-    } catch (error: any) {
-      Alert.alert("Error", error.message);
-    } finally {
-      setLoading(false);
-    }
-  };
+  const { businessName, setBusinessName, loading, handleCreateBusiness } = useSetupBusiness();
 
   return (
     <KeyboardAvoidingView
@@ -68,43 +24,34 @@ export default function SetupBusiness() {
     >
       <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
         
-        <View style={styles.header}>
-          <Text style={[styles.kpi, { color: theme.tint }]}>FIRST STEP</Text>
-          <Text style={[styles.title, { color: theme.text }]}>Setup Your{"\n"}Business</Text>
-        </View>
+        <SetupHeader 
+          kpi="FIRST STEP" 
+          title={"Setup Your\nBusiness"} 
+          theme={theme} 
+        />
 
         <View style={styles.content}>
-          <View style={styles.infoBox}>
-            <Ionicons name="business-outline" size={20} color={theme.text} style={{ opacity: 0.6 }} />
-            <Text style={styles.subtitle}>
-              Register your business and start managing your team.
-            </Text>
-          </View>
+          <SetupInfoBox 
+            icon="business-outline" 
+            text="Register your business and start managing your team." 
+            theme={theme}
+          />
 
-          <View style={styles.inputWrapper}>
-            <Text style={styles.inputLabel}>BUSINESS NAME</Text>
-            <TextInput
-              placeholder="e.g. Grand Hotel or Central Bar"
-              placeholderTextColor="#999"
-              value={businessName}
-              onChangeText={setBusinessName}
-              style={[styles.input, { color: theme.text, borderColor: theme.text }]}
-            />
-          </View>
+          <SetupInput 
+            label="BUSINESS NAME"
+            placeholder="e.g. Grand Hotel or Central Bar"
+            value={businessName}
+            onChangeText={setBusinessName}
+            theme={theme}
+          />
 
-          <Pressable 
-            style={({ pressed }) => [
-              styles.button, 
-              { backgroundColor: theme.text, opacity: pressed || loading ? 0.8 : 1 }
-            ]} 
+          <SetupButton 
+            title="CREATE BUSINESS"
             onPress={handleCreateBusiness}
-            disabled={loading}
-          >
-            <Text style={[styles.buttonText, { color: theme.background }]}>
-              {loading ? "CREATING..." : "CREATE BUSINESS"}
-            </Text>
-            {!loading && <Ionicons name="checkmark-circle" size={20} color={theme.background} />}
-          </Pressable>
+            loading={loading}
+            icon="checkmark-circle"
+            theme={theme}
+          />
         </View>
       </ScrollView>
     </KeyboardAvoidingView>
@@ -112,82 +59,6 @@ export default function SetupBusiness() {
 }
 
 const styles = StyleSheet.create({
-  container: { 
-    flexGrow: 1, 
-    paddingHorizontal: 32, 
-    paddingTop: 80, 
-    paddingBottom: 40 
-  },
-  header: { 
-    marginBottom: 40 
-  },
-  kpi: { 
-    fontSize: 13, 
-    fontWeight: "700", 
-    letterSpacing: 0.5, 
-    marginBottom: 8, 
-    opacity: 0.8 
-  },
-  title: { 
-    fontSize: 38, 
-    fontWeight: "800", 
-    lineHeight: 42, 
-    letterSpacing: -1 
-  },
-  content: { 
-    gap: 30 
-  },
-  infoBox: {
-    flexDirection: 'row',
-    gap: 10,
-    backgroundColor: '#F8F9FA',
-    padding: 16,
-    borderRadius: 15,
-    borderWidth: 1,
-    borderColor: 'rgba(0,0,0,0.05)'
-  },
-  subtitle: { 
-    flex: 1,
-    fontSize: 15, 
-    color: "#666", 
-    lineHeight: 20,
-    fontWeight: "500"
-  },
-  inputWrapper: { 
-    gap: 10 
-  },
-  inputLabel: { 
-    fontSize: 14, 
-    fontWeight: "600", 
-    marginLeft: 4, 
-    opacity: 0.7 
-  },
-  input: { 
-    width: "100%", 
-    backgroundColor: "#F1F3F5", 
-    borderRadius: 20, // Uniformato a Register
-    padding: 18, 
-    fontSize: 16, 
-    borderWidth: 1,
-  },
-  button: {
-    width: "100%",
-    padding: 18,
-    borderRadius: 22, // Uniformato a Register
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 12,
-    marginTop: 10,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.1,
-    shadowRadius: 15,
-    elevation: 5,
-  },
-  buttonText: { 
-    fontWeight: "700", 
-    fontSize: 16, 
-    letterSpacing: 0.2 
-  }
+  container: { flexGrow: 1, paddingHorizontal: 32, paddingTop: 80, paddingBottom: 40 },
+  content: { gap: 30 },
 });
