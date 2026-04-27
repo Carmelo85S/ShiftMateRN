@@ -5,8 +5,9 @@ import { useFocusEffect, Stack } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useLoadHistory } from "@/hooks/manager/useLoadHistory";
 import { ScreenWrapper } from "@/components/shared/wrapper/layout-wrapper";
-import { HistoryStatsCard } from "@/components/manager/HistoryStatsCard";
-import { HistoryItem } from "@/components/manager/HistoryItem";
+import { HistoryStatsCard } from "@/components/manager/history/HistoryStatsCard";
+import { HistoryItem } from "@/components/manager/history/HistoryItem";
+
 export default function HistoryScreen() {
   const theme = Colors[useColorScheme() ?? "light"];
   const insets = useSafeAreaInsets();

@@ -17,7 +17,7 @@ import { useHandleProfile } from "@/hooks/manager/useHandleProfile";
 import { ProfileHeader } from "@/components/shared/profile/ProfileHeader";
 import { ProfileInfoCard } from "@/components/shared/profile/ProfileInfoCard";
 import { BiographySection } from "@/components/shared/profile/BiographySection";
-import { MenuRowProfile } from "@/components/manager/MenuRowProfile";
+import { MenuRowProfile } from "@/components/manager/profile/MenuRowProfile";
 import { ScreenWrapper } from "@/components/shared/wrapper/layout-wrapper";
 
 export default function ProfileManager() {

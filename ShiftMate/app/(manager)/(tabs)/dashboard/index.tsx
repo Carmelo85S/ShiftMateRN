@@ -9,10 +9,10 @@ import { Colors } from "@/constants/theme";
 import { useFocusEffect, useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useDashboardData } from "@/hooks/manager/useFetchDataDashboard";
-import { DashboardHeader } from "@/components/manager/DashboardHeader";
-import { FinancialOverview } from "@/components/manager/FInancialOverview";
-import { HistoryBar } from "@/components/manager/HistoryBar";
-import { UpcomingShifts } from "@/components/manager/UpcomingShifts";
+import { DashboardHeader } from "@/components/manager/dashboard/DashboardHeader";
+import { FinancialOverview } from "@/components/manager/dashboard/FInancialOverview";
+import { HistoryBar } from "@/components/manager/dashboard/HistoryBar";
+import { UpcomingShifts } from "@/components/manager/dashboard/UpcomingShifts";
 import { ScreenWrapper } from "@/components/shared/wrapper/layout-wrapper";
 
 export default function Dashboard() {
@@ -30,7 +30,6 @@ export default function Dashboard() {
     onRefresh 
   } = useDashboardData();
 
-  // Refresh automatico quando la pagina torna in focus
   useFocusEffect(
     useCallback(() => {
       fetchData();
@@ -54,7 +53,7 @@ export default function Dashboard() {
     >
       <View style={[styles.mainContent, { paddingTop: insets.top + 8 }]}>
         
-        {/* HEADER: Saluto e Profilo */}
+        {/* HEADER */}
         <DashboardHeader 
           userName={userName} 
           theme={theme} 

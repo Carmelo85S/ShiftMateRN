@@ -8,10 +8,10 @@ import {
 } from "react-native";
 import { Colors } from "@/constants/theme";
 import { useSetupBusiness } from "@/hooks/manager/useSetupBusiness";
-import { SetupHeader } from "@/components/manager/SetupHeader";
-import { SetupInfoBox } from "@/components/manager/SetupInfoBox";
-import { SetupInput } from "@/components/manager/SetupInput";
-import { SetupButton } from "@/components/manager/SetupButton";
+import { SetupHeader } from "@/components/manager/setup-business/SetupHeader";
+import { SetupInfoBox } from "@/components/manager/setup-business/SetupInfoBox";
+import { SetupInput } from "@/components/manager/setup-business/SetupInput";
+import { SetupButton } from "@/components/manager/setup-business/SetupButton";
 
 export default function SetupBusiness() {
   const theme = Colors.light;

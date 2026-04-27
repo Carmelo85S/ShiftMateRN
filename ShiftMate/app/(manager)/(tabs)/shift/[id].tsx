@@ -4,9 +4,9 @@ import { useLocalSearchParams } from "expo-router";
 import { Colors } from "@/constants/theme";
 import { ScreenWrapper } from "@/components/shared/wrapper/layout-wrapper";
 import { useShiftDetail } from "@/hooks/manager/useShiftDetail";
-import { ShiftHero } from "@/components/manager/ShiftHero";
-import { ShiftInfo } from "@/components/manager/ShiftInfo";
-import { CandidatesCard } from "@/components/manager/CandidatesCard";
+import { ShiftHero } from "@/components/manager/shift/ShiftHero";
+import { ShiftInfo } from "@/components/manager/shift/ShiftInfo";
+import { CandidatesCard } from "@/components/manager/candidate/CandidatesCard";
 
 export default function ShiftDetailPage() {
   const { id } = useLocalSearchParams();
