@@ -4,8 +4,6 @@ import {
   Text,
   View,
   ScrollView,
-  TextInput,
-  Pressable,
   ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
@@ -13,26 +11,11 @@ import {
 import { Colors } from "@/constants/theme";
 import AvatarUploader from "@/components/imagePicker/imagePicker";
 import { useEditProfile } from "@/hooks/worker/profile/useEditProfile";
-import { Ionicons } from "@expo/vector-icons";
 import { ScreenHeader } from "@/components/shared/Header";
 import { DepartmentPicker } from "@/components/worker/profile/EditDepartmentPicker";
 import { BioInput } from "@/components/worker/profile/EditBioInput";
 import { SaveButton } from "@/components/worker/profile/EditSaveButton";
-
-
-const CustomInput = ({ label, value, onChange, placeholder, theme, keyboardType }: any) => (
-  <View style={styles.inputWrapper}>
-    <Text style={[styles.label, { color: theme.secondaryText }]}>{label}</Text>
-    <TextInput
-      value={value ?? ""}
-      onChangeText={onChange}
-      placeholder={placeholder}
-      placeholderTextColor="#BBB"
-      keyboardType={keyboardType || "default"}
-      style={[styles.input, { backgroundColor: theme.card, color: theme.text, borderColor: theme.border }]}
-    />
-  </View>
-);
+import { EditCustomInput } from "@/components/worker/profile/EditCustomInput";
 
 export default function EditProfileScreen() {
   const theme = Colors.light;
@@ -76,21 +59,21 @@ export default function EditProfileScreen() {
 
         {/* FORM FIELDS */}
         <View style={styles.form}>
-          <CustomInput 
+          <EditCustomInput 
             label="FIRST NAME" 
             value={form.name} 
             onChange={(v: string) => setForm({ ...form, name: v })} 
             theme={theme} 
           />
           
-          <CustomInput 
+          <EditCustomInput 
             label="LAST NAME" 
             value={form.surname} 
             onChange={(v: string) => setForm({ ...form, surname: v })} 
             theme={theme} 
           />
           
-          <CustomInput 
+          <EditCustomInput 
             label="PHONE" 
             value={form.phone} 
             onChange={(v: string) => setForm({ ...form, phone: v })} 
@@ -107,7 +90,7 @@ export default function EditProfileScreen() {
             theme={theme}
           />
 
-          <CustomInput 
+          <EditCustomInput 
             label="JOB ROLE" 
             value={form.job_role} 
             onChange={(v: string) => setForm({ ...form, job_role: v })} 
@@ -115,7 +98,7 @@ export default function EditProfileScreen() {
             theme={theme} 
           />
 
-          <CustomInput 
+          <EditCustomInput 
             label="EXPERIENCE" 
             value={form.experience} 
             onChange={(v: string) => setForm({ ...form, experience: v })} 
