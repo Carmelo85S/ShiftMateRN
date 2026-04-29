@@ -192,15 +192,29 @@ export const fetchCandidateProfile = async (candidateId: string) => {
   return data;
 };
 
-export const updateApplicationStatus = async (shiftId: string, candidateId: string, status: "accepted" | "rejected") => {
+// Update status application
+
+export const updateApplicationStatus = async (
+  shiftId: string, 
+  applicationId: string, 
+  status: "accepted" | "rejected"
+) => {
+  // Call rpc if accepted
+  if (status === 'accepted') {
+    const { error } = await supabase.rpc('accept_application', { 
+      target_app_id: applicationId 
+    });
+    if (error) throw error;
+    return;
+  }
+
+  // Simple update if rejected
   const { error } = await supabase
-    .from("applications")
-    .update({ status: status })
-    .eq("shift_id", shiftId)
-    .eq("profile_id", candidateId);
+    .from('applications')
+    .update({ status: status, updated_at: new Date().toISOString() })
+    .eq('id', applicationId);
 
   if (error) throw error;
-  return true;
 };
 
 export const fetchUserNotifications = async (userId: string) => {

@@ -1,6 +1,5 @@
 import { Text, View, TextInput, StyleSheet, KeyboardTypeOptions } from "react-native";
 
-// Definiamo un'interfaccia veloce per mantenere la Type Safety di cui parlavamo
 interface CustomInputProps {
   label: string;
   value: string;
@@ -35,7 +34,7 @@ const styles = StyleSheet.create({
     fontSize: 10, 
     fontWeight: "800", 
     letterSpacing: 1.5,
-    textTransform: "uppercase" // Spesso i label con questo spacing stanno bene in uppercase
+    textTransform: "uppercase" 
   },
   input: {
     height: 56,
