@@ -88,7 +88,7 @@ export default function WorkerShifts() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#FFFFFF' },
+  container: { flex: 1, backgroundColor: '#FFFFFF', paddingTop: 50 },
   bgCircle: {
     position: 'absolute',
     width: width * 0.7,
