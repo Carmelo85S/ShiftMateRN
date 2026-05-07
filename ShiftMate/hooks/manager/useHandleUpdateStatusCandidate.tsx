@@ -1,40 +1,38 @@
 import { updateApplicationStatus } from "@/queries/managerQueries";
 import { useLocalSearchParams } from "expo-router";
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { Alert } from "react-native";
 
 export const useHandleUpdateStatusCandidate = (
   setAppStatus: (s: string) => void, 
   setShStatus: (s: string) => void
 ) => {
-  const { id, shiftId } = useLocalSearchParams();    
+  const { id: profileId, shiftId } = useLocalSearchParams<{ id: string; shiftId: string }>();    
   const [processing, setProcessing] = useState<"accepted" | "rejected" | null>(null);
     
-  const handleUpdateStatus = async (status: "accepted" | "rejected") => {
-    if (!shiftId || !id) return;
+  const handleUpdateStatus = useCallback(async (status: "accepted" | "rejected") => {
+    if (!shiftId || !profileId) return;
 
     setProcessing(status);
     try {
-      await updateApplicationStatus(shiftId as string, id as string, status);
+      await updateApplicationStatus(shiftId, profileId, status);
       
-      // Update UI local state
+      // Sincronizzazione immediata dello stato locale
       setAppStatus(status);
       if (status === 'accepted') setShStatus('filled');
 
-      Alert.alert("Success", status === 'accepted' ? "Candidate hired!" : "Candidate rejected");
+      Alert.alert("Successo", status === 'accepted' ? "Candidato assunto!" : "Candidatura rifiutata");
     } catch (err: any) {
-      if (err.message?.includes('SHIFT_ALREADY_FILLED')) {
-        Alert.alert("Too Late!", "This shift has just been filled by another candidate.");
-      } else if (err.code === '23505') {
-        Alert.alert("Conflict", "A candidate is already accepted for this shift.");
-      } else {
-        Alert.alert("Error", "Action failed. Check your connection.");
-      }
       console.error("Update Error:", err);
+      if (err.message?.includes('APPLICATION NOT FOUND')) {
+        Alert.alert("Errore", "Candidatura non trovata. Potrebbe essere stata cancellata.");
+      } else {
+        Alert.alert("Errore", "Impossibile aggiornare lo stato.");
+      }
     } finally {
       setProcessing(null);
     }
-  };
+  }, [profileId, shiftId, setAppStatus, setShStatus]);
 
   return { processing, handleUpdateStatus };
-}
+};

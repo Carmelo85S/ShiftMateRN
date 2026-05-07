@@ -1,10 +1,11 @@
+import React, { useState } from "react";
 import { StyleSheet, Text, View, FlatList, ActivityIndicator, useColorScheme, RefreshControl } from "react-native";
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Colors } from "@/constants/theme";
 import { Ionicons } from "@expo/vector-icons";
 import { ScreenWrapper } from "@/components/shared/wrapper/layout-wrapper";
-import { ShiftCard } from "@/components/shared/shiftCard/ShiftCard";
+import { ShiftCard } from "@/components/shared/shiftCard/ShiftCard"; // Assicurati sia la versione quadrata
 import { useManagerShift } from "@/hooks/manager/useManagerShift";
 
 export default function ShiftsManager() {
@@ -12,7 +13,9 @@ export default function ShiftsManager() {
   const insets = useSafeAreaInsets();
   const theme = Colors[useColorScheme() ?? "light"];
   const { shifts, loading, refreshing, onRefresh } = useManagerShift();
+  const [selectedDept, setSelectedDept] = useState("All");
 
+  const departments = ["All", ...new Set(shifts.map(s => s.department))];
   if (loading && !refreshing) {
     return (
       <View style={[styles.center, { backgroundColor: theme.background }]}>
@@ -26,6 +29,8 @@ export default function ShiftsManager() {
       <FlatList
         data={shifts}
         keyExtractor={(item) => item.id}
+        numColumns={2}
+        columnWrapperStyle={styles.columnRow}
         refreshControl={
           <RefreshControl 
             refreshing={refreshing} 
@@ -55,7 +60,6 @@ export default function ShiftsManager() {
         renderItem={({ item }) => (
           <ShiftCard 
             item={item} 
-            variant="manager"
             onPress={() => router.push(`/(manager)/(tabs)/shift/${item.id}`)} 
           />
         )}
@@ -72,8 +76,9 @@ export default function ShiftsManager() {
 
 const styles = StyleSheet.create({
   center: { flex: 1, justifyContent: "center", alignItems: "center" },
-  listContent: { paddingHorizontal: 24 },
-  headerArea: { marginBottom: 30 },
+  listContent: { paddingHorizontal: 20 },
+  columnRow: { justifyContent: 'space-between', marginBottom: 4 }, // Spazio orizzontale tra le card
+  headerArea: { marginBottom: 30, paddingHorizontal: 4 },
   titleRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   kpiLabel: { fontSize: 12, fontWeight: "700", letterSpacing: 0.5, marginBottom: 4, opacity: 0.5 },
   headerTitle: { fontSize: 28, fontWeight: "700", letterSpacing: -0.8 },

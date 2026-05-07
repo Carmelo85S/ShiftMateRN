@@ -14,10 +14,10 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useFetchCandidateProfile } from "@/hooks/manager/useFetchCandidateProfile";
 import { useHandleUpdateStatusCandidate } from "@/hooks/manager/useHandleUpdateStatusCandidate";
 import { ScreenWrapper } from "@/components/shared/wrapper/layout-wrapper";
-import { CandidateActionBar } from "@/components/manager/candidate/CandidateActionBar";
 import { HeaderCandidateProfile } from "@/components/manager/candidate/HeaderCandidateProfile";
 import { ShiftInfoContextCard } from "@/components/manager/candidate/ShiftInfoContextCard";
 import { CandidateInfoSection } from "@/components/manager/candidate/CandidateInfoSection";
+import { CandidateActionBar } from "@/components/manager/candidate/CandidateActionBar";
 
 export default function CandidateProfile() {
   const colorScheme = useColorScheme();
@@ -110,7 +110,7 @@ export default function CandidateProfile() {
         applicationStatus={applicationStatus}
         shiftStatus={shiftStatus}
         processing={processing}
-        onUpdateStatus={handleUpdateStatus}
+        handleUpdateStatus={handleUpdateStatus}
         theme={theme}
         insets={insets}
       />

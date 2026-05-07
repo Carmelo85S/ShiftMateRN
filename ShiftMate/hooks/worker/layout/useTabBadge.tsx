@@ -4,48 +4,47 @@ import { fetchUnreadNotificationCount, subscribeToNotifications } from "@/querie
 
 export const useTabBadge = () => {
   const [unreadCount, setUnreadCount] = useState<number | null>(null);
+  const [userId, setUserId] = useState<string | null>(null);
   const [isGuest, setIsGuest] = useState(true);
 
-  const loadBadge = useCallback(async (userId: string) => {
-    const count = await fetchUnreadNotificationCount(userId);
+  // Load badge count for a given user ID
+  const loadBadge = useCallback(async (uid: string) => {
+    const count = await fetchUnreadNotificationCount(uid);
     setUnreadCount(count > 0 ? count : null);
   }, []);
 
+  // Authentication state listener
   useEffect(() => {
-    let channel: any;
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setUserId(session?.user?.id || null);
+      setIsGuest(!session);
+    });
 
-    const init = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      
-      const handleAuthState = (currentSession: any) => {
-        const user = currentSession?.user;
-        setIsGuest(!currentSession);
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUserId(session?.user?.id || null);
+      setIsGuest(!session);
+    });
 
-        if (user) {
-          loadBadge(user.id);
-          channel = subscribeToNotifications(user.id, () => loadBadge(user.id));
-        } else {
-          setUnreadCount(null);
-          if (channel) supabase.removeChannel(channel);
-        }
-      };
+    return () => subscription.unsubscribe();
+  }, []);
 
-      handleAuthState(session);
+  // Realtime subscription management (only if there's a userId)
+  useEffect(() => {
+    if (!userId) {
+      setUnreadCount(null);
+      return;
+    }
 
-      const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, newSession) => {
-        handleAuthState(newSession);
-      });
+    // Load initial count
+    loadBadge(userId);
 
-      return subscription;
-    };
-
-    const authSub = init();
+    // Subscribe to changes
+    const channel = subscribeToNotifications(userId, () => loadBadge(userId));
 
     return () => {
       if (channel) supabase.removeChannel(channel);
-      authSub.then(sub => sub?.unsubscribe());
     };
-  }, [loadBadge]);
+  }, [userId, loadBadge]);
 
   return { unreadCount, isGuest };
 };

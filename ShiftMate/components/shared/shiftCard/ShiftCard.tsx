@@ -3,114 +3,43 @@ import { Pressable, StyleSheet, Text, View, Image } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { Colors } from "@/constants/theme";
 
-interface ShiftCardProps {
-  item: {
-    id: string;
-    title: string;
-    shift_date: string;
-    start_time: string;
-    end_time: string;
-    image_url: string | null;
-    total_pay?: number; 
-    hourly_rate?: number;
-    department?: string;
-  };
-  onPress: () => void;
-  variant?: "manager" | "worker";
-}
-
-export const ShiftCard = ({ item, onPress, variant = "manager" }: ShiftCardProps) => {
+export const ShiftCard = ({ item, onPress }: any) => {
   const theme = Colors.light;
-
-  const imageSource = item.image_url 
-    ? { uri: `${item.image_url}?t=${new Date(item.shift_date).getTime()}` } 
-    : undefined;
+  const imageSource = item.image_url ? { uri: `${item.image_url}` } : undefined;
 
   return (
     <Pressable
       onPress={onPress}
-      style={({ pressed }) => [
-        styles.card,
-        { 
-          backgroundColor: theme.card, 
-          borderColor: theme.border,
-          opacity: pressed ? 0.9 : 1,
-          transform: [{ scale: pressed ? 0.98 : 1 }] 
-        },
-      ]}
+      style={({ pressed }) => [styles.card, { backgroundColor: theme.card, opacity: pressed ? 0.9 : 1, transform: [{ scale: pressed ? 0.97 : 1 }] }]}
     >
-      <View style={styles.content}>
-        {/* CONTAINER IMMAGINE */}
-        <View style={[styles.imageContainer, { backgroundColor: theme.background }]}>
-          {item.image_url ? (
-            <Image 
-              key={`img_${item.id}_${item.image_url}`}
-              source={imageSource} 
-              style={styles.image} 
-              resizeMode="cover"
-            />
-          ) : (
-            <View style={styles.placeholder}>
-              <Ionicons 
-                name={item.department === 'logistics' ? 'bus-outline' : 'briefcase-outline'} 
-                size={24} 
-                color={theme.icon} 
-              />
-            </View>
-          )}
+      {/* IMMAGINE DI SFONDO O PLACEHOLDER */}
+      <View style={[styles.imageWrapper, { backgroundColor: theme.background }]}>
+        {item.image_url ? (
+          <Image source={imageSource} style={styles.image} />
+        ) : (
+          <Ionicons name="apps-outline" size={30} color={theme.tint + "40"} />
+        )}
+        {/* BADGE PREZZO SOVRAPPOSTO */}
+        <View style={styles.priceTag}>
+          <Text style={styles.priceText}>€{Math.round(item.total_pay || 0)}</Text>
+        </View>
+      </View>
+
+      {/* CONTENUTO INFERIORE */}
+      <View style={styles.infoContent}>
+        <Text style={[styles.title, { color: theme.text }]} numberOfLines={1}>{item.title}</Text>
+        
+        <View style={styles.row}>
+          <Ionicons name="time-sharp" size={12} color={theme.tint} />
+          <Text style={[styles.detailText, { color: theme.secondaryText }]}>{item.start_time.slice(0, 5)}</Text>
+          <View style={styles.dot} />
+          <Text style={[styles.detailText, { color: theme.secondaryText }]}>
+            {new Date(item.shift_date).toLocaleDateString("it-IT", { day: '2-digit', month: 'short' })}
+          </Text>
         </View>
 
-        {/* INFO */}
-        <View style={styles.mainInfo}>
-          <View style={styles.headerRow}>
-            <Text style={[styles.title, { color: theme.text }]} numberOfLines={1}>
-              {item.title}
-            </Text>
-            {/* BADGE DIPARTIMENTO (Open App style) */}
-            {item.department && (
-              <View style={[styles.deptBadge, { backgroundColor: theme.tint + "15" }]}>
-                <Text style={[styles.deptText, { color: theme.tint }]}>
-                  {item.department.toUpperCase()}
-                </Text>
-              </View>
-            )}
-          </View>
-          
-          <View style={styles.detailsRow}>
-            <View style={styles.infoItem}>
-              <Ionicons name="calendar-outline" size={13} color={theme.tint} />
-              <Text style={[styles.infoText, { color: theme.secondaryText }]}>
-                {new Date(item.shift_date).toLocaleDateString("en-GB", { 
-                  day: 'numeric', 
-                  month: 'short' 
-                })}
-              </Text>
-            </View>
-            <View style={styles.infoItem}>
-              <Ionicons name="time-outline" size={13} color={theme.tint} />
-              <Text style={[styles.infoText, { color: theme.secondaryText }]}>
-                {item.start_time.slice(0, 5)} - {item.end_time.slice(0, 5)}
-              </Text>
-            </View>
-          </View>
-        </View>
-
-        {/* PRICE / EARNINGS SECTION (La "Win" per il worker) */}
-        <View style={styles.priceContainer}>
-           <Text style={[styles.priceValue, { color: '#4CAF50' }]}>
-             €{item.total_pay ? item.total_pay.toFixed(2) : "0.00"}
-           </Text>
-           <Text style={[styles.priceLabel, { color: theme.secondaryText }]}>
-             €{item.hourly_rate}/hr
-           </Text>
-        </View>
-
-        <View style={styles.actionIcon}>
-          <Ionicons 
-            name="chevron-forward" 
-            size={18} 
-            color={theme.icon + "60"} 
-          />
+        <View style={[styles.deptBadge, { backgroundColor: theme.tint + "10" }]}>
+          <Text style={[styles.deptText, { color: theme.tint }]}>{item.department || 'General'}</Text>
         </View>
       </View>
     </Pressable>
@@ -118,93 +47,16 @@ export const ShiftCard = ({ item, onPress, variant = "manager" }: ShiftCardProps
 };
 
 const styles = StyleSheet.create({
-  card: {
-    padding: 14,
-    borderRadius: 22,
-    marginBottom: 12,
-    borderWidth: 1,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.04,
-    shadowRadius: 10,
-    elevation: 2,
-  },
-  content: {
-    flexDirection: "row",
-    alignItems: "center",
-  },
-  imageContainer: {
-    width: 60,
-    height: 60,
-    borderRadius: 16,
-    overflow: "hidden",
-    marginRight: 12,
-  },
-  image: {
-    width: "100%",
-    height: "100%",
-  },
-  placeholder: {
-    width: "100%",
-    height: "100%",
-    backgroundColor: 'rgba(0,0,0,0.03)',
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  mainInfo: { 
-    flex: 1, 
-  },
-  headerRow: {
-    flexDirection: 'column',
-    alignItems: 'flex-start',
-    marginBottom: 6,
-  },
-  title: { 
-    fontSize: 16, 
-    fontWeight: "800", 
-    letterSpacing: -0.5,
-  },
-  deptBadge: {
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 6,
-    marginTop: 2,
-  },
-  deptText: {
-    fontSize: 9,
-    fontWeight: "800",
-  },
-  detailsRow: { 
-    flexDirection: "row", 
-    gap: 6,
-  },
-  infoItem: { 
-    flexDirection: "row", 
-    alignItems: "center", 
-    gap: 3,
-  },
-  infoText: { 
-    fontSize: 12, 
-    fontWeight: "500",
-  },
-  priceContainer: {
-    alignItems: 'flex-end',
-    justifyContent: 'center',
-    paddingLeft: 10,
-    borderLeftWidth: 1,
-    borderLeftColor: 'rgba(0,0,0,0.05)',
-    marginLeft: 10,
-  },
-  priceValue: {
-    fontSize: 17,
-    fontWeight: "900",
-  },
-  priceLabel: {
-    fontSize: 10,
-    fontWeight: "600",
-    marginTop: -2,
-  },
-  actionIcon: {
-    marginLeft: 8,
-  }
+  card: { width: '47%', aspectRatio: 0.85, borderRadius: 28, marginBottom: 15, padding: 8, shadowColor: "#000", shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.06, shadowRadius: 12, elevation: 3, borderWidth: 1, borderColor: 'rgba(0,0,0,0.03)' },
+  imageWrapper: { width: '100%', height: '55%', borderRadius: 22, overflow: 'hidden', justifyContent: 'center', alignItems: 'center', position: 'relative' },
+  image: { width: '100%', height: '100%', resizeMode: 'cover' },
+  priceTag: { position: 'absolute', top: 8, right: 8, backgroundColor: 'rgba(0,0,0,0.7)', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 10 },
+  priceText: { color: '#FFF', fontSize: 13, fontWeight: '900' },
+  infoContent: { flex: 1, paddingHorizontal: 6, paddingTop: 10, justifyContent: 'space-between' },
+  title: { fontSize: 15, fontWeight: '800', letterSpacing: -0.5 },
+  row: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+  detailText: { fontSize: 11, fontWeight: '600' },
+  dot: { width: 3, height: 3, borderRadius: 2, backgroundColor: '#D1D1D6' },
+  deptBadge: { alignSelf: 'flex-start', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 10, marginTop: 4 },
+  deptText: { fontSize: 9, fontWeight: '800', textTransform: 'uppercase', letterSpacing: 0.5 }
 });
