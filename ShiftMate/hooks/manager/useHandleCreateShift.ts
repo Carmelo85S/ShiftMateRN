@@ -3,6 +3,7 @@ import { Alert } from "react-native";
 import { supabase } from "@/lib/supabase";
 import { createShift } from "@/queries/managerQueries";
 import { useRouter } from "expo-router";
+import { CreateShiftSchema } from "@/src/validation/createShift.schema";
 
 export const useHandleCreateShift = () => {
   const [loading, setLoading] = useState(false);
@@ -10,10 +11,16 @@ export const useHandleCreateShift = () => {
   const router = useRouter();
 
   const handleCreate = async (form: any) => {
-    if (!form.title || !form.department || !form.hourly_rate) {
-      Alert.alert("Missing Info", "Please fill in all required fields.");
+    // ZOD validation
+    const result = CreateShiftSchema.safeParse(form);
+
+    if (!result.success) {
+      const errorMsg = result.error.issues[0].message;
+      Alert.alert("Validation Error", errorMsg);
       return;
     }
+
+    const validatedData = result.data;
 
     setLoading(true);
     try {
@@ -21,10 +28,13 @@ export const useHandleCreateShift = () => {
       if (!user) throw new Error("User not found");
 
       const payload = {
-        ...form,
-        shift_date: form.date.toISOString().split('T')[0],
-        start_time: form.startTime.toLocaleTimeString('it-IT', { hour12: false }),
-        end_time: form.endTime.toLocaleTimeString('it-IT', { hour12: false }),
+        title: validatedData.title,
+        description: validatedData.description || "",
+        department: validatedData.department,
+        hourly_rate: validatedData.hourly_rate.toString(),
+        date: validatedData.shift_date, 
+        startTime: validatedData.start_time,
+        endTime: validatedData.end_time,
       };
 
       await createShift(user.id, imageUrl, payload);

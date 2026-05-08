@@ -117,6 +117,7 @@ export default function TabLayout() {
     >
       <Tabs.Screen name="dashboard" />
       <Tabs.Screen name="shift" />
+      <Tabs.Screen name="history" options={{ href: null }} />
       <Tabs.Screen name="createShift" />
       <Tabs.Screen name="profile" />
       <Tabs.Screen name="notifications/notificationsManager" />

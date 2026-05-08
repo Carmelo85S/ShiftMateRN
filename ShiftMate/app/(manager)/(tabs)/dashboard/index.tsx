@@ -66,7 +66,7 @@ export default function Dashboard() {
         {/* HISTORY: Accesso rapido allo storico */}
         <HistoryBar 
           theme={theme} 
-          onPress={() => router.push("/history")} 
+          onPress={() => router.push("/(manager)/(tabs)/shift/history")} 
         />
 
         {/* SHIFTS: Prossimi turni in arrivo */}

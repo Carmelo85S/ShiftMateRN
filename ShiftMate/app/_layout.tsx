@@ -24,16 +24,14 @@ export default function RootLayout() {
   ]);
 
   useEffect(() => {
-    // Recupera sessione iniziale
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
     });
 
-    // Ascolta i cambiamenti. Se l'utente esce, resettiamo lo stato
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       setSession(session);
       if (event === 'SIGNED_OUT') {
-        navigationRouter.replace("/"); // Reindirizzamento immediato al logout
+        navigationRouter.replace("/");
       }
     });
 
@@ -58,7 +56,6 @@ export default function RootLayout() {
         useNativeDriver: true,
       }).start();
     } else {
-      // Scomparsa immediata o fade-out se preferisci
       Animated.timing(fadeAnim, {
         toValue: 0,
         duration: 300,
@@ -69,7 +66,6 @@ export default function RootLayout() {
 
   const handleLogout = async () => {
     try {
-      // signOut() scatenerà onAuthStateChange che farà il replace("/")
       const { error } = await supabase.auth.signOut();
       if (error) throw error;
     } catch (err) {

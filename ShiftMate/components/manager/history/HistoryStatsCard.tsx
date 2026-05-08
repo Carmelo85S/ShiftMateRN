@@ -9,27 +9,75 @@ interface HistoryStatsProps {
 
 export const HistoryStatsCard = ({ spending, count, theme }: HistoryStatsProps) => {
   return (
-    <View style={[styles.statsCard, { backgroundColor: theme.card }]}>
-      <Text style={[styles.statsLabel, { color: theme.secondaryText }]}>
-        TOTAL SPENDING
-      </Text>
-      
-      <Text style={[styles.statsValue, { color: theme.text }]}>
-        €{spending.toLocaleString('it-IT', { minimumFractionDigits: 2 })}
-      </Text>
+    <View style={[styles.statsCard, { backgroundColor: theme.card, borderColor: theme.border }]}>
+      <View style={styles.leftContent}>
+        <Text style={[styles.statsLabel, { color: theme.secondaryText }]}>
+          TOTAL SPENDING
+        </Text>
+        <Text style={[styles.statsValue, { color: theme.text }]}>
+          €{spending.toLocaleString('it-IT', { minimumFractionDigits: 2 })}
+        </Text>
+      </View>
 
       <View style={styles.badge}>
-        <Ionicons name="checkmark-done" size={12} color="#4CAF50" />
-        <Text style={styles.badgeText}>{count} Shifts Completed</Text>
+        <Ionicons name="checkmark-done-circle" size={16} color="#4CAF50" />
+        <View>
+          <Text style={styles.badgeCount}>{count}</Text>
+          <Text style={styles.badgeLabel}>SHIFTS</Text>
+        </View>
       </View>
     </View>
   );
 };
 
 const styles = StyleSheet.create({
-  statsCard: { padding: 24, borderRadius: 24, marginBottom: 30, alignItems: 'center',shadowColor: "#000",shadowOffset: { width: 0, height: 2 },shadowOpacity: 0.05,shadowRadius: 10,elevation: 2,},
-  statsLabel: { fontSize: 10, fontWeight: "800", letterSpacing: 1.5, marginBottom: 8,opacity: 0.6 },
-  statsValue: { fontSize: 34, fontWeight: "900",letterSpacing: -1 },
-  badge: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 16, backgroundColor: '#4CAF5015', paddingHorizontal: 14, paddingVertical: 8, borderRadius: 14 },
-  badgeText: { color: '#4CAF50', fontSize: 13, fontWeight: "700" },
+  statsCard: { 
+    padding: 16, 
+    borderRadius: 20,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    borderWidth: 1,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 10,
+    elevation: 2,
+  },
+  leftContent: {
+    flex: 1,
+  },
+  statsLabel: { 
+    fontSize: 9, // Ridotto
+    fontWeight: "800", 
+    letterSpacing: 1, 
+    marginBottom: 2,
+    opacity: 0.6 
+  },
+  statsValue: { 
+    fontSize: 24, // Ridotto da 34 per non essere troppo ingombrante
+    fontWeight: "900",
+    letterSpacing: -0.5 
+  },
+  badge: { 
+    flexDirection: 'row', 
+    alignItems: 'center', 
+    gap: 8, 
+    backgroundColor: '#4CAF5010', 
+    paddingHorizontal: 12, 
+    paddingVertical: 8, 
+    borderRadius: 12 
+  },
+  badgeCount: { 
+    color: '#4CAF50', 
+    fontSize: 14, 
+    fontWeight: "800",
+    lineHeight: 14
+  },
+  badgeLabel: {
+    color: '#4CAF50',
+    fontSize: 8,
+    fontWeight: "700",
+    opacity: 0.8
+  }
 });

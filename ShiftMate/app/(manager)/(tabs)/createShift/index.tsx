@@ -22,6 +22,7 @@ import { Description } from "@/components/shared/shift/Description";
 import { ShiftScheduling } from "@/components/shared/shift/ShiftScheduling";
 import { ShiftDatePickerModal } from "@/components/shared/shift/ShiftDatePickerModal";
 import { ScreenWrapper } from "@/components/shared/wrapper/layout-wrapper";
+import { CreateShiftSchema } from "@/src/validation/createShift.schema";
 
 export default function CreateShift() {
   const { form, setForm, picker, setPicker, estimatedEarnings, onPickerChange, openPicker } = useShiftForm();
@@ -30,20 +31,29 @@ export default function CreateShift() {
   const insets = useSafeAreaInsets();
   const theme = Colors[useColorScheme() ?? "light"];
 
+  const onSubmit = async () => {
+    const result = CreateShiftSchema.safeParse(form);
+    if (!result.success) {
+      // Handle validation errors
+      const error = result.error.issues[0].message; // Get the first error message
+      alert(`Error: ${error}`);
+      return;
+    }
+
+      await handleCreate(result.data);
+  };
+
   useLoadProfile(setForm);
 
   return (
     <KeyboardAvoidingView
       behavior={Platform.OS === "ios" ? "padding" : "height"}
       style={{ flex: 1, backgroundColor: theme.background }}
-      // offset per non coprire l'input attivo con la tastiera
       keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 20} 
     >
       <ScreenWrapper 
         scrollable={true} 
         style={styles.wrapper}
-        // Non passiamo onRefresh qui perché solitamente 
-        // non si fa pull-to-refresh in un form di creazione
       >
         <View style={[styles.header, { paddingTop: insets.top + 20 }]}>
           <Text style={[styles.title, { color: theme.text }]}>New Shift</Text>
@@ -72,7 +82,7 @@ export default function CreateShift() {
         {/* HOURLY RATE */}
         <HourlyRate 
           value={form.hourly_rate}
-          onChange={(text) => setForm({ ...form, hourly_rate: text })}
+          onChange={(text) => setForm(prev => ({ ...prev, hourly_rate: text }))}
           estimatedEarnings={estimatedEarnings}
           theme={theme}
         />
@@ -96,7 +106,7 @@ export default function CreateShift() {
             styles.submitButton, 
             { backgroundColor: theme.text, opacity: pressed || loading ? 0.8 : 1 }
           ]}
-          onPress={() => handleCreate(form)}
+          onPress={onSubmit}
           disabled={loading}
         >
           {loading ? (

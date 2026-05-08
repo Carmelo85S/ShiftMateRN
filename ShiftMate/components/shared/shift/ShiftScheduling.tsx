@@ -2,11 +2,11 @@ import React from "react";
 import { View, Text, Pressable, StyleSheet } from "react-native";
 
 interface Props {
-  openPicker: (mode: 'date' | 'time', target: 'date' | 'startTime' | 'endTime') => void;
+  openPicker: (mode: 'date' | 'time', target: 'shift_date' | 'start_time' | 'end_time') => void;
   form: {
-    date: Date;
-    startTime: Date;
-    endTime: Date;
+    shift_date: Date | null;
+    start_time: Date | null;
+    end_time: Date | null;
   };
   theme: any;
 }
@@ -18,10 +18,10 @@ export const ShiftScheduling = ({ openPicker, form, theme }: Props) => {
       <View style={{ flex: 1.5 }}>
         <Text style={[styles.label, { color: theme.text }]}>Date</Text>
         <Pressable 
-          onPress={() => openPicker('date', 'date')}
+          onPress={() => openPicker('date', 'shift_date')}
           style={[styles.input, styles.pickerButton, { backgroundColor: theme.card, borderColor: theme.border }]}>
           <Text style={{ color: theme.text }}>
-            {form.date.toLocaleDateString('en-GB')}
+            {form.shift_date?.toLocaleDateString('en-GB')}
           </Text>
         </Pressable>
       </View>
@@ -30,10 +30,10 @@ export const ShiftScheduling = ({ openPicker, form, theme }: Props) => {
       <View style={{ flex: 1 }}>
         <Text style={[styles.label, { color: theme.text }]}>Start</Text>
         <Pressable 
-          onPress={() => openPicker('time', 'startTime')}
+          onPress={() => openPicker('time', 'start_time')}
           style={[styles.input, styles.pickerButton, { backgroundColor: theme.card, borderColor: theme.border }]}>
           <Text style={{ color: theme.text, fontWeight: '700' }}>
-            {form.startTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+            {form.start_time?.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
           </Text>
         </Pressable>
       </View>
@@ -42,10 +42,10 @@ export const ShiftScheduling = ({ openPicker, form, theme }: Props) => {
       <View style={{ flex: 1 }}>
         <Text style={[styles.label, { color: theme.text }]}>End</Text>
         <Pressable 
-          onPress={() => openPicker('time', 'endTime')}
+          onPress={() => openPicker('time', 'end_time')}
           style={[styles.input, styles.pickerButton, { backgroundColor: theme.card, borderColor: theme.border }]}>
           <Text style={{ color: theme.text, fontWeight: '700' }}>
-            {form.endTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+            {form.end_time?.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
           </Text>
         </Pressable>
       </View>
