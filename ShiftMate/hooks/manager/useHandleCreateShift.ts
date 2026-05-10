@@ -3,7 +3,7 @@ import { Alert } from "react-native";
 import { supabase } from "@/lib/supabase";
 import { createShift } from "@/queries/managerQueries";
 import { useRouter } from "expo-router";
-import { CreateShiftSchema } from "@/src/validation/formShift.schema";
+import { FormShiftSchema } from "@/src/validation/formShift.schema";
 
 export const useHandleCreateShift = () => {
   const [loading, setLoading] = useState(false);
@@ -12,7 +12,7 @@ export const useHandleCreateShift = () => {
 
   const handleCreate = async (form: any) => {
     // ZOD validation
-    const result = CreateShiftSchema.safeParse(form);
+    const result = FormShiftSchema.safeParse(form);
 
     if (!result.success) {
       const errorMsg = result.error.issues[0].message;

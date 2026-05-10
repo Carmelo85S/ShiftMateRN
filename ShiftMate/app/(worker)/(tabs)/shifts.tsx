@@ -40,6 +40,7 @@ export default function WorkerShifts() {
       <FlatList
         data={displayedShifts}
         keyExtractor={(item) => item.id}
+        numColumns={2}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={[
           styles.listContent, 
