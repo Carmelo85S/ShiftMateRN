@@ -3,7 +3,7 @@ import { Alert } from "react-native";
 import { supabase } from "@/lib/supabase";
 import { createShift } from "@/queries/managerQueries";
 import { useRouter } from "expo-router";
-import { CreateShiftSchema } from "@/src/validation/createShift.schema";
+import { CreateShiftSchema } from "@/src/validation/formShift.schema";
 
 export const useHandleCreateShift = () => {
   const [loading, setLoading] = useState(false);

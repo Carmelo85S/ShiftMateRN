@@ -25,9 +25,9 @@ export const useFetchShift = (id: string | undefined, setForm: (data: any) => vo
           department: data.department ?? "",
           industry: "hospitality",
           hourly_rate: data.hourly_rate?.toString() ?? "",
-          date: new Date(data.shift_date),
-          startTime: new Date(`1970-01-01T${data.start_time}`),
-          endTime: new Date(`1970-01-01T${data.end_time}`),
+          shift_date: new Date(data.shift_date),
+          start_time: new Date(`1970-01-01T${data.start_time}`),
+          end_time: new Date(`1970-01-01T${data.end_time}`),
         });
 
         setImageUrl(data.image_url ?? null);

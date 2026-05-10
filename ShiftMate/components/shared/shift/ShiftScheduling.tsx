@@ -21,7 +21,7 @@ export const ShiftScheduling = ({ openPicker, form, theme }: Props) => {
           onPress={() => openPicker('date', 'shift_date')}
           style={[styles.input, styles.pickerButton, { backgroundColor: theme.card, borderColor: theme.border }]}>
           <Text style={{ color: theme.text }}>
-            {form.shift_date?.toLocaleDateString('en-GB')}
+            {form.shift_date ? new Date(form.shift_date).toLocaleDateString('en-GB') : "Select Date"}
           </Text>
         </Pressable>
       </View>
@@ -33,7 +33,7 @@ export const ShiftScheduling = ({ openPicker, form, theme }: Props) => {
           onPress={() => openPicker('time', 'start_time')}
           style={[styles.input, styles.pickerButton, { backgroundColor: theme.card, borderColor: theme.border }]}>
           <Text style={{ color: theme.text, fontWeight: '700' }}>
-            {form.start_time?.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+            {form.start_time ? new Date(form.start_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : "Select Start Time"}
           </Text>
         </Pressable>
       </View>
@@ -45,7 +45,7 @@ export const ShiftScheduling = ({ openPicker, form, theme }: Props) => {
           onPress={() => openPicker('time', 'end_time')}
           style={[styles.input, styles.pickerButton, { backgroundColor: theme.card, borderColor: theme.border }]}>
           <Text style={{ color: theme.text, fontWeight: '700' }}>
-            {form.end_time?.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+            {form.end_time ? new Date(form.end_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : "Select End Time"}
           </Text>
         </Pressable>
       </View>
@@ -54,27 +54,8 @@ export const ShiftScheduling = ({ openPicker, form, theme }: Props) => {
 };
 
 const styles = StyleSheet.create({
-  row: { 
-    flexDirection: "row", 
-    gap: 10, 
-    marginBottom: 25 
-  },
-  label: { 
-    fontSize: 11, 
-    fontWeight: "800", 
-    marginBottom: 12, 
-    textTransform: 'uppercase', 
-    letterSpacing: 1, 
-    opacity: 0.6 
-  },
-  input: { 
-    height: 60, 
-    borderRadius: 20, 
-    borderWidth: 1, 
-    justifyContent: 'center', 
-    alignItems: 'center'
-  },
-  pickerButton: { 
-    paddingHorizontal: 4 
-  },
+  row: { flexDirection: "row", gap: 10, marginBottom: 25 },
+  label: { fontSize: 11, fontWeight: "800", marginBottom: 12, textTransform: 'uppercase', letterSpacing: 1, opacity: 0.6 },
+  input: { height: 60, borderRadius: 20, borderWidth: 1, justifyContent: 'center', alignItems: 'center' },
+  pickerButton: { paddingHorizontal: 4 },
 });

@@ -22,7 +22,7 @@ import { Description } from "@/components/shared/shift/Description";
 import { ShiftScheduling } from "@/components/shared/shift/ShiftScheduling";
 import { ShiftDatePickerModal } from "@/components/shared/shift/ShiftDatePickerModal";
 import { ScreenWrapper } from "@/components/shared/wrapper/layout-wrapper";
-import { CreateShiftSchema } from "@/src/validation/createShift.schema";
+import { FormShiftSchema } from "@/src/validation/formShift.schema";
 
 export default function CreateShift() {
   const { form, setForm, picker, setPicker, estimatedEarnings, onPickerChange, openPicker } = useShiftForm();
@@ -32,7 +32,7 @@ export default function CreateShift() {
   const theme = Colors[useColorScheme() ?? "light"];
 
   const onSubmit = async () => {
-    const result = CreateShiftSchema.safeParse(form);
+    const result = FormShiftSchema.safeParse(form);
     if (!result.success) {
       // Handle validation errors
       const error = result.error.issues[0].message; // Get the first error message

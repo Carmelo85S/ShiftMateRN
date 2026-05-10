@@ -12,7 +12,7 @@ import {
 } from "react-native";
 import { Colors } from "@/constants/theme";
 import { Ionicons } from "@expo/vector-icons";
-import { useRouter, useLocalSearchParams } from "expo-router";
+import { useLocalSearchParams } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import ShiftUploader from "@/components/imagePicker/imagePickerShift";
 import { TitleSuggestions } from "@/components/shared/shift/TitleSuggestion";
@@ -33,7 +33,7 @@ export default function EditShift() {
 
   const { form, setForm, picker, setPicker, estimatedEarnings, onPickerChange, openPicker } = useShiftForm();
   const { loading, imageUrl, setImageUrl } = useFetchShift(id, setForm);
-  const { saving, deleting, handleUpdate, handleDelete } = useEditShiftActions(id, form, imageUrl);
+  const { saving, deleting, handleUpdate, handleDelete } = useEditShiftActions({id, form, imageUrl});
 
   if (loading) return (
     <View style={[styles.center, { backgroundColor: theme.background }]}>
@@ -100,7 +100,7 @@ export default function EditShift() {
           )}
         </Pressable>
 
-        {/* Modal del Picker */}
+        {/** DATE/TIME PICKER MODAL */}
         <ShiftDatePickerModal 
           picker={picker}
           form={form}

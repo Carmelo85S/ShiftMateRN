@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-export const CreateShiftSchema = z.object({
+export const FormShiftSchema = z.object({
   department: z.string().min(1, "Department is required"),
   title: z.string()
     .min(3, "Title must be at least 3 characters")
@@ -34,4 +34,4 @@ export const CreateShiftSchema = z.object({
   path: ["end_time"],
 });
 
-export type CreateShift = z.infer<typeof CreateShiftSchema>;
+export type FormShift = z.infer<typeof FormShiftSchema>;
