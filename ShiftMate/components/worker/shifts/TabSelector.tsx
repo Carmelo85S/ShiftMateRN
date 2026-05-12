@@ -1,49 +1,82 @@
 import React from "react";
 import { View, Text, Pressable, StyleSheet } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 
 interface TabSelectorProps {
-  activeTab: 'all' | 'mine';
-  setActiveTab: (tab: 'all' | 'mine') => void;
+  activeTab: 'all' | 'mine' | 'applications';
+  setActiveTab: (tab: 'all' | 'mine' | 'applications') => void;
   totalGlobal: number;
   totalMine: number;
+  totalApplications: number;
 }
 
 export const TabSelector = ({ 
   activeTab, 
   setActiveTab, 
   totalGlobal, 
-  totalMine 
+  totalMine,
+  totalApplications
 }: TabSelectorProps) => {
   return (
     <View style={styles.tabsContainer}>
       {/* Tab Global */}
-      <Pressable 
-        style={[styles.tabButton, activeTab === 'all' && styles.activeTab]}
+      <TabItem 
+        label="Global" 
+        icon="globe-outline"
+        count={totalGlobal}
+        active={activeTab === 'all'}
         onPress={() => setActiveTab('all')}
-      >
-        <Text style={[styles.tabText, activeTab === 'all' && styles.activeTabText]}>
-          Global ({totalGlobal})
-        </Text>
-      </Pressable>
+      />
       
-      {/* Tab My Workplace */}
-      <Pressable 
-        style={[styles.tabButton, activeTab === 'mine' && styles.activeTab]}
+      {/* Tab Workplace */}
+      <TabItem 
+        label="Work" 
+        icon="business-outline"
+        count={totalMine}
+        active={activeTab === 'mine'}
         onPress={() => setActiveTab('mine')}
-      >
-        <Text style={[styles.tabText, activeTab === 'mine' && styles.activeTabText]}>
-          My Workplace ({totalMine})
-        </Text>
-      </Pressable>
+      />
+
+      {/* Tab Applied */}
+      <TabItem 
+        label="Applied" 
+        icon="checkmark-circle-outline"
+        count={totalApplications}
+        active={activeTab === 'applications'}
+        onPress={() => setActiveTab('applications')}
+      />
     </View>
   );
 };
 
+const TabItem = ({ label, icon, count, active, onPress }: any) => (
+  <Pressable 
+    style={[styles.tabButton, active && styles.activeTab]}
+    onPress={onPress}
+  >
+    <Ionicons 
+      name={icon} 
+      size={16} 
+      color={active ? "#FFF" : "#64748B"} 
+      style={{ marginBottom: 2 }}
+    />
+    <Text style={[styles.tabText, active && styles.activeTabText]}>
+      {label}
+    </Text>
+    <View style={[styles.badge, { backgroundColor: active ? 'rgba(255,255,255,0.2)' : '#E2E8F0' }]}>
+      <Text style={[styles.badgeText, { color: active ? '#FFF' : '#64748B' }]}>
+        {count}
+      </Text>
+    </View>
+  </Pressable>
+);
 
 const styles = StyleSheet.create({
-  tabsContainer: {flexDirection: 'row',gap: 12,marginBottom: 20,marginTop: 10, },
-  tabButton: {paddingVertical: 10,paddingHorizontal: 20,borderRadius: 25,backgroundColor: '#F1F5F9',borderWidth: 1,borderColor: '#E2E8F0'},
-  activeTab: {backgroundColor: '#0F172A', borderColor: '#0F172A'},
-  tabText: {fontSize: 14,fontWeight: '700',color: '#64748B',},
-  activeTabText: {color: '#FFFFFF'},
+  tabsContainer: {flexDirection: 'row',backgroundColor: '#F1F5F9',borderRadius: 20,padding: 6,marginBottom: 20,marginTop: 10,gap: 4,},
+  tabButton: {flex: 1,flexDirection: 'column',paddingVertical: 8,alignItems: 'center',justifyContent: 'center',borderRadius: 14,},
+  activeTab: {backgroundColor: '#0F172A',elevation: 4,shadowColor: '#000',shadowOffset: { width: 0, height: 2 },shadowOpacity: 0.15,shadowRadius: 4,},
+  tabText: {fontSize: 10,fontWeight: '800',color: '#64748B',textTransform: 'uppercase',},
+  activeTabText: {color: '#FFFFFF',},
+  badge: {position: 'absolute',top: 4,right: 4,paddingHorizontal: 5,paddingVertical: 1,borderRadius: 8,minWidth: 18,alignItems: 'center',},
+  badgeText: {fontSize: 9,fontWeight: '900'}
 });

@@ -4,7 +4,7 @@ import { Ionicons } from "@expo/vector-icons";
 
 interface EmptyShiftsProps {
   loading: boolean;
-  activeTab: 'all' | 'mine';
+  activeTab: 'all' | 'mine' | 'applications';
   theme: {
     tint: string;
     [key: string]: any;

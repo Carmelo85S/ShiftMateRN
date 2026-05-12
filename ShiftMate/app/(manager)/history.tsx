@@ -97,7 +97,7 @@ const styles = StyleSheet.create({
   columnRow: { justifyContent: 'space-between' },
   cardWrapper: { 
     width: '48%', 
-    marginBottom: 12 // Spazio tra le righe di card ridotto
+    marginBottom: 12
   },
   headerContainer: { 
     marginTop: 10,

@@ -24,7 +24,6 @@ export const useManagerShift = () => {
       if (!session?.user?.id) return;
       const data = await fetchManagerShifts(session.user.id); 
       setShifts(data as Shift[]);
-      // Esegui questo calcolo dopo aver caricato i dati (fetchData)
       const categories = ["All", ...new Set(data.map(s => s.department))];
       console.log("Shift categories:", categories);
 
