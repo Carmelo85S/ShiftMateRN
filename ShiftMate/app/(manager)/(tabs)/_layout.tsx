@@ -16,6 +16,7 @@ function OrbitTabBar({ state, descriptors, navigation, badgeCount, theme }: any)
 
   return (
     <View style={styles.masterWrapper}>
+      {/* Sfondo solido della Tab Bar */}
       <View style={[
         styles.solidBase, 
         { 
@@ -28,7 +29,9 @@ function OrbitTabBar({ state, descriptors, navigation, badgeCount, theme }: any)
         <View style={[styles.island, { backgroundColor: theme.card, borderColor: theme.border }]}>
           {state.routes.map((route: any, index: number) => {
             const isFocused = state.index === index;
-            const isCenter = route.name === "createShift";
+            
+            // Il tasto centrale ora punta alla cartella "create"
+            const isCenter = route.name === "create";
 
             const onPress = () => {
               const event = navigation.emit({ 
@@ -38,7 +41,7 @@ function OrbitTabBar({ state, descriptors, navigation, badgeCount, theme }: any)
               });
 
               if (!event.defaultPrevented) {
-               
+                // Reset dello stack per tornare sempre all'index (le 2 Card)
                 navigation.dispatch(
                   CommonActions.reset({
                     index: 0,
@@ -54,7 +57,7 @@ function OrbitTabBar({ state, descriptors, navigation, badgeCount, theme }: any)
               const map: any = {
                 dashboard: "grid-sharp",
                 shift: "receipt-sharp",
-                createShift: "add",
+                create: "add", // Mappatura aggiornata per la nuova cartella
                 profile: "person-sharp",
                 'notifications/notificationsManager': "notifications-sharp",
               };
@@ -113,9 +116,11 @@ export default function TabLayout() {
       setUnreadCount(count || 0);
     };
     fetchCount();
+    
     const channel = supabase.channel('orbit-v3')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'notifications' }, fetchCount)
       .subscribe();
+      
     return () => { if (channel) supabase.removeChannel(channel); };
   }, []);
 
@@ -129,7 +134,7 @@ export default function TabLayout() {
       <Tabs.Screen name="dashboard" />
       <Tabs.Screen name="shift" />
       <Tabs.Screen name="history" options={{ href: null }} />
-      <Tabs.Screen name="createShift" />
+      <Tabs.Screen name="create" />
       <Tabs.Screen name="profile" />
       <Tabs.Screen name="notifications/notificationsManager" />
     </Tabs>
@@ -137,14 +142,84 @@ export default function TabLayout() {
 }
 
 const styles = StyleSheet.create({
-  masterWrapper: {position: "absolute",bottom: 0,left: 0,right: 0,width: width,},
-  solidBase: {position: "absolute",bottom: 0,left: 0,right: 0,},
-  contentWrapper: {alignItems: "center",justifyContent: "center",},
-  island: {flexDirection: "row",width: width * 0.9,height: 74,borderRadius: 37,alignItems: "center",justifyContent: "space-around",paddingHorizontal: 15,borderWidth: 1,shadowColor: "#000",shadowOffset: { width: 0, height: 4 },shadowOpacity: 0.1,shadowRadius: 10,elevation: 5,},
-  tabItem: {flex: 1,alignItems: "center",justifyContent: "center",height: "100%",},
-  centerOuter: {marginTop: -45, padding: 7,borderRadius: 45,shadowColor: "#000",shadowOffset: { width: 0, height: 4 },shadowOpacity: 0.15,shadowRadius: 8,elevation: 8,},
-  centerButton: {width: 64,height: 64,borderRadius: 32,justifyContent: "center",alignItems: "center",},
-  activeIndicator: {position: "absolute",bottom: 12,width: 5,height: 5,borderRadius: 2.5,},
-  orbitBadge: {position: "absolute",top: 18,right: 12,minWidth: 18,height: 18,borderRadius: 9,justifyContent: "center",alignItems: "center",borderWidth: 2,borderColor: "#FFF",paddingHorizontal: 2,},
-  orbitBadgeText: {color: "#FFF",fontSize: 9,fontWeight: "900"}
+  masterWrapper: {
+    position: "absolute",
+    bottom: 0,
+    left: 0,
+    right: 0,
+    width: width,
+  },
+  solidBase: {
+    position: "absolute",
+    bottom: 0,
+    left: 0,
+    right: 0,
+  },
+  contentWrapper: {
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  island: {
+    flexDirection: "row",
+    width: width * 0.9,
+    height: 74,
+    borderRadius: 37,
+    alignItems: "center",
+    justifyContent: "space-around",
+    paddingHorizontal: 15,
+    borderWidth: 1,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 10,
+    elevation: 5,
+  },
+  tabItem: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    height: "100%",
+  },
+  centerOuter: {
+    marginTop: -45, 
+    padding: 7,
+    borderRadius: 45,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+    elevation: 8,
+  },
+  centerButton: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  activeIndicator: {
+    position: "absolute",
+    bottom: 12,
+    width: 5,
+    height: 5,
+    borderRadius: 2.5,
+  },
+  orbitBadge: {
+    position: "absolute",
+    top: 18,
+    right: 12,
+    minWidth: 18,
+    height: 18,
+    borderRadius: 9,
+    justifyContent: "center",
+    alignItems: "center",
+    borderWidth: 2,
+    borderColor: "#FFF",
+    paddingHorizontal: 2,
+  },
+  orbitBadgeText: {
+    color: "#FFF",
+    fontSize: 9,
+    fontWeight: "900"
+  }
 });

@@ -57,7 +57,7 @@ export default function CreateShift() {
       >
         <View style={[styles.header, { paddingTop: insets.top + 20 }]}>
           <Text style={[styles.title, { color: theme.text }]}>New Shift</Text>
-          <Text style={[styles.subtitle, { color: theme.secondaryText }]}>Hospitality Focus</Text>
+          <Text style={[styles.subtitle, { color: theme.secondaryText }]}>Create new shift</Text>
         </View>
 
         <View style={styles.imageSection}>

@@ -23,7 +23,17 @@ export default function CreateShiftStack() {
     >
       <Stack.Screen name="index" 
         options={{ 
-          title: "Post a New Shift",
+          title: "Create",
+          headerBackButtonDisplayMode: "minimal"
+        }} />
+        <Stack.Screen name="createShift" 
+        options={{ 
+          title: "New shift",
+          headerBackButtonDisplayMode: "minimal"
+        }} />
+        <Stack.Screen name="createDepartment" 
+        options={{ 
+          title: "New department",
           headerBackButtonDisplayMode: "minimal"
         }} />
     </Stack>
