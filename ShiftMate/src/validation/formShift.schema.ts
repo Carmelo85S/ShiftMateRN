@@ -1,20 +1,27 @@
 import { z } from 'zod';
 
 export const FormShiftSchema = z.object({
-  department: z.string().min(1, "Department is required"),
+  department: z.string().uuid({ message: "Please select a valid department" }),
+  
   title: z.string()
     .min(3, "Title must be at least 3 characters")
     .max(50, "Title must be at most 50 characters"),
+    
   description: z.string()
     .max(200, "Description must be at most 200 characters")
     .optional()
     .or(z.literal('')),
   
-  // Error message 
   shift_date: z.date({ 
     message: "Please select a valid date" 
   }).refine(
-    (date) => date >= new Date(new Date().setHours(0, 0, 0, 0)), 
+    (date) => {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const targetDate = new Date(date);
+      targetDate.setHours(0, 0, 0, 0);
+      return targetDate >= today;
+    }, 
     "Shift date cannot be in the past"
   ),
 

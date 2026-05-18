@@ -57,7 +57,7 @@ function OrbitTabBar({ state, descriptors, navigation, badgeCount, theme }: any)
               const map: any = {
                 dashboard: "grid-sharp",
                 shift: "receipt-sharp",
-                create: "add", // Mappatura aggiornata per la nuova cartella
+                create: "add",
                 profile: "person-sharp",
                 'notifications/notificationsManager': "notifications-sharp",
               };

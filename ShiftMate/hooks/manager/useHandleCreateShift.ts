@@ -10,8 +10,21 @@ export const useHandleCreateShift = () => {
   const [imageUrl, setImageUrl] = useState<string | null>(null);
   const router = useRouter();
 
+  // Helper per estrarre solo la stringa HH:MM:SS dall'oggetto Date (richiesto dal tipo TIME di Postgres)
+  const formatTime = (date: Date): string => {
+    const hours = String(date.getHours()).padStart(2, '0');
+    const minutes = String(date.getMinutes()).padStart(2, '0');
+    const seconds = String(date.getSeconds()).padStart(2, '0');
+    return `${hours}:${minutes}:${seconds}`;
+  };
+
+  // Helper per formattare la data in YYYY-MM-DD
+  const formatDate = (date: Date): string => {
+    return date.toISOString().split('T')[0];
+  };
+
   const handleCreate = async (form: any) => {
-    // ZOD validation
+    // 1. Validazione Zod centralizzata qui nell'hook
     const result = FormShiftSchema.safeParse(form);
 
     if (!result.success) {
@@ -21,20 +34,21 @@ export const useHandleCreateShift = () => {
     }
 
     const validatedData = result.data;
-
     setLoading(true);
+
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("User not found");
 
+      // 2. Costruiamo il payload formattando correttamente i dati per Postgres
       const payload = {
         title: validatedData.title,
         description: validatedData.description || "",
-        department: validatedData.department,
-        hourly_rate: validatedData.hourly_rate.toString(),
-        date: validatedData.shift_date, 
-        startTime: validatedData.start_time,
-        endTime: validatedData.end_time,
+        departmentId: validatedData.department, // <-- Cambiato in departmentId per mappare 'department_id'
+        hourly_rate: validatedData.hourly_rate, // Lascialo come numero, Zod lo ha già convertito con coerce
+        date: formatDate(validatedData.shift_date), // Formato "YYYY-MM-DD"
+        startTime: formatTime(validatedData.start_time), // Formato "HH:MM:SS"
+        endTime: formatTime(validatedData.end_time), // Formato "HH:MM:SS"
       };
 
       await createShift(user.id, imageUrl, payload);

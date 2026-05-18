@@ -67,7 +67,7 @@ export default function CreateShift() {
         {/* DEPARTMENT */}
         <DepartmentSelector 
           selectedId={form.department} 
-          onSelect={(id) => setForm({ ...form, department: id, title: "" })} 
+          onSelect={(id: string) => setForm({ ...form, department: id, title: "" })} 
           theme={theme} 
         />
 
@@ -78,6 +78,7 @@ export default function CreateShift() {
           onTitleChange={(text) => setForm({ ...form, title: text })} 
           theme={theme} 
         />
+        
 
         {/* HOURLY RATE */}
         <HourlyRate 

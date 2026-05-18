@@ -7,7 +7,7 @@ const calculateTotalPay = (startTime: Date, endTime: Date, hourlyRate: string) =
 
   let diffInMs = endTime.getTime() - startTime.getTime();
   
-  // Night shift management (if it ends the next day))
+  // Night shift management (if it ends the next day)
   if (diffInMs < 0) {
     diffInMs += 24 * 60 * 60 * 1000; 
   }
@@ -63,7 +63,10 @@ export const createBusinessAndAssignOwner = async (userId: string, businessName:
 export const fetchManagerShifts = async (userId: string) => {
   const { data: shifts, error } = await supabase
     .from("shifts")
-    .select("id, title, shift_date, start_time, end_time, status, image_url, hourly_rate, total_pay, department")
+    .select(`
+      id, title, shift_date, start_time, end_time, status, image_url, hourly_rate, total_pay, department_id,
+      departments ( name )
+    `) // AGGIORNATO: Prende il nome del reparto relazionato
     .eq("manager_id", userId)
     .order('shift_date', { ascending: true });
 
@@ -71,15 +74,19 @@ export const fetchManagerShifts = async (userId: string) => {
   return shifts || [];
 };
 
-export const createShift = async (userId: string, imageUrl: string | null, formData: {
-  title: string;
-  description: string;
-  department: string;
-  date: Date;
-  startTime: Date;
-  endTime: Date;
-  hourly_rate: string;
-}) => {
+export const createShift = async (
+  userId: string, 
+  imageUrl: string | null, 
+  formData: {
+    title: string;
+    description: string;
+    departmentId: string;
+    date: string;         
+    startTime: string;    
+    endTime: string;      
+    hourly_rate: number;  
+  }
+) => {
   const { data: profile, error: profileError } = await supabase
     .from("profiles")
     .select("business_id")
@@ -90,20 +97,17 @@ export const createShift = async (userId: string, imageUrl: string | null, formD
     throw new Error("Your profile is not linked to a business.");
   }
 
-  const totalPay = calculateTotalPay(formData.startTime, formData.endTime, formData.hourly_rate);
-
   const { error: shiftError } = await supabase.from("shifts").insert([
     {
       title: formData.title,
       description: formData.description,
-      department: formData.department.toLowerCase(),
+      department_id: formData.departmentId, 
       business_id: profile.business_id,
-      shift_date: formData.date.toISOString().split("T")[0],
-      start_time: formData.startTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false }),
-      end_time: formData.endTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false }),
+      shift_date: formData.date,
+      start_time: formData.startTime,
+      end_time: formData.endTime,
       image_url: imageUrl,
-      hourly_rate: parseFloat(formData.hourly_rate) || 0,
-      total_pay: totalPay,
+      hourly_rate: formData.hourly_rate,
       status: "open",
       created_by: userId,
       manager_id: userId,
@@ -117,7 +121,10 @@ export const createShift = async (userId: string, imageUrl: string | null, formD
 export const getShiftForEdit = async (shiftId: string) => {
   const {data, error} = await supabase
     .from("shifts")
-    .select("title, description, shift_date, start_time, end_time, image_url, hourly_rate, department, total_pay")
+    .select(`
+      title, description, shift_date, start_time, end_time, image_url, hourly_rate, total_pay, department_id,
+      departments ( name )
+    `) // AGGIORNATO: Rimosso department text, aggiunto l'oggetto relazionato
     .eq("id", shiftId)
     .maybeSingle();
 
@@ -128,27 +135,25 @@ export const getShiftForEdit = async (shiftId: string) => {
 export const updateShift = async (id: string, shiftData: {
   title: string;
   description: string;
-  shift_date: Date;
-  start_time: Date;
-  end_time: Date;
+  shift_date: string;     // AGGIORNATO: Riceve stringa formattata dall'hook per evitare crash TIME
+  start_time: string;     // AGGIORNATO: Riceve stringa "HH:MM:SS"
+  end_time: string;       // AGGIORNATO: Riceve stringa "HH:MM:SS"
   image_url: string | null;
-  hourly_rate: string;
-  department: string;
+  hourly_rate: number;    // AGGIORNATO: Riceve numero da Zod
+  departmentId: string;   // AGGIORNATO: Accetta UUID reparto
 }) => {
-  const totalPay = calculateTotalPay(shiftData.start_time, shiftData.end_time, shiftData.hourly_rate);
-
   const { error } = await supabase
     .from("shifts")
     .update({
       title: shiftData.title,
       description: shiftData.description,
-      department: shiftData.department.toLowerCase(),
-      shift_date: shiftData.shift_date.toISOString().split("T")[0],
-      start_time: shiftData.start_time.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false }),
-      end_time: shiftData.end_time.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false }),
+      department_id: shiftData.departmentId, // AGGIORNATO: Mappa sulla colonna UUID reale
+      shift_date: shiftData.shift_date,
+      start_time: shiftData.start_time,
+      end_time: shiftData.end_time,
       image_url: shiftData.image_url,
-      hourly_rate: parseFloat(shiftData.hourly_rate) || 0,
-      total_pay: totalPay,
+      hourly_rate: shiftData.hourly_rate,
+      // Il total_pay si aggiornerà via trigger del DB dato che ascolta update di start_time/end_time/hourly_rate
     })
     .eq("id", id);
 
@@ -160,8 +165,11 @@ export const fetchShiftFullDetails = async (shiftId: string) => {
   const [shiftRes, appsRes] = await Promise.all([
     supabase
       .from("shifts")
-      .select(`id, title, status, image_url, shift_date, start_time, end_time, description, department, hourly_rate, total_pay,
-        businesses ( name )`)
+      .select(`
+        id, title, status, image_url, shift_date, start_time, end_time, description, hourly_rate, total_pay, department_id,
+        businesses ( name ),
+        departments ( name )
+      `) // AGGIORNATO: Aggiunta relazione departments
       .eq("id", shiftId)
       .single(),
 
@@ -184,7 +192,7 @@ export const fetchShiftFullDetails = async (shiftId: string) => {
 export const fetchCandidateProfile = async (candidateId: string) => {
   const { data, error } = await supabase
     .from("profiles")
-    .select("id, name, surname, avatar_url, bio, experience, phone, job_role, department")
+    .select("id, name, surname, avatar_url, bio, experience, phone, job_role, business_id") // AGGIORNATO: Rimosso department da qui se non usato nel profilo utente come stringa fissa
     .eq("id", candidateId)
     .single();
 
@@ -192,7 +200,6 @@ export const fetchCandidateProfile = async (candidateId: string) => {
   return data;
 };
 
-// Update status application
 export const updateApplicationStatus = async (
   shiftId: string, 
   profileId: string, 
@@ -259,7 +266,7 @@ export const fetchUserProfile = async (userId: string) => {
   try {
     const { data, error } = await supabase
       .from("profiles")
-      .select("id, name, surname, job_role, bio, phone, department, avatar_url")
+      .select("id, name, surname, job_role, bio, phone, avatar_url, business_id") // AGGIORNATO: Allineato senza colonna department text
       .eq("id", userId)
       .maybeSingle();
 
@@ -283,7 +290,6 @@ export const updateUserProfile = async (userId: string, updates: any) => {
       job_role: updates.job_role,
       bio: updates.bio,
       phone: updates.phone,
-      department: updates.department,
       avatar_url: updates.avatar_url,
       updated_at: new Date().toISOString(),
     })
@@ -307,7 +313,6 @@ export const countPendingApplications = async (userId: string) => {
   return count || 0;
 };
 
-// delete shift
 export const deleteShift = async (shiftId: string) => {
   const { error } = await supabase
     .from("shifts")
@@ -318,7 +323,6 @@ export const deleteShift = async (shiftId: string) => {
   return true;
 };
 
-// mark shift as completed
 export const completeShiftStatus = async (shiftId: string) => {
   const { error } = await supabase
     .from("shifts")
@@ -329,7 +333,6 @@ export const completeShiftStatus = async (shiftId: string) => {
   return true;
 };
 
-// Fetch shift history for manager
 export const fetchManagerHistory = async (userId: string) => {
   const today = new Date().toISOString().split("T")[0];
   
@@ -337,25 +340,26 @@ export const fetchManagerHistory = async (userId: string) => {
     .from("shifts")
     .select(`
       *,
+      departments ( name ),
       applications(
         status,
         profiles(name, surname, avatar_url)
       )
-    `)
+    `) // AGGIORNATO: Incluso il nome dipartimento anche nello storico turni
     .eq("manager_id", userId)
     .lt("shift_date", today)
     .order("shift_date", { ascending: false });
 
   if (error) throw error;
   
-  // Filter client-side to identify the worker assigned to each shift
   return data.map(shift => ({
     ...shift,
     assignedWorker: shift.applications?.find((app: any) => app.status === 'accepted')?.profiles || null
   }));
 };
 
-// Retrieves candidate profile along with their application status and relevant shift details.
+// --- CANDIDATE FULL DETAILS REFACTOR ---
+
 export type CandidateFullDetails = {
   profile: any;
   applicationStatus: string | null;
@@ -365,6 +369,7 @@ export type CandidateFullDetails = {
     shift_date: string;
     start_time: string;
     end_time: string;
+    departmentName: string; // AGGIORNATO: Cambiato da string a dipartimento strutturato
   } | null;
 };
 
@@ -373,9 +378,9 @@ export const fetchCandidateShiftDetails = async (
   profileId: string
 ): Promise<CandidateFullDetails> => {
   const [profileRes, appRes, shiftRes] = await Promise.all([
-    supabase.from("profiles").select("id, name, surname, avatar_url, bio, experience, phone, job_role, department").eq("id", profileId).single(),
+    supabase.from("profiles").select("id, name, surname, avatar_url, bio, experience, phone, job_role").eq("id", profileId).single(),
     supabase.from("applications").select("status").eq("shift_id", shiftId).eq("profile_id", profileId).maybeSingle(),
-    supabase.from("shifts").select("status, title, shift_date, start_time, end_time").eq("id", shiftId).single(),
+    supabase.from("shifts").select("status, title, shift_date, start_time, end_time, departments(name)").eq("id", shiftId).single(), // AGGIORNATO: Relazione departments
   ]);
 
   if (profileRes.error) throw profileRes.error;
@@ -385,6 +390,13 @@ export const fetchCandidateShiftDetails = async (
     profile: profileRes.data,
     applicationStatus: appRes.data?.status || null,
     shiftStatus: shiftRes.data?.status || null,
-    shiftInfo: shiftRes.data || null,
+    shiftInfo: shiftRes.data ? {
+      title: shiftRes.data.title,
+      shift_date: shiftRes.data.shift_date,
+      start_time: shiftRes.data.start_time,
+      end_time: shiftRes.data.end_time,
+      // Estraiamo in modo sicuro il nome del dipartimento relazionato
+      departmentName: (shiftRes.data as any).departments?.name || "No Department"
+    } : null,
   };
 };
