@@ -13,13 +13,19 @@ export const UpcomingShifts = ({ shifts, theme, onViewAll, onShiftPress }: any) 
       </View>
 
       <View style={styles.grid}>
-        {shifts.map((item: any) => (
-          <ShiftCard 
-            key={item.id} 
-            item={item} 
-            onPress={() => onShiftPress(item.id)} 
-          />
-        ))}
+        {shifts.map((item: any) => {
+          const isAssigned = item.applications?.some((app: any) => app.status === "approved") || !!item.worker_id;
+
+          return (
+            <ShiftCard 
+              key={item.id} 
+              item={item} 
+              variant="manager" 
+              isApplied={isAssigned}
+              onPress={() => onShiftPress(item.id)} 
+            />
+          );
+        })}
       </View>
     </View>
   );
