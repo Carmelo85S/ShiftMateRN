@@ -6,15 +6,22 @@ import {
   getManagerProfile 
 } from "@/queries/managerQueries";
 
-type Stats = {
-  totalSpending: number;     
-  effectiveSpending: number; 
+type DepartmentStat = {
+  id: string;
+  name: string;
+  plannedBudget: number;   
+  effectiveSpent: number;
+  availableBudget: number;
+}
+
+type DashboardStats = {
+  departments: DepartmentStat[];
   pendingCount: number;
 };
 
 export const useDashboardData = () => {
   const [userName, setUserName] = useState("Manager");
-  const [stats, setStats] = useState<Stats>({ totalSpending: 0, effectiveSpending: 0, pendingCount: 0 });
+  const [stats, setStats] = useState<DashboardStats>({ departments: [], pendingCount: 0 });
   const [upcomingShifts, setUpcomingShifts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -35,15 +42,39 @@ export const useDashboardData = () => {
 
       if (profileData?.name) setUserName(profileData.name);
 
-      // Calcolo statistiche
-      const totalSum = allShifts.reduce((acc, s) => acc + (Number(s.total_pay) || 0), 0);
-      const effectiveSum = allShifts
-        .filter(s => s.status === 'assigned') 
-        .reduce((acc, s) => acc + (Number(s.total_pay) || 0), 0);
+      const businessId = profileData?.business_id;
+      let departmentStatsArray: DepartmentStat[] = [];
+
+      if (businessId) {
+        const { data: departments, error: deptError } = await supabase
+          .from("departments")
+          .select("id, name, monthly_budget")
+          .eq("business_id", businessId);
+
+        if (!deptError && departments) {
+          departmentStatsArray = departments.map((dept) => {
+            const deptShifts = allShifts?.filter(s => s.department_id === dept.id) || [];
+            
+            // Calcola il totale speso (turni completati)
+            const effectiveSum = deptShifts
+              .filter(s => s.status?.toLowerCase() === "completed")
+              .reduce((acc, s) => acc + (Number(s.total_pay) || 0), 0);
+
+            const planned = Number(dept.monthly_budget) || 0;
+
+            return {
+              id: dept.id,
+              name: dept.name,
+              plannedBudget: planned,
+              effectiveSpent: effectiveSum,
+              availableBudget: planned - effectiveSum // Calcolo del budget residuo
+            };
+          });
+        }
+      }
 
       setStats({
-        totalSpending: totalSum,
-        effectiveSpending: effectiveSum,
+        departments: departmentStatsArray,
         pendingCount: pendingCount || 0
       });
 

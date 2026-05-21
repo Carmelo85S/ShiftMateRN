@@ -56,7 +56,7 @@ export default function EditShift() {
 
         <DepartmentSelector 
           selectedId={form.department} 
-          onSelect={(id) => setForm({ ...form, department: id, title: "" })} 
+          onSelect={(id: string) => setForm({ ...form, department: id, title: "" })} 
           theme={theme} 
         />
         

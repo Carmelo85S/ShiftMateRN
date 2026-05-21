@@ -61,7 +61,11 @@ export default function Dashboard() {
         />
 
         {/* FINANCIAL: KPI e Statistiche */}
-        <FinancialOverview stats={stats} theme={theme} />
+        <FinancialOverview 
+          stats={stats} 
+          theme={theme}
+          refreshDashboard={fetchData}
+        />
         
         {/* HISTORY: Accesso rapido allo storico */}
         <HistoryBar 

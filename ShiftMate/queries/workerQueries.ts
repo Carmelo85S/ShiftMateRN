@@ -1,5 +1,15 @@
 import { supabase } from "@/lib/supabase";
 
+// --- HELPERS ---
+// Genera una stringa YYYY-MM-DD basata sul fuso orario locale del telefono, non UTC!
+const getLocalTodayDate = () => {
+  const d = new Date();
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
 // --- BOARD & SHIFTS ---
 
 /**
@@ -27,10 +37,14 @@ export const getWorkerBusinessData = async (userId: string) => {
 export const fetchAvailableShifts = async (businessId: string) => {
   const { data, error } = await supabase
     .from("shifts")
-    .select("*")
+    .select(`
+      *,
+      departments ( name ),
+      businesses ( name )
+    `)
     .eq("status", "open")
     .eq("business_id", businessId)
-    .gte("shift_date", new Date().toISOString().split("T")[0])
+    .gte("shift_date", getLocalTodayDate()) // FIX: Usa la data locale corretta
     .order("shift_date", { ascending: true });
 
   if (error) throw error;
@@ -53,14 +67,17 @@ export const fetchGlobalShifts = async () => {
       image_url, 
       hourly_rate, 
       total_pay,
-      department,
+      department_id,
       businesses (
         id,
         name
+      ),
+      departments (
+        name
       )
-    `)
+    `) // FIX: Sostituito 'department' con 'department_id' e aggiunta la relazione 'departments'
     .eq("status", "open")
-    .gte("shift_date", new Date().toISOString().split("T")[0])
+    .gte("shift_date", getLocalTodayDate()) // FIX: Data locale stabile
     .order("shift_date", { ascending: true });
 
   if (error) throw error;
@@ -78,8 +95,11 @@ export const fetchShiftDetails = async (shiftId: string) => {
       *,
       businesses (
         name
+      ),
+      departments (
+        name
       )
-    `)
+    `) // FIX: Estrae anche il nome del reparto invece dell'UUID grezzo per la UI del worker
     .eq("id", shiftId)
     .single();
 
@@ -99,7 +119,7 @@ export const applyForShift = async (userId: string, shiftId: string) => {
       {
         profile_id: userId,
         shift_id: shiftId,
-        status: "applied", // Matching your DB check constraint
+        status: "applied", // Coerente con il check constraint del DB
       },
     ]);
 
@@ -138,9 +158,10 @@ export const fetchMyApplications = async (userId: string) => {
         shift_date,
         start_time,
         end_time,
-        image_url
+        image_url,
+        businesses ( name )
       )
-    `)
+    `) // Ottimizzato: Estrae anche il nome del locale direttamente per la lista "I miei turni"
     .eq("profile_id", userId)
     .order("created_at", { ascending: false });
 
@@ -199,7 +220,7 @@ export const markAllNotificationsAsRead = async (userId: string) => {
     .from('notifications')
     .update({ is_read: true })
     .eq('profile_id', userId)
-    .eq('is_read', false)
+    .eq('is_read', false);
 
   if (error) throw error;
   return true;

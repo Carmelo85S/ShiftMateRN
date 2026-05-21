@@ -25,10 +25,10 @@ export const ShiftHero = ({ shift, theme }: any) => {
             <Text style={styles.locationText}>{shift?.businesses?.name || "Main Structure"}</Text>
         </View>
       </View>
-      <View style={{ position: 'absolute', right: 24, bottom: 24 }}>
+      <View style={{ position: 'absolute', right: 24, bottom: 84 }}>
       <Pressable 
         onPress={() => router.push({ pathname: "/(manager)/(tabs)/shift/editShift", params: { id: shift?.id } })}
-        style={[styles.editFab, { backgroundColor: theme.text }]}
+        style={[styles.editFab, { backgroundColor: theme.text, borderWidth: 1, borderColor: "white", opacity: 0.8 }]}
       >
         <Ionicons name="options-outline" size={24} color={theme.background} />
       </Pressable>
