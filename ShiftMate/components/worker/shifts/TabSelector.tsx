@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { View, Text, Pressable, StyleSheet } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 
@@ -8,6 +8,7 @@ interface TabSelectorProps {
   totalGlobal: number;
   totalMine: number;
   totalApplications: number;
+  hideWorkplaceTab?: boolean;
 }
 
 export const TabSelector = ({ 
@@ -15,8 +16,16 @@ export const TabSelector = ({
   setActiveTab, 
   totalGlobal, 
   totalMine,
-  totalApplications
+  totalApplications,
+  hideWorkplaceTab = false
 }: TabSelectorProps) => {
+
+  useEffect(() => {
+    if (hideWorkplaceTab && activeTab === 'mine') {
+      setActiveTab('all');
+    }
+  }, [hideWorkplaceTab, activeTab, setActiveTab]);
+  
   return (
     <View style={styles.tabsContainer}>
       {/* Tab Global */}
@@ -29,6 +38,7 @@ export const TabSelector = ({
       />
       
       {/* Tab Workplace */}
+      {!hideWorkplaceTab && (
       <TabItem 
         label="Work" 
         icon="business-outline"
@@ -36,6 +46,7 @@ export const TabSelector = ({
         active={activeTab === 'mine'}
         onPress={() => setActiveTab('mine')}
       />
+      )}
 
       {/* Tab Applied */}
       <TabItem 

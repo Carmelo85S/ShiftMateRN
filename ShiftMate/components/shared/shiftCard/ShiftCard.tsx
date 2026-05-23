@@ -98,6 +98,12 @@ export const ShiftCard = ({
                   <Text style={[styles.statusText, { color: '#DC2626' }]}>Rejected</Text>
                 </View>
               )}
+              {!isRejected && !isApplied && !isPending &&(
+                <View style={styles.statusBadge}>
+                  <Ionicons name="radio-button-on" size={13} color="#2647dcff" />
+                  <Text style={[styles.statusText, { color: '#2647dcff' }]}>Open</Text>
+                </View>
+              )}
             </View>
           )}
 
@@ -164,8 +170,8 @@ const styles = StyleSheet.create({
   // Modifica Layout Footer per incolonnare
   footer: { 
     flexDirection: 'column', 
-    alignItems: 'flex-start', // Allinea tutto a sinistra
-    gap: 6, // Spazio verticale fisso tra Dipartimento e Status
+    alignItems: 'flex-start',
+    gap: 6,
     marginTop: 'auto', 
     paddingBottom: 4 
   },

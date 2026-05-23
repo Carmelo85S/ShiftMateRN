@@ -12,9 +12,11 @@ export type Shift = {
   image_url: string | null;
   total_pay: number;   
   hourly_rate: number;
-  department: string; 
   status: string;
   businesses?: {
+    name: string;
+  };
+  departments?: {
     name: string;
   };
   application_status?: string;
@@ -28,7 +30,6 @@ export const useLoadShiftsBoard = () => {
   const [refreshing, setRefreshing] = useState(false);
   const [isGuest, setIsGuest] = useState(true);
 
-  // Helper normalization function to ensure consistent data structure
   const normalizeShifts = (data: any[]): Shift[] => {
     return (data || []).map((s) => ({
       id: String(s.id),
@@ -40,10 +41,10 @@ export const useLoadShiftsBoard = () => {
       image_url: s.image_url ?? null,
       total_pay: Number(s.total_pay) || 0,
       hourly_rate: Number(s.hourly_rate) || 0,
-      department: s.department || "hospitality",
       status: s.status || "open",
       application_status: s.application_status,
       businesses: Array.isArray(s.businesses) ? s.businesses[0] : s.businesses,
+      departments: Array.isArray(s.departments) ? s.departments[0] : s.departments,
     }));
   };
 
@@ -61,27 +62,24 @@ export const useLoadShiftsBoard = () => {
       if (session?.user) {
         setIsGuest(false);
 
-// 2. Fetch Applications
-const { data: appData, error: appError } = await supabase
-  .from("applications")
-  .select("status, shifts(*, businesses(name))")
-  .eq("profile_id", session.user.id)
-  .in("status", ["accepted", "applied", "rejected"]);
+        const { data: appData, error: appError } = await supabase
+          .from("applications")
+          .select("status, shifts(*, businesses(name), departments(name))")
+          .eq("profile_id", session.user.id)
+          .in("status", ["accepted", "applied", "rejected"]);
 
-if (appError) throw appError;
+        if (appError) throw appError;
 
-// Estraiamo i turni INIETTANDO lo status dell'applicazione
-const extractedShifts = (appData || []).map(app => {
-  if (!app.shifts) return null;
-  return {
-    ...app.shifts,
-    application_status: app.status 
-  };
-}).filter(Boolean);
+        const extractedShifts = (appData || []).map(app => {
+          if (!app.shifts) return null;
+          return {
+            ...app.shifts,
+            application_status: app.status 
+          };
+        }).filter(Boolean);
 
-setMyApplications(normalizeShifts(extractedShifts));
+        setMyApplications(normalizeShifts(extractedShifts));
 
-        // 3. Retrieve business_id per la tab "My Workplace"
         const { data: profile } = await supabase
           .from("profiles")
           .select("business_id")
@@ -91,7 +89,7 @@ setMyApplications(normalizeShifts(extractedShifts));
         if (profile?.business_id) {
           const { data: bShifts, error: bError } = await supabase
             .from("shifts")
-            .select("*, businesses(id, name)")
+            .select("*, businesses(id, name), departments(name)")
             .eq("business_id", profile.business_id);
 
           if (bError) throw bError;

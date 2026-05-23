@@ -28,8 +28,14 @@ export default function WorkerShifts() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
 
+  // Recuperiamo i dati dall'hook
   const { shifts, myBusinessShifts, loading, refreshing, isGuest, refresh, myApplications } = useLoadShiftsBoard();
   const { activeTab, setActiveTab, displayedShifts, myShiftsCount } = useClientSideFiltering(shifts, myBusinessShifts, myApplications);
+
+  // Un utente è un "Candidate" (esterno) se è loggato (!isGuest) MA non ha turni aziendali/collegamenti ad aziende
+  // Puoi anche passare direttamente una variabile 'role' dal tuo hook se preferisci
+  const isCandidate = !isGuest && myBusinessShifts.length === 0;
+
   return (
     <View style={styles.container}>
       <StatusBar barStyle="dark-content" />      
@@ -59,45 +65,47 @@ export default function WorkerShifts() {
               totalAvailable={displayedShifts.length}
             />
             
-            {/* Solo gli utenti loggati (Worker/Candidate) vedono il selettore Tab */}
-            {!isGuest && (
+            {/* Se è un Guest o un Candidate esterno, nascondiamo la TabSelector o la limitiamo */}
+            {!isGuest && !isCandidate && (
               <TabSelector 
                 activeTab={activeTab}
                 setActiveTab={setActiveTab}
                 totalGlobal={shifts.length}
-                totalMine={myShiftsCount} // Turni della tua azienda
-                totalApplications={myApplications.length} // Le tue candidature
+                totalMine={myShiftsCount} // Turni della sua azienda (Worker)
+                totalApplications={myApplications.length} // Le sue candidature
+              />
+            )}
+
+            {/* Opzionale: Se è un Candidate, puoi mostrare una TabSelector semplificata senza la Tab aziendale */}
+            {isCandidate && (
+              <TabSelector 
+                activeTab={activeTab}
+                setActiveTab={setActiveTab}
+                totalGlobal={shifts.length}
+                totalMine={0} // Sarà nascosto o disattivato dentro il componente TabSelector
+                totalApplications={myApplications.length}
+                hideWorkplaceTab={true} // Se il tuo TabSelector accetta questa prop per nascondere il bottone
               />
             )}
           </>
         )}
+        renderItem={({ item }) => {
+          const application = myApplications.find(app => String(app.id) === String(item.id));          
+          const isConfirmed = application?.application_status === 'accepted';
+          const isPending = application?.application_status === 'applied';
+          const isRejected = application?.application_status === 'rejected';
 
-renderItem={({ item }) => {
-  // Cerchiamo l'applicazione corrispondente
-  const application = myApplications.find(app => String(app.id) === String(item.id));
-  
-  // Confirmed se lo status dell'APPLICAZIONE è accepted
-  const isConfirmed = application?.application_status === 'accepted';
-  
-  // Pending se lo status dell'APPLICAZIONE è applied
-  const isPending = application?.application_status === 'applied';
-
-  // Rejected if status is rejected
-  const isRejected = application?.application_status === 'rejected'
-
-  const isMyBusiness = myBusinessShifts.some(s => s.id === item.id);
-
-  return (
-      <ShiftCard 
-        item={item} 
-        variant="worker"
-        isApplied={isConfirmed} 
-        isPending={isPending}
-        isRejected={isRejected}
-        onPress={() => router.push(`/(worker)/shift/${item.id}`)} 
-      />
-        );
-      }}
+          return (
+            <ShiftCard 
+              item={item} 
+              variant="worker"
+              isApplied={isConfirmed} 
+              isPending={isPending}
+              isRejected={isRejected}
+              onPress={() => router.push(`/(worker)/shift/${item.id}`)} 
+            />
+          );
+        }}
         ListEmptyComponent={() => (
           <EmptyShifts loading={loading} activeTab={activeTab} theme={theme} />
         )}
@@ -108,14 +116,6 @@ renderItem={({ item }) => {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#FFFFFF' },
-  bgCircle: {
-    position: 'absolute',
-    width: width * 0.7,
-    height: width * 0.7,
-    borderRadius: width * 0.35,
-    backgroundColor: '#F8FAFC',
-    zIndex: -1,
-  },
   listContent: { paddingHorizontal: 24 },
   columnWrapper: {
     justifyContent: "space-between",

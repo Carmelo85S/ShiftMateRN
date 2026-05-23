@@ -7,7 +7,6 @@ if (Platform.OS === "android" && UIManager.setLayoutAnimationEnabledExperimental
   UIManager.setLayoutAnimationEnabledExperimental(true);
 }
 
-// ... (Interfacce DepartmentStat e Props rimangono identiche)
 interface DepartmentStat { id: string; name: string; plannedBudget: number; effectiveSpent: number; availableBudget: number; }
 interface Props { stats: { departments: DepartmentStat[]; }; theme: any; refreshDashboard: () => Promise<void> | void; }
 
