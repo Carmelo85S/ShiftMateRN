@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { View, Text, StyleSheet, Pressable, LayoutAnimation, Platform, UIManager, TextInput, ActivityIndicator, Alert } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { updateBudget } from "@/queries/managerQueries";
+import { router } from "expo-router";
 
 if (Platform.OS === "android" && UIManager.setLayoutAnimationEnabledExperimental) {
   UIManager.setLayoutAnimationEnabledExperimental(true);
@@ -10,13 +11,31 @@ if (Platform.OS === "android" && UIManager.setLayoutAnimationEnabledExperimental
 interface DepartmentStat { id: string; name: string; plannedBudget: number; effectiveSpent: number; availableBudget: number; }
 interface Props { stats: { departments: DepartmentStat[]; }; theme: any; refreshDashboard: () => Promise<void> | void; }
 
+interface DepartmentCardProps {
+  dept: DepartmentStat;
+  theme: any;
+  isExpanded: boolean;
+  onPressHeader: () => View | void;
+  onBudgetUpdated: () => Promise<void> | void;
+}
+
 export const FinancialOverview = ({ stats, theme, refreshDashboard }: Props) => {
   const [expandedId, setExpandedId] = useState<string | null>(stats.departments?.[0]?.id || null);
 
   if (!stats.departments || stats.departments.length === 0) {
     return (
       <View style={[styles.emptyCard, { backgroundColor: theme.card }]}>
-        <Text style={{ color: theme.secondaryText }}>No departments found.</Text>
+        <Text style={[styles.emptyText, { color: theme.secondaryText }]}>No departments found.</Text>
+        <Pressable 
+          style={({ pressed }) => [
+            styles.btnComplete, 
+            { backgroundColor: theme.text }, 
+            pressed && { opacity: 0.8 }
+          ]}
+          onPress={() => router.replace('/(manager)/(tabs)/create/createDepartment')}
+        >
+          <Text style={[styles.btnText, { color: theme.background }]}>Create department</Text>
+        </Pressable>
       </View>
     );
   }
@@ -43,10 +62,10 @@ export const FinancialOverview = ({ stats, theme, refreshDashboard }: Props) => 
   );
 };
 
-const DepartmentCard = ({ dept, theme, isExpanded, onPressHeader, onBudgetUpdated }: any) => {
+const DepartmentCard = ({ dept, theme, isExpanded, onPressHeader, onBudgetUpdated }: DepartmentCardProps) => {
   const [budgetInput, setBudgetInput] = useState<string>(Math.round(dept.plannedBudget).toString());
   const [isSaving, setIsSaving] = useState<boolean>(false);
-  const [isEditing, setIsEditing] = useState<boolean>(false); // UX: Stato per mostrare/nascondere l'input
+  const [isEditing, setIsEditing] = useState<boolean>(false); 
 
   useEffect(() => {
     setBudgetInput(Math.round(dept.plannedBudget).toString());
@@ -54,15 +73,13 @@ const DepartmentCard = ({ dept, theme, isExpanded, onPressHeader, onBudgetUpdate
 
   const isNegative = dept.availableBudget < 0;
   
-  // Calcolo della percentuale spesa per la progress bar
   const spentPercentage = dept.plannedBudget > 0 
     ? Math.min((dept.effectiveSpent / dept.plannedBudget) * 100, 100) 
     : 100;
 
-  // Colore dinamico in base allo stato di usura del budget
-  let statusColor = "#34C759"; // Verde (Tutto ok)
-  if (spentPercentage >= 90 || isNegative) statusColor = "#FF3B30"; // Rosso (Pericolo/Finiti)
-  else if (spentPercentage >= 70) statusColor = "#FF9500"; // Arancione (Attenzione)
+  let statusColor = "#34C759"; 
+  if (spentPercentage >= 90 || isNegative) statusColor = "#FF3B30"; 
+  else if (spentPercentage >= 70) statusColor = "#FF9500"; 
 
   const handleSaveBudget = async () => {
     const parsedBudget = parseFloat(budgetInput);
@@ -74,7 +91,7 @@ const DepartmentCard = ({ dept, theme, isExpanded, onPressHeader, onBudgetUpdate
       setIsSaving(true);
       await updateBudget(dept.id, parsedBudget);
       await onBudgetUpdated();
-      setIsEditing(false); // Chiude l'input dopo il successo
+      setIsEditing(false); 
     } catch (error) {
       Alert.alert("Errore", "Impossibile aggiornare il database.");
     } finally {
@@ -104,7 +121,7 @@ const DepartmentCard = ({ dept, theme, isExpanded, onPressHeader, onBudgetUpdate
       {isExpanded && (
         <View style={styles.dropdownContent}>
           
-          {/* PROGRESS BAR VISIVA (Miglioramento UX chiave) */}
+          {/* PROGRESS BAR VISIVA */}
           <View style={styles.progressContainer}>
             <View style={styles.progressLabelRow}>
               <Text style={[styles.spendingLabel, { color: theme.secondaryText }]}>SPENDING PROGRESS</Text>
@@ -169,7 +186,10 @@ const styles = StyleSheet.create({
   container: { marginBottom: 8 },
   sectionTitle: { fontSize: 13, fontWeight: "800", marginBottom: 12, textTransform: "uppercase", letterSpacing: 0.5, opacity: 0.7 },
   mainCard: { borderRadius: 20, marginBottom: 10, shadowColor: "#000", shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.03, shadowRadius: 10, elevation: 2, overflow: "hidden" },
-  emptyCard: { borderRadius: 20, padding: 20, alignItems: 'center', marginBottom: 12 },
+  emptyCard: { borderRadius: 20, padding: 24, alignItems: 'center', marginBottom: 12 },
+  emptyText: { fontSize: 14, fontWeight: '600', marginBottom: 16 },
+  btnComplete: { height: 40, paddingHorizontal: 24, borderRadius: 12, justifyContent: 'center', alignItems: 'center' },
+  btnText: { fontSize: 13, fontWeight: '700' },
   accordionHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 14 },
   headerLeft: { flexDirection: 'row', alignItems: 'center', gap: 8, flex: 1 },
   headerRight: { flexDirection: 'row', alignItems: 'center', gap: 10 },
@@ -178,7 +198,7 @@ const styles = StyleSheet.create({
   headerAvailableValue: { fontSize: 14, fontWeight: '800' },
   dropdownContent: { paddingHorizontal: 14, paddingBottom: 14, paddingTop: 4 },
   
-  // Stili Progress Bar
+  // Progress Bar
   progressContainer: { marginBottom: 14, marginTop: 4 },
   progressLabelRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 6, alignItems: 'center' },
   progressPercentText: { fontSize: 11, fontWeight: '800' },

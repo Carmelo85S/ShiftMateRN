@@ -14,7 +14,6 @@ export default function WorkerLayout() {
         headerShadowVisible: false,
       }}
     >
-      {/* Opzionale: puoi personalizzare singole rotte qui */}
       <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
       <Stack.Screen name="shift/[id]" options={{ 
         headerTitle: "",
