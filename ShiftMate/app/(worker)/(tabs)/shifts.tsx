@@ -90,10 +90,17 @@ export default function WorkerShifts() {
           </>
         )}
         renderItem={({ item }) => {
-          const application = myApplications.find(app => String(app.id) === String(item.id));          
-          const isConfirmed = application?.application_status === 'accepted';
-          const isPending = application?.application_status === 'applied';
-          const isRejected = application?.application_status === 'rejected';
+          // Cerchiamo la candidatura controllando l'ID del turno relazionato in modo sicuro
+          const application = myApplications.find(
+            (app: any) => String(app.shift_id || app.shifts?.id) === String(item.id)
+          );          
+          
+          // Estraiamo lo status normalizzato dal DB
+          const appStatus = application?.status?.toLowerCase();
+
+          const isConfirmed = appStatus === 'accepted';
+          const isPending = appStatus === 'applied';
+          const isRejected = appStatus === 'rejected';
 
           return (
             <ShiftCard 
@@ -115,7 +122,7 @@ export default function WorkerShifts() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#FFFFFF' },
+  container: { flex: 1, backgroundColor: '#FFFFFF', paddingTop: 50 },
   listContent: { paddingHorizontal: 24 },
   columnWrapper: {
     justifyContent: "space-between",

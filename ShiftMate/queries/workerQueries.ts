@@ -238,3 +238,13 @@ export const archiveNotification = async (notificationId: string) => {
   if (error) throw error;
   return true;
 };
+
+export const cancelApplication = async (applicationId: string) => {
+  const { error } = await supabase
+    .from("applications")
+    .delete()
+    .eq("id", applicationId);
+
+  if (error) throw error;
+  return true;
+};
