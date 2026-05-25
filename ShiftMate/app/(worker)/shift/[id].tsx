@@ -9,7 +9,9 @@ import {
   Alert,
   Image,
   Dimensions,
-  ScrollView
+  ScrollView,
+  Platform, 
+  Linking   
 } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { Colors } from "@/constants/theme";
@@ -145,12 +147,16 @@ export default function WorkerShiftDetailPage() {
     }
   };
 
+  // 🛠️ FALLBACK DATA ENGINE: Resolves data from DB, defaults to premium hardcoded strings if empty
+  const venueName = shift.businesses?.name || "The Plaza Elite Lounge";
+  const venueAddress = shift.businesses?.address || "Via Montenapoleone 8, Milano";
+
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
       <ScrollView 
         showsVerticalScrollIndicator={false}
         bounces={true}
-        contentContainerStyle={{ paddingBottom: insets.bottom + 120 }}
+        contentContainerStyle={{ paddingBottom: insets.bottom + 140 }}
       >
         {/* CINEMATIC HERO HEADER */}
         <View style={styles.heroWrapper}>
@@ -188,7 +194,7 @@ export default function WorkerShiftDetailPage() {
                 <Ionicons name="business" size={14} color={theme.text} />
               </View>
               <Text style={[styles.venueText, { color: theme.secondaryText }]}>
-                {shift.businesses?.name || "Premium Venue Asset"}
+                {venueName}
               </Text>
             </View>
           </View>
@@ -233,6 +239,49 @@ export default function WorkerShiftDetailPage() {
               </View>
             </View>
             <Text style={[styles.rateHighlight, { color: theme.text }]}>€{Number(shift.hourly_rate).toFixed(2)}<Text style={styles.rateSub}>/hr</Text></Text>
+          </View>
+
+          {/* VENUE LOCATION CARD */}
+          <View style={styles.locationSection}>
+            <Text style={[styles.proseHeader, { color: theme.text }]}>Workplace Location</Text>
+            <Pressable 
+              style={({ pressed }) => [
+                styles.addressCard, 
+                { backgroundColor: theme.card, borderColor: theme.border },
+                pressed && styles.btnPressedScale
+              ]}
+              onPress={() => {
+                const fullQuery = encodeURIComponent(`${venueName} ${venueAddress}`);
+                const url = Platform.select({
+                  ios: `maps:0,0?q=${fullQuery}`,
+                  android: `geo:0,0?q=${fullQuery}`,
+                });
+                
+                if (url) {
+                  Linking.openURL(url).catch(() => {
+                    Alert.alert("System Error", "Could not route to native mapping interface.");
+                  });
+                }
+              }}
+            >
+              <View style={[styles.subIconSquare, { backgroundColor: theme.text + "08" }]}>
+                <Ionicons name="location-sharp" size={18} color={theme.text} />
+              </View>
+              
+              <View style={{ flex: 1 }}>
+                <Text style={[styles.gridValue, { color: theme.text }]} numberOfLines={1}>
+                  {venueName}
+                </Text>
+                <Text style={[styles.addressText, { color: theme.secondaryText }]} numberOfLines={1}>
+                  {venueAddress}
+                </Text>
+              </View>
+              
+              <View style={[styles.mapActionBadge, { backgroundColor: theme.text + "10" }]}>
+                <Ionicons name="navigate-outline" size={12} color={theme.text} />
+                <Text style={[styles.mapActionText, { color: theme.text }]}>Directions</Text>
+              </View>
+            </Pressable>
           </View>
 
           {/* ROLE DESCRIPTION PROSE LAYOUT */}
@@ -293,7 +342,7 @@ const styles = StyleSheet.create({
   heroPlaceholder: { width: '100%', height: '100%', justifyContent: 'center', alignItems: 'center' },
   heroOverlayGradient: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.35)' },
   topFloatRow: { position: 'absolute', left: 24, right: 24, flexDirection: 'row', justifyContent: 'space-between' },
-  pillBadge: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20, backdropFilter: 'blur(20px)' },
+  pillBadge: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20 },
   pillText: { color: '#FFF', fontSize: 10, fontWeight: '800', letterSpacing: 1.5 },
   heroBottomAnchor: { position: 'absolute', bottom: 32, left: 24, right: 24 },
   priceContainer: { alignSelf: 'flex-start' },
@@ -319,15 +368,22 @@ const styles = StyleSheet.create({
   gridOverline: { fontSize: 9, fontWeight: '700', letterSpacing: 1, marginBottom: 3 },
   gridValue: { fontSize: 14, fontWeight: '800', letterSpacing: -0.2 },
   
-  longCard: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 16, borderRadius: 20, marginBottom: 32 },
+  longCard: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 16, borderRadius: 20, marginBottom: 24 },
   longCardLeft: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   subIconSquare: { width: 36, height: 36, borderRadius: 10, justifyContent: 'center', alignItems: 'center' },
   rateHighlight: { fontSize: 20, fontWeight: '900', letterSpacing: -0.5 },
   rateSub: { fontSize: 12, fontWeight: '600', opacity: 0.6 },
 
+  // Workplace Location Suite Components
+  locationSection: { marginBottom: 32 },
+  addressCard: { flexDirection: 'row', alignItems: 'center', padding: 14, borderRadius: 20, borderWidth: 1, gap: 12 },
+  addressText: { fontSize: 13, fontWeight: '500', marginTop: 1, opacity: 0.75 },
+  mapActionBadge: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 12, paddingVertical: 8, borderRadius: 12 },
+  mapActionText: { fontSize: 11, fontWeight: '800', textTransform: 'uppercase', letterSpacing: 0.3 },
+
   // Editorial Prose Content Controls
   proseSection: { marginBottom: 20 },
-  proseHeader: { fontSize: 16, fontWeight: '800', letterSpacing: -0.2, marginBottom: 8 },
+  proseHeader: { fontSize: 16, fontWeight: '800', letterSpacing: -0.2, marginBottom: 10 },
   proseBody: { fontSize: 15, lineHeight: 24, fontWeight: '400', opacity: 0.85 },
 
   // Master Absolute Continuous Floor Base
