@@ -148,8 +148,14 @@ export default function WorkerShiftDetailPage() {
   };
 
   // 🛠️ FALLBACK DATA ENGINE: Resolves data from DB, defaults to premium hardcoded strings if empty
-  const venueName = shift.businesses?.name || "The Plaza Elite Lounge";
-  const venueAddress = shift.businesses?.address || "Via Montenapoleone 8, Milano";
+    const venueName = shift.businesses?.name || "The Plaza Elite Lounge";
+
+    // Recuperiamo sia indirizzo che città dal DB (con i fallback se fossero nulli)
+    const addressText = shift.businesses?.business_address || "Via Montenapoleone 8";
+    const cityText = shift.businesses?.business_city || "Milano";
+
+    // Concateniamo per mostrare un testo completo ed elegante nella Card dell'interfaccia
+    const fullDisplayAddress = `${addressText}, ${cityText}`;
 
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
@@ -251,7 +257,8 @@ export default function WorkerShiftDetailPage() {
                 pressed && styles.btnPressedScale
               ]}
               onPress={() => {
-                const fullQuery = encodeURIComponent(`${venueName} ${venueAddress}`);
+                // Uniamo Nome Locale + Indirizzo + Città per una precisione GPS assoluta
+                const fullQuery = encodeURIComponent(`${venueName} ${addressText} ${cityText}`);
                 const url = Platform.select({
                   ios: `maps:0,0?q=${fullQuery}`,
                   android: `geo:0,0?q=${fullQuery}`,
@@ -273,7 +280,7 @@ export default function WorkerShiftDetailPage() {
                   {venueName}
                 </Text>
                 <Text style={[styles.addressText, { color: theme.secondaryText }]} numberOfLines={1}>
-                  {venueAddress}
+                  {fullDisplayAddress} {/* ◄ Mostrerà es. "Via Roma 12, Milano" */}
                 </Text>
               </View>
               

@@ -6,7 +6,9 @@ import { createBusinessAndAssignOwner } from "@/queries/managerQueries";
 
 export const useSetupBusiness = () => {
   const [businessName, setBusinessName] = useState("");
-  const [loading, setLoading] = useState(false);
+  const [businessAddress, setBusinessAddress] = useState("")
+  const [businessCity, setBusinessCity] = useState("")
+  const [loading, setLoading] = useState(false)
   const router = useRouter();
 
   const generateInviteCode = () => {
@@ -30,7 +32,7 @@ export const useSetupBusiness = () => {
       if (!user) throw new Error("User not found.");
 
       const inviteCode = generateInviteCode();
-      await createBusinessAndAssignOwner(user.id, businessName, inviteCode);
+      await createBusinessAndAssignOwner(user.id, businessName, inviteCode, businessAddress, businessCity);
 
       Alert.alert(
         "Business Created!",
@@ -51,6 +53,10 @@ export const useSetupBusiness = () => {
   return {
     businessName,
     setBusinessName,
+    businessAddress,
+    setBusinessAddress,
+    businessCity,
+    setBusinessCity,
     loading,
     handleCreateBusiness
   };

@@ -94,12 +94,14 @@ export const fetchShiftDetails = async (shiftId: string) => {
     .select(`
       *,
       businesses (
-        name
+        name,
+        business_address,
+        business_city 
       ),
       departments (
         name
       )
-    `) // FIX: Estrae anche il nome del reparto invece dell'UUID grezzo per la UI del worker
+    `)
     .eq("id", shiftId)
     .single();
 
@@ -119,7 +121,7 @@ export const applyForShift = async (userId: string, shiftId: string) => {
       {
         profile_id: userId,
         shift_id: shiftId,
-        status: "applied", // Coerente con il check constraint del DB
+        status: "applied",
       },
     ]);
 

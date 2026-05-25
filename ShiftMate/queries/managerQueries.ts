@@ -40,10 +40,15 @@ export const countBusinessWorkers = async (businessId: string) => {
   return count || 0;
 };
 
-export const createBusinessAndAssignOwner = async (userId: string, businessName: string, inviteCode: string) => {
+export const createBusinessAndAssignOwner = async (userId: string, businessName: string, inviteCode: string, business_address: string, business_city: string) => {
   const { data: business, error: businessError } = await supabase
     .from("businesses")
-    .insert([{ name: businessName.trim(), invite_code: inviteCode }])
+    .insert([{ 
+      name: businessName.trim(), 
+      invite_code: inviteCode, 
+      business_address: business_address.trim(),
+      business_city: business_city.trim()
+    }])
     .select()
     .single();
 

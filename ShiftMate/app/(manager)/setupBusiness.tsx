@@ -15,7 +15,7 @@ import { SetupButton } from "@/components/manager/setup-business/SetupButton";
 
 export default function SetupBusiness() {
   const theme = Colors.light;
-  const { businessName, setBusinessName, loading, handleCreateBusiness } = useSetupBusiness();
+  const { businessName, setBusinessName, businessAddress, setBusinessAddress, businessCity, setBusinessCity, loading, handleCreateBusiness } = useSetupBusiness();
 
   return (
     <KeyboardAvoidingView
@@ -42,6 +42,22 @@ export default function SetupBusiness() {
             placeholder="e.g. Grand Hotel or Central Bar"
             value={businessName}
             onChangeText={setBusinessName}
+            theme={theme}
+          />
+
+          <SetupInput 
+            label="BUSINESS CITY"
+            placeholder="e.g. Stockholm"
+            value={businessCity}
+            onChangeText={setBusinessCity}
+            theme={theme}
+          />
+
+          <SetupInput 
+            label="BUSINESS ADDRESS"
+            placeholder="e.g. Ostermalm 123"
+            value={businessAddress}
+            onChangeText={setBusinessAddress}
             theme={theme}
           />
 
