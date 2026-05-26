@@ -7,10 +7,9 @@ import { supabase } from "@/lib/supabase";
 import { ScreenWrapper } from "@/components/shared/wrapper/layout-wrapper";
 import { Ionicons } from "@expo/vector-icons";
 import { HistoryStatsCard } from "@/components/manager/history/HistoryStatsCard";
-import { FinancialOverview } from "@/components/manager/dashboard/FInancialOverview";
-
-// 🌟 FIX IMPORT NOMINATO
+import { FinancialOverview } from "@/components/manager/dashboard/FinancialOverview";
 import { ShiftCard } from "@/components/shared/shiftCard/ShiftCard";
+
 
 const MONTHS_IT = [
   "Januari", "February", "Mars", "April", "Maj", "Juni",
@@ -187,16 +186,18 @@ export default function HistoryScreen() {
 
             {activeTab === "finance" && (
               <View style={styles.financeWrapper}>
-                <FinancialOverview stats={reportStats} theme={theme} refreshDashboard={loadMonthlyHistory} />
+                <FinancialOverview 
+                  stats={reportStats} 
+                  theme={theme} 
+                  refreshDashboard={loadMonthlyHistory}
+                />
               </View>
             )}
           </View>
         }
 
         renderItem={activeTab === "shifts" ? ({ item }) => {
-          // 🚀 FORZATURA STRUTTURALE LAST-SECOND:
-          // Creiamo un oggetto sicuro con status 'completed' per la variante manager
-          const safeItem = {
+         const safeItem = {
             ...item,
             status: "completed"
           };
@@ -214,7 +215,9 @@ export default function HistoryScreen() {
           activeTab === "shifts" ? (
             <View style={styles.emptyContainer}>
               <Ionicons name="calendar-outline" size={48} color={theme.text} style={{ opacity: 0.1 }} />
-              <Text style={[styles.emptyText, { color: theme.text }]}>No shifts posted in this month.</Text>
+              <Text style={[styles.emptyText, { color: theme.text }]}>
+                No shifts posted in this month.
+              </Text>
             </View>
           ) : null
         }
@@ -236,6 +239,20 @@ const styles = StyleSheet.create({
   tabLabel: { fontSize: 13, fontWeight: "700" },
   inactiveText: { opacity: 0.4 },
   financeWrapper: { marginTop: 8 },
-  emptyContainer: { marginTop: 60, alignItems: "center" },
-  emptyText: { fontSize: 14, opacity: 0.4, marginTop: 15, fontWeight: "600" },
+  emptyContainer: { 
+    flex: 1,
+    marginTop: 50, 
+    alignItems: "center",
+    justifyContent: "center",
+    width: "100%",
+    paddingHorizontal: 20,
+  },
+  emptyText: { 
+    fontSize: 14, 
+    opacity: 0.4, 
+    marginTop: 12, 
+    marginBottom: 20, 
+    fontWeight: "600",
+    textAlign: "center"
+  },
 });

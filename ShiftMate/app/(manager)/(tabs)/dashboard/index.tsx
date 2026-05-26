@@ -10,7 +10,7 @@ import { useFocusEffect, useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useDashboardData } from "@/hooks/manager/useFetchDataDashboard";
 import { DashboardHeader } from "@/components/manager/dashboard/DashboardHeader";
-import { FinancialOverview } from "@/components/manager/dashboard/FInancialOverview";
+import { FinancialOverview } from "@/components/manager/dashboard/FinancialOverview";
 import { HistoryBar } from "@/components/manager/dashboard/HistoryBar";
 import { UpcomingShifts } from "@/components/manager/dashboard/UpcomingShifts";
 import { ScreenWrapper } from "@/components/shared/wrapper/layout-wrapper";
@@ -65,6 +65,7 @@ export default function Dashboard() {
           stats={stats} 
           theme={theme}
           refreshDashboard={fetchData}
+          isHistory={false}
         />
         
         {/* HISTORY: Accesso rapido allo storico */}

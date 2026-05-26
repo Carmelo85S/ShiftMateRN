@@ -9,33 +9,49 @@ if (Platform.OS === "android" && UIManager.setLayoutAnimationEnabledExperimental
 }
 
 interface DepartmentStat { id: string; name: string; plannedBudget: number; effectiveSpent: number; availableBudget: number; }
-interface Props { stats: { departments: DepartmentStat[]; }; theme: any; refreshDashboard: () => Promise<void> | void; }
+interface Props { stats: { departments: DepartmentStat[]; }; theme: any; refreshDashboard: () => Promise<void> | void; isHistory?: boolean; }
 
 interface DepartmentCardProps {
   dept: DepartmentStat;
   theme: any;
   isExpanded: boolean;
+  isHistory?: boolean;
   onPressHeader: () => View | void;
   onBudgetUpdated: () => Promise<void> | void;
 }
 
-export const FinancialOverview = ({ stats, theme, refreshDashboard }: Props) => {
+export const FinancialOverview = ({ stats, theme, refreshDashboard, isHistory=true }: Props) => {
   const [expandedId, setExpandedId] = useState<string | null>(stats.departments?.[0]?.id || null);
+
+  // Check what we have spent in month
+  const totalSpentInMonth = stats.departments?.reduce((acc, dept) => acc + (dept.effectiveSpent || 0), 0) || 0;
+
+  // If isHistory === true show monthly expanses
+  if (isHistory && totalSpentInMonth === 0) {
+    return (
+      <View style={styles.emptyContainer}>
+        <Ionicons name="calendar-outline" size={48} color={theme.text} style={{ opacity: 0.1 }} />
+        <Text style={[styles.emptyText, { color: theme.text }]}>No financial expanses rrecorded for this month.</Text>
+      </View>
+    );
+  }
 
   if (!stats.departments || stats.departments.length === 0) {
     return (
       <View style={[styles.emptyCard, { backgroundColor: theme.card }]}>
         <Text style={[styles.emptyText, { color: theme.secondaryText }]}>No departments found.</Text>
-        <Pressable 
-          style={({ pressed }) => [
-            styles.btnComplete, 
-            { backgroundColor: theme.text }, 
-            pressed && { opacity: 0.8 }
-          ]}
-          onPress={() => router.replace('/(manager)/(tabs)/create/createDepartment')}
-        >
-          <Text style={[styles.btnText, { color: theme.background }]}>Create department</Text>
-        </Pressable>
+        {!isHistory && (
+          <Pressable 
+            style={({ pressed }) => [
+              styles.btnComplete, 
+              { backgroundColor: theme.text }, 
+              pressed && { opacity: 0.8 }
+            ]}
+            onPress={() => router.replace('/(manager)/(tabs)/create/createDepartment')}
+          >
+            <Text style={[styles.btnText, { color: theme.background }]}>Create department</Text>
+          </Pressable>
+        )}
       </View>
     );
   }
@@ -54,6 +70,7 @@ export const FinancialOverview = ({ stats, theme, refreshDashboard }: Props) => 
           dept={dept}
           theme={theme}
           isExpanded={expandedId === dept.id}
+          isHistory={isHistory}
           onPressHeader={() => toggleExpand(dept.id)}
           onBudgetUpdated={refreshDashboard}
         />
@@ -62,7 +79,7 @@ export const FinancialOverview = ({ stats, theme, refreshDashboard }: Props) => 
   );
 };
 
-const DepartmentCard = ({ dept, theme, isExpanded, onPressHeader, onBudgetUpdated }: DepartmentCardProps) => {
+const DepartmentCard = ({ dept, theme, isExpanded, isHistory = false, onPressHeader, onBudgetUpdated }: DepartmentCardProps) => {
   const [budgetInput, setBudgetInput] = useState<string>(Math.round(dept.plannedBudget).toString());
   const [isSaving, setIsSaving] = useState<boolean>(false);
   const [isEditing, setIsEditing] = useState<boolean>(false); 
@@ -84,7 +101,7 @@ const DepartmentCard = ({ dept, theme, isExpanded, onPressHeader, onBudgetUpdate
   const handleSaveBudget = async () => {
     const parsedBudget = parseFloat(budgetInput);
     if (isNaN(parsedBudget) || parsedBudget < 0) {
-      Alert.alert("Errore", "Inserisci un numero valido.");
+      Alert.alert("Errore", "Insert a valid number.");
       return;
     }
     try {
@@ -93,7 +110,7 @@ const DepartmentCard = ({ dept, theme, isExpanded, onPressHeader, onBudgetUpdate
       await onBudgetUpdated();
       setIsEditing(false); 
     } catch (error) {
-      Alert.alert("Errore", "Impossibile aggiornare il database.");
+      Alert.alert("Errore", "Impossible update database.");
     } finally {
       setIsSaving(false);
     }
@@ -117,11 +134,10 @@ const DepartmentCard = ({ dept, theme, isExpanded, onPressHeader, onBudgetUpdate
         </View>
       </Pressable>
 
-      {/* CONTENUTO ESPANSO */}
       {isExpanded && (
         <View style={styles.dropdownContent}>
           
-          {/* PROGRESS BAR VISIVA */}
+          {/* PROGRESS BAR  */}
           <View style={styles.progressContainer}>
             <View style={styles.progressLabelRow}>
               <Text style={[styles.spendingLabel, { color: theme.secondaryText }]}>SPENDING PROGRESS</Text>
@@ -132,17 +148,19 @@ const DepartmentCard = ({ dept, theme, isExpanded, onPressHeader, onBudgetUpdate
             </View>
           </View>
 
-          {/* GRID DEI NUMERI */}
           <View style={styles.spendingGrid}>
             <View style={[styles.spendingItem, { backgroundColor: theme.background }]}>
               <View style={styles.labelWithIcon}>
                 <Text style={[styles.spendingLabel, { color: theme.secondaryText }]}>PLANNED (LIMIT)</Text>
-                <Pressable onPress={() => {
-                  LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
-                  setIsEditing(!isEditing);
-                }}>
-                  <Ionicons name="create-outline" size={20} color={theme.tint} style={{ marginLeft: 4 }} />
-                </Pressable>
+                
+                {!isHistory && (
+                  <Pressable onPress={() => {
+                    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+                    setIsEditing(!isEditing);
+                  }}>
+                    <Ionicons name="create-outline" size={20} color={theme.tint} style={{ marginLeft: 4 }} />
+                  </Pressable>
+                )}
               </View>
               <Text style={[styles.spendingValue, { color: theme.text }]}>
                 €{dept.plannedBudget.toLocaleString('it-IT')}
@@ -158,7 +176,7 @@ const DepartmentCard = ({ dept, theme, isExpanded, onPressHeader, onBudgetUpdate
           </View>
 
           {/* EDIT BUDGET FORM*/}
-          {isEditing && (
+          {isEditing && !isHistory && (
             <View style={[styles.editBudgetForm, { borderTopColor: theme.background }]}>
               <TextInput
                 style={[styles.budgetTextInput, { backgroundColor: theme.background, color: theme.text, borderColor: theme.tint + "30" }]}
@@ -182,12 +200,14 @@ const DepartmentCard = ({ dept, theme, isExpanded, onPressHeader, onBudgetUpdate
   );
 };
 
+export default FinancialOverview;
+
 const styles = StyleSheet.create({
   container: { marginBottom: 8 },
   sectionTitle: { fontSize: 13, fontWeight: "800", marginBottom: 12, textTransform: "uppercase", letterSpacing: 0.5, opacity: 0.7 },
   mainCard: { borderRadius: 20, marginBottom: 10, shadowColor: "#000", shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.03, shadowRadius: 10, elevation: 2, overflow: "hidden" },
   emptyCard: { borderRadius: 20, padding: 24, alignItems: 'center', marginBottom: 12 },
-  emptyText: { fontSize: 14, fontWeight: '600', marginBottom: 16 },
+  emptyText: { fontSize: 14, opacity: 0.4, marginTop: 15, fontWeight: "600" },
   btnComplete: { height: 40, paddingHorizontal: 24, borderRadius: 12, justifyContent: 'center', alignItems: 'center' },
   btnText: { fontSize: 13, fontWeight: '700' },
   accordionHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 14 },
@@ -197,19 +217,17 @@ const styles = StyleSheet.create({
   deptName: { fontSize: 14, fontWeight: '800' },
   headerAvailableValue: { fontSize: 14, fontWeight: '800' },
   dropdownContent: { paddingHorizontal: 14, paddingBottom: 14, paddingTop: 4 },
-  
-  // Progress Bar
   progressContainer: { marginBottom: 14, marginTop: 4 },
   progressLabelRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 6, alignItems: 'center' },
   progressPercentText: { fontSize: 11, fontWeight: '800' },
   progressBarTrack: { height: 7, borderRadius: 4, width: '100%', overflow: 'hidden' },
   progressBarFill: { height: '100%', borderRadius: 4 },
-
   spendingGrid: { flexDirection: 'row', gap: 8 },
   spendingItem: { flex: 1, padding: 12, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
   labelWithIcon: { flexDirection: 'row', alignItems: 'center', marginBottom: 4 },
   spendingLabel: { fontSize: 8, fontWeight: '700', opacity: 0.6 },
   spendingValue: { fontSize: 14, fontWeight: '800' },
+  emptyContainer: { marginTop: 60, alignItems: "center" },
   editBudgetForm: { flexDirection: 'row', gap: 8, borderTopWidth: 1, paddingTop: 12, marginTop: 12, alignItems: 'center' },
   budgetTextInput: { flex: 1, height: 38, borderRadius: 8, borderWidth: 1, paddingHorizontal: 12, fontSize: 13, fontWeight: '600' },
   saveButton: { height: 38, paddingHorizontal: 16, borderRadius: 8, justifyContent: 'center', alignItems: 'center' },

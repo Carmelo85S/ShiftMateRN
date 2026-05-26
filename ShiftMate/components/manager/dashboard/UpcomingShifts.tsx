@@ -64,42 +64,11 @@ export const UpcomingShifts = ({ shifts, theme, onViewAll, onShiftPress }: any) 
 
 const styles = StyleSheet.create({
   container: { marginTop: 24 },
-  header: { 
-    flexDirection: "row", 
-    justifyContent: "space-between", 
-    alignItems: "center", 
-    marginBottom: 16 
-  },
+  header: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 16 },
   title: { fontSize: 20, fontWeight: "800", letterSpacing: -0.5 },
-  grid: { 
-    flexDirection: "row", 
-    flexWrap: "wrap", 
-    justifyContent: "space-between" 
-  },
-  // Nuovi stili per rendere il box vuoto visivamente elegante
-  emptyCard: { 
-    marginTop: 16,
-    padding: 24, 
-    borderRadius: 16, 
-    alignItems: "center", 
-    justifyContent: "center",
-    borderWidth: 1,
-  },
-  emptyText: { 
-    fontSize: 14, 
-    fontWeight: "500", 
-    marginBottom: 16, 
-    textAlign: "center" 
-  },
-  btnCreateShift: { 
-    paddingHorizontal: 20, 
-    paddingVertical: 12, 
-    borderRadius: 12,
-    justifyContent: "center",
-    alignItems: "center"
-  },
-  btnText: { 
-    fontSize: 14, 
-    fontWeight: "700" 
-  }
+  grid: { flexDirection: "row", flexWrap: "wrap", justifyContent: "space-between" },
+  emptyCard: { marginTop: 16,padding: 24, borderRadius: 16, alignItems: "center", justifyContent: "center",borderWidth: 1,},
+  emptyText: { fontSize: 14, fontWeight: "500", marginBottom: 16, textAlign: "center" },
+  btnCreateShift: { paddingHorizontal: 20, paddingVertical: 12, borderRadius: 12,justifyContent: "center",alignItems: "center"},
+  btnText: { fontSize: 14, fontWeight: "700" }
 });
