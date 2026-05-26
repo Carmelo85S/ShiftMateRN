@@ -66,6 +66,18 @@ export default function ShiftStackLayout() {
         },
         }} 
       />
+      
+      {/* 4. La pagina di storico */}
+       <Stack.Screen 
+        name="history" 
+        options={{ 
+          title: "History",
+          presentation: "card",
+          headerStyle: {
+          backgroundColor: theme.background,
+        },
+        }} 
+      />
     </Stack>
   );
 }

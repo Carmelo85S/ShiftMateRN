@@ -77,75 +77,79 @@ export const ShiftCard = ({
             </Text>
           </View>
 
-          {/* ================= VIEW STILE WORKER ================= */}
-          {variant === "worker" && (
-            <View style={styles.statusContainer}>
-              {isApplied && (
-                <View style={styles.statusBadge}>
-                  <Ionicons name="checkmark-done-circle" size={14} color="#10B981" />
-                  <Text style={[styles.statusText, { color: '#10B981' }]}>Confirmed</Text>
-                </View>
-              )}
-              {isPending && !isApplied && !isRejected && (
-                <View style={styles.statusBadge}>
-                  <Ionicons name="hourglass-outline" size={12} color="#D97706" />
-                  <Text style={[styles.statusText, { color: '#D97706' }]}>Pending</Text>
-                </View>
-              )}
-              {isRejected && !isApplied && (
-                <View style={styles.statusBadge}>
-                  <Ionicons name="close-circle-outline" size={13} color="#DC2626" />
-                  <Text style={[styles.statusText, { color: '#DC2626' }]}>Rejected</Text>
-                </View>
-              )}
-              {!isRejected && !isApplied && !isPending &&(
-                <View style={styles.statusBadge}>
-                  <Ionicons name="radio-button-on" size={13} color="#2647dcff" />
-                  <Text style={[styles.statusText, { color: '#2647dcff' }]}>Open</Text>
-                </View>
-              )}
-            </View>
-          )}
-
-          {/* ================= VIEW STILE MANAGER ================= */}
-          {variant === "manager" && (
-            <View style={styles.statusContainer}>
-              {dbStatus === "completed" && (
-                <View style={styles.statusBadge}>
-                  <Ionicons name="archive-outline" size={13} color="#6B7280" />
-                  <Text style={[styles.statusText, { color: '#6B7280' }]}>Completed</Text>
-                </View>
-              )}
-              {(dbStatus === "filled" || dbStatus === "assigned") && (
-                <View style={styles.statusBadge}>
-                  <Ionicons name="people-outline" size={13} color="#10B981" />
-                  <Text style={[styles.statusText, { color: '#10B981' }]}>Filled</Text>
-                </View>
-              )}
-              {dbStatus === "open" && (
-                <View style={styles.statusBadge}>
-                  <Ionicons name="radio-button-on" size={12} color="#3B82F6" />
-                  <Text style={[styles.statusText, { color: '#3B82F6' }]}>Open</Text>
-                </View>
-              )}
-              {dbStatus === "canceled" && (
-                <View style={styles.statusBadge}>
-                  <Ionicons name="ban" size={12} color="#EF4444" />
-                  <Text style={[styles.statusText, { color: '#EF4444' }]}>Canceled</Text>
-                </View>
-              )}
-            </View>
-          )}
+          {/* CONTENITORE STATO STATUS BADGE */}
+          <View style={styles.statusContainer}>
+            {/* 🌟 SAFE-CHECK GLOBALE: Se lo status è completato, mostra sempre Completed a prescindere dal variant */}
+            {dbStatus === "completed" ? (
+              <View style={styles.statusBadge}>
+                <Ionicons name="archive-outline" size={13} color="#6B7280" />
+                <Text style={[styles.statusText, { color: '#6B7280' }]}>Completed</Text>
+              </View>
+            ) : variant === "worker" ? (
+              // ================= VIEW STILE WORKER =================
+              <>
+                {isApplied && (
+                  <View style={styles.statusBadge}>
+                    <Ionicons name="checkmark-done-circle" size={14} color="#10B981" />
+                    <Text style={[styles.statusText, { color: '#10B981' }]}>Confirmed</Text>
+                  </View>
+                )}
+                {isPending && !isApplied && !isRejected && (
+                  <View style={styles.statusBadge}>
+                    <Ionicons name="hourglass-outline" size={12} color="#D97706" />
+                    <Text style={[styles.statusText, { color: '#D97706' }]}>Pending</Text>
+                  </View>
+                )}
+                {isRejected && !isApplied && (
+                  <View style={styles.statusBadge}>
+                    <Ionicons name="close-circle-outline" size={13} color="#DC2626" />
+                    <Text style={[styles.statusText, { color: '#DC2626' }]}>Rejected</Text>
+                  </View>
+                )}
+                {!isRejected && !isApplied && !isPending && (
+                  <View style={styles.statusBadge}>
+                    <Ionicons name="radio-button-on" size={13} color="#2647dcff" />
+                    <Text style={[styles.statusText, { color: '#2647dcff' }]}>Open</Text>
+                  </View>
+                )}
+              </>
+            ) : (
+              // ================= VIEW STILE MANAGER =================
+              <>
+                {(dbStatus === "filled" || dbStatus === "assigned") && (
+                  <View style={styles.statusBadge}>
+                    <Ionicons name="people-outline" size={13} color="#10B981" />
+                    <Text style={[styles.statusText, { color: '#10B981' }]}>Filled</Text>
+                  </View>
+                )}
+                {dbStatus === "open" && (
+                  <View style={styles.statusBadge}>
+                    <Ionicons name="radio-button-on" size={12} color="#3B82F6" />
+                    <Text style={[styles.statusText, { color: '#3B82F6' }]}>Open</Text>
+                  </View>
+                )}
+                {dbStatus === "canceled" && (
+                  <View style={styles.statusBadge}>
+                    <Ionicons name="ban" size={12} color="#EF4444" />
+                    <Text style={[styles.statusText, { color: '#EF4444' }]}>Canceled</Text>
+                  </View>
+                )}
+              </>
+            )}
+          </View>
         </View>
       </View>
     </Pressable>
   );
 };
 
+// Esportazione di default di sicurezza per evitare conflitti d'importazione obsoleti
+export default ShiftCard;
+
 const styles = StyleSheet.create({
   card: { 
     width: '47%', 
-    aspectRatio: 0.82, // Leggermente aumentato per accomodare l'incolonnamento senza stringere i testi
+    aspectRatio: 0.82,
     borderRadius: 28, 
     marginBottom: 15, 
     padding: 8, 
@@ -166,8 +170,6 @@ const styles = StyleSheet.create({
   row: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   detailText: { fontSize: 10, fontWeight: '600' },
   dot: { width: 3, height: 3, borderRadius: 2, backgroundColor: '#D1D1D6' },
-  
-  // Modifica Layout Footer per incolonnare
   footer: { 
     flexDirection: 'column', 
     alignItems: 'flex-start',
@@ -177,7 +179,6 @@ const styles = StyleSheet.create({
   },
   deptBadge: { paddingHorizontal: 8, paddingVertical: 4, borderRadius: 10 },
   deptText: { fontSize: 8, fontWeight: '800', textTransform: 'uppercase', letterSpacing: 0.5 },
-  
   statusContainer: {
     paddingLeft: 2 
   },
