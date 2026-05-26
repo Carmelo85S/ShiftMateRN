@@ -8,7 +8,7 @@ import { ScreenWrapper } from "@/components/shared/wrapper/layout-wrapper";
 import { ShiftCard } from "@/components/shared/shiftCard/ShiftCard";
 import { Ionicons } from "@expo/vector-icons";
 import { HistoryStatsCard } from "@/components/manager/history/HistoryStatsCard";
-import { FinancialOverview } from "@/components/manager/dashboard/FinancialOverview"; // ◄ AGGIUNTO
+import { FinancialOverview } from "@/components/manager/dashboard/FinancialOverview";
 
 const MONTHS_IT = [
   "January", "February", "Mars", "April", "Maj", "Juni",
@@ -19,21 +19,26 @@ export default function HistoryScreen() {
   const theme = Colors[useColorScheme() ?? "light"];
   const insets = useSafeAreaInsets();
 
-  //State past months
+  // State for past months navigation
   const now = new Date();
   const [currentYear, setCurrentYear] = useState(now.getFullYear());
   const [currentMonth, setCurrentMonth] = useState(now.getMonth());
 
-  // Switch state
+  // Tab switch state
   const [activeTab, setActiveTab] = useState<"shifts" | "finance">("shifts");
 
-  // History month per month
+  // Historical data states calculated locally per month
   const [filteredHistory, setFilteredHistory] = useState<any[]>([]);
   const [reportStats, setReportStats] = useState<{ departments: any[] }>({ departments: [] });
   const [monthlySpending, setMonthlySpending] = useState(0);
   const [loading, setLoading] = useState(true);
 
-  // Dynamic fetch
+  // Check if the selected month/year is in the past compared to the current date
+  const isPastMonth = 
+    currentYear < now.getFullYear() || 
+    (currentYear === now.getFullYear() && currentMonth < now.getMonth());
+
+  // Dynamic fetch driven by selected month and year
   const loadMonthlyHistory = useCallback(async () => {
     try {
       setLoading(true);
@@ -41,10 +46,11 @@ export default function HistoryScreen() {
       const userId = session?.user?.id;
       if (!userId) return;
 
+      // Calculate date range for the selected month
       const startDate = new Date(currentYear, currentMonth, 1).toISOString().split('T')[0];
       const endDate = new Date(currentYear, currentMonth + 1, 0).toISOString().split('T')[0];
 
-      //Load shift only for choosen month
+      // Fetch completed shifts only for the selected month
       const { data: shifts, error } = await supabase
         .from("shifts")
         .select(`
@@ -62,9 +68,11 @@ export default function HistoryScreen() {
       const currentShifts = shifts || [];
       setFilteredHistory(currentShifts);
 
+      // 1. Sum up total spending of the month for HistoryStatsCard
       const totalSpent = currentShifts.reduce((acc, s) => acc + (Number(s.total_pay) || 0), 0);
       setMonthlySpending(totalSpent);
 
+      // 2. Group by Department for the financial report calculation
       const departmentsMap: { [key: string]: any } = {};
       currentShifts.forEach((shift: any) => {
         const dept = shift.departments;
@@ -95,13 +103,14 @@ export default function HistoryScreen() {
     }
   }, [currentYear, currentMonth]);
 
+  // Reload data when the screen gets focus or when month/year changes
   useFocusEffect(
     useCallback(() => {
       loadMonthlyHistory();
     }, [loadMonthlyHistory])
   );
 
-  // Month navigation
+  // Month navigation handlers
   const handlePrevMonth = () => {
     if (currentMonth === 0) {
       setCurrentMonth(11);
@@ -141,7 +150,7 @@ export default function HistoryScreen() {
         showsVerticalScrollIndicator={false}
         ListHeaderComponent={
           <View style={styles.headerContainer}>
-            {/* Month selector*/}
+            {/* Month selector component */}
             <View style={[styles.dateSelector, { backgroundColor: theme.card, borderColor: theme.border }]}>
               <Pressable onPress={handlePrevMonth} style={styles.arrowBtn}>
                 <Ionicons name="chevron-back" size={20} color={theme.text} />
@@ -154,6 +163,7 @@ export default function HistoryScreen() {
               </Pressable>
             </View>
 
+            {/* Stats Card component integrated with the monthly data */}
             <HistoryStatsCard spending={monthlySpending} count={filteredHistory.length} theme={theme} />
 
             {/* Segmented Control Switch */}
@@ -176,10 +186,10 @@ export default function HistoryScreen() {
               </Pressable>
             </View>
 
-            {/* If in finance, show FinancialOverview */}
+            {/* Render FinancialOverview when finance tab is active */}
             {activeTab === "finance" && (
               <View style={styles.financeWrapper}>
-                <FinancialOverview stats={reportStats} theme={theme} refreshDashboard={loadMonthlyHistory} />
+                <FinancialOverview stats={reportStats} theme={theme} refreshDashboard={loadMonthlyHistory} isHistory={true} />
               </View>
             )}
           </View>
@@ -196,22 +206,28 @@ export default function HistoryScreen() {
           activeTab === "shifts" ? (
             <View style={styles.emptyContainer}>
               <Ionicons name="calendar-outline" size={48} color={theme.text} style={{ opacity: 0.1 }} />
-              <Text style={[styles.emptyText, { color: theme.text }]}>No shifts posted in this month.</Text>
-              <Pressable 
-                style={({ pressed }) => [
-                  styles.btnCreateShift, 
-                  { backgroundColor: theme.text }, 
-                  pressed && { opacity: 0.85, transform: [{ scale: 0.98 }] }
-                ]}
-                onPress={() => {
-                  console.log("Navigating to create tab...");
-                  router.push('/(manager)/(tabs)/create');
-                }} 
-              >
-                <Text style={[styles.btnText, { color: theme.background }]}>
-                  Schedule a Shift
-                </Text>
-              </Pressable>
+              <Text style={[styles.emptyText, { color: theme.text, marginBottom: isPastMonth ? 0 : 24 }]}>
+                No shifts posted in this month.
+              </Text>
+              
+              {/* Conditional rendering: Only render the button if it is NOT a past month */}
+              {!isPastMonth && (
+                <Pressable 
+                  style={({ pressed }) => [
+                    styles.btnCreateShift, 
+                    { backgroundColor: theme.text }, 
+                    pressed && { opacity: 0.85, transform: [{ scale: 0.98 }] }
+                  ]}
+                  onPress={() => {
+                    console.log("Navigating to create tab...");
+                    router.push('/(manager)/(tabs)/create');
+                  }} 
+                >
+                  <Text style={[styles.btnText, { color: theme.background }]}>
+                    Schedule a Shift
+                  </Text>
+                </Pressable>
+              )}
             </View>
           ) : null
         }
@@ -226,18 +242,20 @@ const styles = StyleSheet.create({
   columnRow: { justifyContent: 'space-between', marginBottom: 4 },
   headerContainer: { marginTop: 16, marginBottom: 16 },
   
+  // Month Selector Styles
   dateSelector: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", padding: 12, borderRadius: 15, borderWidth: 1, marginBottom: 15 },
   dateText: { fontSize: 14, fontWeight: "700", textTransform: "uppercase", letterSpacing: 0.5 },
   arrowBtn: { padding: 6 },
 
+  // Tab Switch Styles
   tabSegmentContainer: { flexDirection: "row", padding: 4, borderRadius: 12, marginTop: 16, marginBottom: 8 },
   tabSegment: { flex: 1, paddingVertical: 10, alignItems: "center", borderRadius: 10 },
   tabLabel: { fontSize: 13, fontWeight: "700" },
   inactiveText: { opacity: 0.4 },
 
   financeWrapper: { marginTop: 8 },
-  emptyContainer: { flex: 1,marginTop: 40, alignItems: "center", justifyContent: "center",width: "100%",alignSelf: "center",paddingHorizontal: 20},
-  emptyText: { fontSize: 14, opacity: 0.4, marginTop: 12, marginBottom: 24,fontWeight: "600",textAlign: "center"},
-  btnCreateShift: { paddingHorizontal: 28, paddingVertical: 14, borderRadius: 16,justifyContent: "center",alignItems: "center",minWidth: 180,shadowColor: "#000",shadowOffset: { width: 0, height: 2 },shadowOpacity: 0.05,shadowRadius: 6,elevation: 2,},
+  emptyContainer: { flex: 1, marginTop: 40, alignItems: "center", justifyContent: "center", width: "100%", alignSelf: "center", paddingHorizontal: 20 },
+  emptyText: { fontSize: 14, opacity: 0.4, marginTop: 12, fontWeight: "600", textAlign: "center" },
+  btnCreateShift: { paddingHorizontal: 28, paddingVertical: 14, borderRadius: 16, justifyContent: "center", alignItems: "center", minWidth: 180, shadowColor: "#000", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 6, elevation: 2 },
   btnText: { fontSize: 14, fontWeight: "700" }
 });
