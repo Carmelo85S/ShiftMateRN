@@ -19,6 +19,6 @@ export const HistoryBar = ({ theme, onPress }: any) => (
 );
 
 const styles = StyleSheet.create({
-  historyBar: {flexDirection: 'row',justifyContent: 'space-between',alignItems: 'center',padding: 14,borderRadius: 20,marginBottom: 25,elevation: 1 },
+  historyBar: {flexDirection: 'row',justifyContent: 'space-between',alignItems: 'center',padding: 14,borderRadius: 20,elevation: 1 },
   historyText: { fontSize: 14, fontWeight: '600' },
 });

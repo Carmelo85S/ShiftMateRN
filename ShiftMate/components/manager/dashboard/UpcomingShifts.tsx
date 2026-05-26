@@ -2,6 +2,7 @@ import { ShiftCard } from "@/components/shared/shiftCard/ShiftCard";
 import React, { useState } from "react";
 import { View, Text, StyleSheet, Pressable } from "react-native";
 import { useRouter } from "expo-router"; // ◄ AGGIUNTO: Importa il router di Expo
+import { Ionicons } from "@expo/vector-icons";
 
 export const UpcomingShifts = ({ shifts, theme, onViewAll, onShiftPress }: any) => {
   const router = useRouter(); // ◄ AGGIUNTO: Inizializza il router
@@ -13,8 +14,9 @@ export const UpcomingShifts = ({ shifts, theme, onViewAll, onShiftPress }: any) 
   if (!shifts || shifts.length === 0) {
     return (
       <View style={[styles.emptyCard, { backgroundColor: theme.card, borderColor: theme.border }]}>
+        <Ionicons name="calendar-outline" size={48} color={theme.text} style={{ opacity: 0.1 }} />
         <Text style={[styles.emptyText, { color: theme.secondaryText }]}>
-          No upcoming shifts scheduled. {/* ◄ CORRETTO: Testo coerente */}
+          No upcoming shifts scheduled. 
         </Text>
         <Pressable 
           style={({ pressed }) => [
@@ -22,7 +24,6 @@ export const UpcomingShifts = ({ shifts, theme, onViewAll, onShiftPress }: any) 
             { backgroundColor: theme.text }, 
             pressed && { opacity: 0.85, transform: [{ scale: 0.98 }] }
           ]}
-          // Cambia questa rotta con il link effettivo alla tua pagina di creazione turno se diverso
           onPress={() => router.push('/(manager)/(tabs)/create')} 
         >
           <Text style={[styles.btnText, { color: theme.background }]}>
@@ -67,8 +68,8 @@ const styles = StyleSheet.create({
   header: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 16 },
   title: { fontSize: 20, fontWeight: "800", letterSpacing: -0.5 },
   grid: { flexDirection: "row", flexWrap: "wrap", justifyContent: "space-between" },
-  emptyCard: { marginTop: 16,padding: 24, borderRadius: 16, alignItems: "center", justifyContent: "center",borderWidth: 1,},
-  emptyText: { fontSize: 14, fontWeight: "500", marginBottom: 16, textAlign: "center" },
+  emptyCard: { marginVertical: 16,padding: 24, borderRadius: 16, alignItems: "center", justifyContent: "center",borderWidth: 1,},
+  emptyText: { fontSize: 14, opacity: 0.4, marginVertical: 12, fontWeight: "600", textAlign: "center" },
   btnCreateShift: { paddingHorizontal: 20, paddingVertical: 12, borderRadius: 12,justifyContent: "center",alignItems: "center"},
   btnText: { fontSize: 14, fontWeight: "700" }
 });

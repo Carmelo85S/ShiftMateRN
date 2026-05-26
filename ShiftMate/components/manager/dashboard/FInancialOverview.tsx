@@ -31,14 +31,15 @@ export const FinancialOverview = ({ stats, theme, refreshDashboard, isHistory=tr
     return (
       <View style={styles.emptyContainer}>
         <Ionicons name="calendar-outline" size={48} color={theme.text} style={{ opacity: 0.1 }} />
-        <Text style={[styles.emptyText, { color: theme.text }]}>No financial expanses rrecorded for this month.</Text>
+        <Text style={[styles.emptyText, { color: theme.text }]}>No financial expanses recorded for this month.</Text>
       </View>
     );
   }
 
   if (!stats.departments || stats.departments.length === 0) {
     return (
-      <View style={[styles.emptyCard, { backgroundColor: theme.card }]}>
+      <View style={[styles.emptyCard, { backgroundColor: theme.card, borderColor: theme.border }]}>
+        <Ionicons name="home-outline" size={48} color={theme.text} style={{ opacity: 0.1 }} />
         <Text style={[styles.emptyText, { color: theme.secondaryText }]}>No departments found.</Text>
         {!isHistory && (
           <Pressable 
@@ -206,8 +207,8 @@ const styles = StyleSheet.create({
   container: { marginBottom: 8 },
   sectionTitle: { fontSize: 13, fontWeight: "800", marginBottom: 12, textTransform: "uppercase", letterSpacing: 0.5, opacity: 0.7 },
   mainCard: { borderRadius: 20, marginBottom: 10, shadowColor: "#000", shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.03, shadowRadius: 10, elevation: 2, overflow: "hidden" },
-  emptyCard: { borderRadius: 20, padding: 24, alignItems: 'center', marginBottom: 12 },
-  emptyText: { fontSize: 14, opacity: 0.4, marginTop: 15, fontWeight: "600" },
+  emptyCard: { marginVertical: 16,padding: 24, borderRadius: 16, alignItems: "center", justifyContent: "center",borderWidth: 1,},
+  emptyText: { fontSize: 14, opacity: 0.4, marginVertical: 12, fontWeight: "600", textAlign: "center" },
   btnComplete: { height: 40, paddingHorizontal: 24, borderRadius: 12, justifyContent: 'center', alignItems: 'center' },
   btnText: { fontSize: 13, fontWeight: '700' },
   accordionHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 14 },
