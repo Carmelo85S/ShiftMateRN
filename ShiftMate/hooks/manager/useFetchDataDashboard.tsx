@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react"; // ◄ AGGIUNTO useEffect
 import { supabase } from "@/lib/supabase";
 import { 
   countPendingApplications, 
@@ -26,6 +26,7 @@ export const useDashboardData = () => {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
+  // Manteniamo fetchData identica, si occuperà di fare il re-fetch pulito quando Supabase fischia
   const fetchData = useCallback(async () => {
     try {
       const { data: { session } } = await supabase.auth.getSession();
@@ -55,7 +56,6 @@ export const useDashboardData = () => {
           departmentStatsArray = departments.map((dept) => {
             const deptShifts = allShifts?.filter(s => s.department_id === dept.id) || [];
             
-            // Calcola il totale speso (turni completati)
             const effectiveSum = deptShifts
               .filter(s => s.status?.toLowerCase() === "completed")
               .reduce((acc, s) => acc + (Number(s.total_pay) || 0), 0);
@@ -67,7 +67,7 @@ export const useDashboardData = () => {
               name: dept.name,
               plannedBudget: planned,
               effectiveSpent: effectiveSum,
-              availableBudget: planned - effectiveSum // Calcolo del budget residuo
+              availableBudget: planned - effectiveSum
             };
           });
         }
@@ -91,6 +91,44 @@ export const useDashboardData = () => {
     await fetchData();
     setRefreshing(false);
   }, [fetchData]);
+
+  // ⚡ ENGINE REALTIME INTERNO
+  useEffect(() => {
+    // 1. Eseguiamo il primo caricamento classico all'avvio
+    fetchData();
+
+    // 2. Ascolta i cambiamenti sulle candidature (Candidature inviate, ritirate o approvate)
+    const applicationsChannel = supabase
+      .channel("db-applications-changes")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "applications" },
+        (payload) => {
+          console.log("⚡ Realtime: Variazione candidature intercettata!", payload);
+          fetchData(); // Rilancia il calcolo dei badge
+        }
+      )
+      .subscribe();
+
+    // 3. Ascolta i cambiamenti sui Turni (Nuovi turni creati, eliminati o passati a 'completed')
+    const shiftsChannel = supabase
+      .channel("db-shifts-changes")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "shifts" },
+        (payload) => {
+          console.log("⚡ Realtime: Variazione turni intercettata!", payload);
+          fetchData(); // Rilancia il calcolo dei budget e aggiorna la bacheca
+        }
+      )
+      .subscribe();
+
+    // 🧹 GARBAGE COLLECTOR: Quando l'utente esce dalla Dashboard, distruggiamo i canali per non consumare memoria
+    return () => {
+      supabase.removeChannel(applicationsChannel);
+      supabase.removeChannel(shiftsChannel);
+    };
+  }, [fetchData]); // Ascolta le modifiche della funzione fetchData
 
   return {
     userName,
