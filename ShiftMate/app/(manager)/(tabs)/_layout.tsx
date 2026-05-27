@@ -7,12 +7,17 @@ import { supabase } from "@/lib/supabase";
 import { Colors } from "@/constants/theme";
 import { useColorScheme } from "react-native";
 import { CommonActions } from '@react-navigation/native';
+import { useDashboardData } from "@/hooks/manager/useFetchDataDashboard"; // 🌟 Importiamo l'hook
 
 const { width } = Dimensions.get("window");
 
 function OrbitTabBar({ state, descriptors, navigation, badgeCount, theme }: any) {
   const insets = useSafeAreaInsets();
+  const router = useRouter(); // 🌟 Inizializziamo il router di expo-router
   const BAR_ZONE_HEIGHT = insets.bottom + 85;
+  
+  // 🌟 Recuperiamo il tipo di business corrente
+  const { businessType } = useDashboardData();
 
   return (
     <View style={styles.masterWrapper}>
@@ -29,8 +34,6 @@ function OrbitTabBar({ state, descriptors, navigation, badgeCount, theme }: any)
         <View style={[styles.island, { backgroundColor: theme.card, borderColor: theme.border }]}>
           {state.routes.map((route: any, index: number) => {
             const isFocused = state.index === index;
-            
-            // Il tasto centrale ora punta alla cartella "create"
             const isCenter = route.name === "create";
 
             const onPress = () => {
@@ -41,13 +44,28 @@ function OrbitTabBar({ state, descriptors, navigation, badgeCount, theme }: any)
               });
 
               if (!event.defaultPrevented) {
-                // Reset dello stack per tornare sempre all'index (le 2 Card)
+                // 🌟 GESTIONE BIVIO TASTO "+" CENTRALE
+                if (isCenter) {
+                  if (businessType === "staffing") {
+                    // Agenzia: Salta tutto e va diretta al form dei turni
+                    router.push("/(manager)/(tabs)/create/createShift");
+                  } else {
+                    // Ristorante standard: Va alle 2 Card di selezione
+                    navigation.dispatch(
+                      CommonActions.reset({
+                        index: 0,
+                        routes: [{ name: route.name }],
+                      })
+                    );
+                  }
+                  return; // Blocca l'esecuzione ulteriore
+                }
+
+                // Navigazione normale per gli altri tab
                 navigation.dispatch(
                   CommonActions.reset({
                     index: 0,
-                    routes: [{ 
-                      name: route.name,
-                    }],
+                    routes: [{ name: route.name }],
                   })
                 );
               }
@@ -141,84 +159,14 @@ export default function TabLayout() {
 }
 
 const styles = StyleSheet.create({
-  masterWrapper: {
-    position: "absolute",
-    bottom: 0,
-    left: 0,
-    right: 0,
-    width: width,
-  },
-  solidBase: {
-    position: "absolute",
-    bottom: 0,
-    left: 0,
-    right: 0,
-  },
-  contentWrapper: {
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  island: {
-    flexDirection: "row",
-    width: width * 0.9,
-    height: 74,
-    borderRadius: 37,
-    alignItems: "center",
-    justifyContent: "space-around",
-    paddingHorizontal: 15,
-    borderWidth: 1,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 10,
-    elevation: 5,
-  },
-  tabItem: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-    height: "100%",
-  },
-  centerOuter: {
-    marginTop: -45, 
-    padding: 7,
-    borderRadius: 45,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.15,
-    shadowRadius: 8,
-    elevation: 8,
-  },
-  centerButton: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  activeIndicator: {
-    position: "absolute",
-    bottom: 12,
-    width: 5,
-    height: 5,
-    borderRadius: 2.5,
-  },
-  orbitBadge: {
-    position: "absolute",
-    top: 18,
-    right: 12,
-    minWidth: 18,
-    height: 18,
-    borderRadius: 9,
-    justifyContent: "center",
-    alignItems: "center",
-    borderWidth: 2,
-    borderColor: "#FFF",
-    paddingHorizontal: 2,
-  },
-  orbitBadgeText: {
-    color: "#FFF",
-    fontSize: 9,
-    fontWeight: "900"
-  }
+  masterWrapper: { position: "absolute", bottom: 0, left: 0, right: 0, width: width },
+  solidBase: { position: "absolute", bottom: 0, left: 0, right: 0 },
+  contentWrapper: { alignItems: "center", justifyContent: "center" },
+  island: { flexDirection: "row", width: width * 0.9, height: 74, borderRadius: 37, alignItems: "center", justifyContent: "space-around", paddingHorizontal: 15, borderWidth: 1, shadowColor: "#000", shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.1, shadowRadius: 10, elevation: 5 },
+  tabItem: { flex: 1, alignItems: "center", justifyContent: "center", height: "100%" },
+  centerOuter: { marginTop: -45, padding: 7, borderRadius: 45, shadowColor: "#000", shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.15, shadowRadius: 8, elevation: 8 },
+  centerButton: { width: 64, height: 64, borderRadius: 32, justifyContent: "center", alignItems: "center" },
+  activeIndicator: { position: "absolute", bottom: 12, width: 5, height: 5, borderRadius: 2.5 },
+  orbitBadge: { position: "absolute", top: 18, right: 12, minWidth: 18, height: 18, borderRadius: 9, justifyContent: "center", alignItems: "center", borderWidth: 2, borderColor: "#FFF", paddingHorizontal: 2 },
+  orbitBadgeText: { color: "#FFF", fontSize: 9, fontWeight: "900" }
 });

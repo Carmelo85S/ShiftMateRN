@@ -22,6 +22,7 @@ export default function Dashboard() {
 
   const { 
     userName, 
+    businessType,
     stats, 
     upcomingShifts, 
     loading, 
@@ -62,10 +63,11 @@ export default function Dashboard() {
 
         {/* FINANCIAL: KPI e Statistiche */}
         <FinancialOverview 
-          stats={stats} 
+          stats={stats}
           theme={theme}
           refreshDashboard={fetchData}
           isHistory={false}
+          businessType={businessType}
         />
         
         {/* HISTORY: Accesso rapido allo storico */}
@@ -98,6 +100,6 @@ const styles = StyleSheet.create({
   },
   mainContent: {
     flex: 1,
-    paddingBottom: 20, // Spazio extra prima del padding della TabBar gestito dal wrapper
+    paddingBottom: 20,
   },
 });

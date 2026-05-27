@@ -1,5 +1,16 @@
 import React, { useState, useEffect } from "react";
-import { View, Text, StyleSheet, Pressable, LayoutAnimation, Platform, UIManager, TextInput, ActivityIndicator, Alert } from "react-native";
+import { 
+  View, 
+  Text, 
+  StyleSheet, 
+  Pressable, 
+  LayoutAnimation, 
+  Platform, 
+  UIManager, 
+  TextInput, 
+  ActivityIndicator, 
+  Alert 
+} from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { updateBudget } from "@/queries/managerQueries";
 import { router } from "expo-router";
@@ -8,25 +19,101 @@ if (Platform.OS === "android" && UIManager.setLayoutAnimationEnabledExperimental
   UIManager.setLayoutAnimationEnabledExperimental(true);
 }
 
+// Interfacce dati per entrambi i modelli aziendali
 interface DepartmentStat { id: string; name: string; plannedBudget: number; effectiveSpent: number; availableBudget: number; }
-interface Props { stats: { departments: DepartmentStat[]; }; theme: any; refreshDashboard: () => Promise<void> | void; isHistory?: boolean; }
+interface ClientStat { id: string; name: string; revenue: number; }
+
+interface Props { 
+  stats: { 
+    departments?: DepartmentStat[]; 
+    clients?: ClientStat[];        // Staffing
+    pendingCount?: number;
+    totalMonthlyRevenue?: number;  // Staffing
+  }; 
+  theme: any; 
+  refreshDashboard: () => Promise<void> | void; 
+  isHistory?: boolean; 
+  businessType?: "standard" | "staffing"; // business type
+}
 
 interface DepartmentCardProps {
   dept: DepartmentStat;
   theme: any;
   isExpanded: boolean;
   isHistory?: boolean;
-  onPressHeader: () => View | void;
+  onPressHeader: () => void;
   onBudgetUpdated: () => Promise<void> | void;
 }
 
-export const FinancialOverview = ({ stats, theme, refreshDashboard, isHistory=true }: Props) => {
+export const FinancialOverview = ({ 
+  stats, 
+  theme, 
+  refreshDashboard, 
+  isHistory = false, 
+  businessType = "standard" 
+}: Props) => {
   const [expandedId, setExpandedId] = useState<string | null>(stats.departments?.[0]?.id || null);
 
-  // Check what we have spent in month
-  const totalSpentInMonth = stats.departments?.reduce((acc, dept) => acc + (dept.effectiveSpent || 0), 0) || 0;
+  // ==========================================
+  // 🌟 RENDERING PER STAFFING AGENCY (STAFFING)
+  // ==========================================
+  if (businessType === "staffing") {
+    const clients = stats.clients || [];
+    const totalRevenue = stats.totalMonthlyRevenue || 0;
 
-  // If isHistory === true show monthly expanses
+    if (isHistory && totalRevenue === 0) {
+      return (
+        <View style={styles.emptyContainer}>
+          <Ionicons name="analytics-outline" size={48} color={theme.text} style={{ opacity: 0.1 }} />
+          <Text style={[styles.emptyText, { color: theme.text }]}>No revenue recorded for this month.</Text>
+        </View>
+      );
+    }
+
+    return (
+      <View style={styles.container}>
+        <Text style={[styles.sectionTitle, { color: theme.text }]}>Monthly Revenue</Text>
+        
+        {/* KPI Card principale dell'agenzia */}
+        <View style={[styles.staffingTotalCard, { backgroundColor: theme.text }]}>
+          <Text style={[styles.staffingTotalLabel, { color: theme.background }]}>TOTAL REVENUE (THIS MONTH)</Text>
+          <Text style={[styles.staffingTotalValue, { color: theme.background }]}>
+            {totalRevenue.toLocaleString('sv-SE')} SEK
+          </Text>
+        </View>
+
+        <Text style={[styles.sectionSubtitle, { color: theme.text }]}>Revenue per Client</Text>
+
+        {clients.length === 0 ? (
+          <View style={[styles.emptyCard, { backgroundColor: theme.card, borderColor: theme.border }]}>
+            <Ionicons name="people-outline" size={32} color={theme.text} style={{ opacity: 0.2, marginBottom: 8 }} />
+            <Text style={[styles.emptyText, { color: theme.secondaryText }]}>No active clients found this month.</Text>
+          </View>
+        ) : (
+          clients.map((client) => (
+            <View key={client.id} style={[styles.clientRowCard, { backgroundColor: theme.card }]}>
+              <View style={styles.headerLeft}>
+                <View style={[styles.iconBadge, { backgroundColor: theme.tint + "10" }]}>
+                  <Ionicons name="briefcase-outline" size={16} color={theme.tint} />
+                </View>
+                <Text style={[styles.deptName, { color: theme.text }]}>{client.name}</Text>
+              </View>
+              <Text style={[styles.clientRevenueValue, { color: theme.text }]}>
+                {client.revenue.toLocaleString('sv-SE')} SEK
+              </Text>
+            </View>
+          ))
+        )}
+      </View>
+    );
+  }
+
+  // ==========================================
+  // 🌟 RENDERING PER RISTORANTE (STANDARD)
+  // ==========================================
+  const departments = stats.departments || [];
+  const totalSpentInMonth = departments.reduce((acc, dept) => acc + (dept.effectiveSpent || 0), 0);
+
   if (isHistory && totalSpentInMonth === 0) {
     return (
       <View style={styles.emptyContainer}>
@@ -36,7 +123,7 @@ export const FinancialOverview = ({ stats, theme, refreshDashboard, isHistory=tr
     );
   }
 
-  if (!stats.departments || stats.departments.length === 0) {
+  if (departments.length === 0) {
     return (
       <View style={[styles.emptyCard, { backgroundColor: theme.card, borderColor: theme.border }]}>
         <Ionicons name="home-outline" size={48} color={theme.text} style={{ opacity: 0.1 }} />
@@ -57,6 +144,8 @@ export const FinancialOverview = ({ stats, theme, refreshDashboard, isHistory=tr
     );
   }
 
+  // ... da qui in poi il codice con la funzione toggleExpand e il return dei dipartimenti rimane identico
+
   const toggleExpand = (id: string) => {
     LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
     setExpandedId(expandedId === id ? null : id);
@@ -65,7 +154,7 @@ export const FinancialOverview = ({ stats, theme, refreshDashboard, isHistory=tr
   return (
     <View style={styles.container}>
       <Text style={[styles.sectionTitle, { color: theme.text }]}>Department Budgets</Text>
-      {stats.departments.map((dept) => (
+      {departments.map((dept) => (
         <DepartmentCard 
           key={dept.id}
           dept={dept}
@@ -80,6 +169,7 @@ export const FinancialOverview = ({ stats, theme, refreshDashboard, isHistory=tr
   );
 };
 
+// Componente Card Dipartimento per Ristoranti (Preservato intatto)
 const DepartmentCard = ({ dept, theme, isExpanded, isHistory = false, onPressHeader, onBudgetUpdated }: DepartmentCardProps) => {
   const [budgetInput, setBudgetInput] = useState<string>(Math.round(dept.plannedBudget).toString());
   const [isSaving, setIsSaving] = useState<boolean>(false);
@@ -90,10 +180,7 @@ const DepartmentCard = ({ dept, theme, isExpanded, isHistory = false, onPressHea
   }, [dept.plannedBudget]);
 
   const isNegative = dept.availableBudget < 0;
-  
-  const spentPercentage = dept.plannedBudget > 0 
-    ? Math.min((dept.effectiveSpent / dept.plannedBudget) * 100, 100) 
-    : 100;
+  const spentPercentage = dept.plannedBudget > 0 ? Math.min((dept.effectiveSpent / dept.plannedBudget) * 100, 100) : 100;
 
   let statusColor = "#34C759"; 
   if (spentPercentage >= 90 || isNegative) statusColor = "#FF3B30"; 
@@ -119,7 +206,6 @@ const DepartmentCard = ({ dept, theme, isExpanded, isHistory = false, onPressHea
 
   return (
     <View style={[styles.mainCard, { backgroundColor: theme.card }]}>
-      {/* HEADER */}
       <Pressable style={styles.accordionHeader} onPress={onPressHeader}>
         <View style={styles.headerLeft}>
           <View style={[styles.iconBadge, { backgroundColor: theme.tint + "10" }]}>
@@ -137,8 +223,6 @@ const DepartmentCard = ({ dept, theme, isExpanded, isHistory = false, onPressHea
 
       {isExpanded && (
         <View style={styles.dropdownContent}>
-          
-          {/* PROGRESS BAR  */}
           <View style={styles.progressContainer}>
             <View style={styles.progressLabelRow}>
               <Text style={[styles.spendingLabel, { color: theme.secondaryText }]}>SPENDING PROGRESS</Text>
@@ -153,12 +237,8 @@ const DepartmentCard = ({ dept, theme, isExpanded, isHistory = false, onPressHea
             <View style={[styles.spendingItem, { backgroundColor: theme.background }]}>
               <View style={styles.labelWithIcon}>
                 <Text style={[styles.spendingLabel, { color: theme.secondaryText }]}>PLANNED (LIMIT)</Text>
-                
                 {!isHistory && (
-                  <Pressable onPress={() => {
-                    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
-                    setIsEditing(!isEditing);
-                  }}>
+                  <Pressable onPress={() => { LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut); setIsEditing(!isEditing); }}>
                     <Ionicons name="create-outline" size={20} color={theme.tint} style={{ marginLeft: 4 }} />
                   </Pressable>
                 )}
@@ -176,7 +256,6 @@ const DepartmentCard = ({ dept, theme, isExpanded, isHistory = false, onPressHea
             </View>
           </View>
 
-          {/* EDIT BUDGET FORM*/}
           {isEditing && !isHistory && (
             <View style={[styles.editBudgetForm, { borderTopColor: theme.background }]}>
               <TextInput
@@ -194,7 +273,6 @@ const DepartmentCard = ({ dept, theme, isExpanded, isHistory = false, onPressHea
               </Pressable>
             </View>
           )}
-
         </View>
       )}
     </View>
@@ -206,8 +284,9 @@ export default FinancialOverview;
 const styles = StyleSheet.create({
   container: { marginBottom: 8 },
   sectionTitle: { fontSize: 13, fontWeight: "800", marginBottom: 12, textTransform: "uppercase", letterSpacing: 0.5, opacity: 0.7 },
+  sectionSubtitle: { fontSize: 11, fontWeight: "800", marginTop: 14, marginBottom: 10, textTransform: "uppercase", letterSpacing: 0.5, opacity: 0.5 },
   mainCard: { borderRadius: 20, marginBottom: 10, shadowColor: "#000", shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.03, shadowRadius: 10, elevation: 2, overflow: "hidden" },
-  emptyCard: { marginVertical: 16,padding: 24, borderRadius: 16, alignItems: "center", justifyContent: "center",borderWidth: 1,},
+  emptyCard: { marginVertical: 16, padding: 24, borderRadius: 16, alignItems: "center", justifyContent: "center", borderWidth: 1 },
   emptyText: { fontSize: 14, opacity: 0.4, marginVertical: 12, fontWeight: "600", textAlign: "center" },
   btnComplete: { height: 40, paddingHorizontal: 24, borderRadius: 12, justifyContent: 'center', alignItems: 'center' },
   btnText: { fontSize: 13, fontWeight: '700' },
@@ -232,5 +311,12 @@ const styles = StyleSheet.create({
   editBudgetForm: { flexDirection: 'row', gap: 8, borderTopWidth: 1, paddingTop: 12, marginTop: 12, alignItems: 'center' },
   budgetTextInput: { flex: 1, height: 38, borderRadius: 8, borderWidth: 1, paddingHorizontal: 12, fontSize: 13, fontWeight: '600' },
   saveButton: { height: 38, paddingHorizontal: 16, borderRadius: 8, justifyContent: 'center', alignItems: 'center' },
-  saveButtonText: { color: '#FFF', fontSize: 12, fontWeight: '700' }
+  saveButtonText: { color: '#FFF', fontSize: 12, fontWeight: '700' },
+  
+  // 🌟 DESIGN DEDICATO ALLA STAFFING AGENCY
+  staffingTotalCard: { padding: 20, borderRadius: 22, marginBottom: 10, shadowColor: "#000", shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.05, shadowRadius: 12, elevation: 3 },
+  staffingTotalLabel: { fontSize: 9, fontWeight: "700", letterSpacing: 0.5, opacity: 0.6, marginBottom: 4 },
+  staffingTotalValue: { fontSize: 24, fontWeight: "800", letterSpacing: -0.5 },
+  clientRowCard: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 16, borderRadius: 20, marginBottom: 8, shadowColor: "#000", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.01, shadowRadius: 5, elevation: 1 },
+  clientRevenueValue: { fontSize: 14, fontWeight: '800' }
 });

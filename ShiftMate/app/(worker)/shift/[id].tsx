@@ -147,15 +147,18 @@ export default function WorkerShiftDetailPage() {
     }
   };
 
-  // 🛠️ FALLBACK DATA ENGINE: Resolves data from DB, defaults to premium hardcoded strings if empty
-    const venueName = shift.businesses?.name || "The Plaza Elite Lounge";
 
-    // Recuperiamo sia indirizzo che città dal DB (con i fallback se fossero nulli)
-    const addressText = shift.businesses?.business_address || "Via Montenapoleone 8";
-    const cityText = shift.businesses?.business_city || "Milano";
+  // 🛠️ DYNAMIC DATA ENGINE: Risolve i dati dando la priorità alla singola location del turno
+  const venueName = shift.businesses?.name || "The Plaza Elite Lounge";
 
-    // Concateniamo per mostrare un testo completo ed elegante nella Card dell'interfaccia
-    const fullDisplayAddress = `${addressText}, ${cityText}`;
+  // 🌟 Se il turno ha un indirizzo compilato a mano (Staffing) usa quello, altrimenti passa a quello del locale fisso (Standard)
+  const addressText = shift.address || shift.businesses?.business_address || "Via Montenapoleone 8";
+  const cityText = shift.city || shift.businesses?.business_city || "Milano";
+
+  // Concateniamo per mostrare un testo completo ed elegante nella Card dell'interfaccia
+  const fullDisplayAddress = `${addressText}, ${cityText}`;
+
+  
 
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>

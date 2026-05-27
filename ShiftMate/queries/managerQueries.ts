@@ -40,14 +40,22 @@ export const countBusinessWorkers = async (businessId: string) => {
   return count || 0;
 };
 
-export const createBusinessAndAssignOwner = async (userId: string, businessName: string, inviteCode: string, business_address: string, business_city: string) => {
+export const createBusinessAndAssignOwner = async (
+  userId: string, 
+  businessName: string, 
+  inviteCode: string, 
+  business_address: string, 
+  business_city: string,
+  businessType: string // standard or staffing
+) => {
   const { data: business, error: businessError } = await supabase
     .from("businesses")
     .insert([{ 
       name: businessName.trim(), 
       invite_code: inviteCode, 
       business_address: business_address.trim(),
-      business_city: business_city.trim()
+      business_city: business_city.trim(),
+      business_type: businessType
     }])
     .select()
     .single();
@@ -69,9 +77,9 @@ export const fetchManagerShifts = async (userId: string) => {
   const { data: shifts, error } = await supabase
     .from("shifts")
     .select(`
-      id, title, shift_date, start_time, end_time, status, image_url, hourly_rate, total_pay, department_id,
+      id, title, shift_date, start_time, end_time, status, image_url, hourly_rate, total_pay, department_id, client_name,
       departments ( name )
-    `) // AGGIORNATO: Prende il nome del reparto relazionato
+    `)
     .eq("manager_id", userId)
     .order('shift_date', { ascending: true });
 
@@ -85,11 +93,14 @@ export const createShift = async (
   formData: {
     title: string;
     description: string;
-    departmentId: string;
+    departmentId: string | null; 
     date: string;         
     startTime: string;    
     endTime: string;      
     hourly_rate: number;  
+    required_workers?: number;   
+    address?: string | null; // 🌟 AGGIUNTO: campo opzionale per l'indirizzo dello staffing
+    city?: string | null;    // 🌟 AGGIUNTO: campo opzionale per la città dello staffing
   }
 ) => {
   const { data: profile, error: profileError } = await supabase
@@ -116,6 +127,9 @@ export const createShift = async (
       status: "open",
       created_by: userId,
       manager_id: userId,
+      required_workers: formData.required_workers || 1, 
+      address: formData.address || null, // 🌟 Ora TypeScript sa cos'è!
+      city: formData.city || null,       // 🌟 Ora TypeScript sa cos'è!
     },
   ]);
 

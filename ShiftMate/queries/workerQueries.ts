@@ -93,6 +93,8 @@ export const fetchShiftDetails = async (shiftId: string) => {
     .from("shifts")
     .select(`
       *,
+      address,
+      city,
       businesses (
         name,
         business_address,

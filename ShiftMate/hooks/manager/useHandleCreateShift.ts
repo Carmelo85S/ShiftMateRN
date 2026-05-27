@@ -10,7 +10,6 @@ export const useHandleCreateShift = () => {
   const [imageUrl, setImageUrl] = useState<string | null>(null);
   const router = useRouter();
 
-  // Helper per estrarre solo la stringa HH:MM:SS dall'oggetto Date (richiesto dal tipo TIME di Postgres)
   const formatTime = (date: Date): string => {
     const hours = String(date.getHours()).padStart(2, '0');
     const minutes = String(date.getMinutes()).padStart(2, '0');
@@ -18,13 +17,12 @@ export const useHandleCreateShift = () => {
     return `${hours}:${minutes}:${seconds}`;
   };
 
-  // Helper per formattare la data in YYYY-MM-DD
   const formatDate = (date: Date): string => {
     return date.toISOString().split('T')[0];
   };
 
   const handleCreate = async (form: any) => {
-    // 1. Validazione Zod centralizzata qui nell'hook
+    // 1. Validazione Zod
     const result = FormShiftSchema.safeParse(form);
 
     if (!result.success) {
@@ -40,17 +38,28 @@ export const useHandleCreateShift = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("User not found");
 
-      // 2. Costruiamo il payload formattando correttamente i dati per Postgres
+      // 🌟 SICUREZZA DOPPIA: Intercettiamo SIA l'oggetto validato che l'argomento raw del form
+      const incomingDepartment = validatedData.department || form.department;
+      const finalDepartmentId = incomingDepartment === "staffing_agency_global" ? null : incomingDepartment;
+
+      // 2. Costruzione del payload definitivo per Postgres
       const payload = {
         title: validatedData.title,
         description: validatedData.description || "",
-        departmentId: validatedData.department, // <-- Cambiato in departmentId per mappare 'department_id'
-        hourly_rate: validatedData.hourly_rate, // Lascialo come numero, Zod lo ha già convertito con coerce
-        date: formatDate(validatedData.shift_date), // Formato "YYYY-MM-DD"
-        startTime: formatTime(validatedData.start_time), // Formato "HH:MM:SS"
-        endTime: formatTime(validatedData.end_time), // Formato "HH:MM:SS"
+        
+        // Blindato: Se c'è la stringa "staffing_agency_global", viene tassativamente convertita in null
+        departmentId: finalDepartmentId,
+        
+        hourly_rate: validatedData.hourly_rate, 
+        date: formatDate(validatedData.shift_date), 
+        startTime: formatTime(validatedData.start_time), 
+        endTime: formatTime(validatedData.end_time),
+        required_workers: validatedData.required_workers || form.required_workers || 1, 
+        address: (validatedData as any).address || form.address || null,
+        city: (validatedData as any).city || form.city || null,
       };
 
+      // Invia alla query
       await createShift(user.id, imageUrl, payload);
       router.push("/(manager)/(tabs)/shift");
     } catch (err: any) {

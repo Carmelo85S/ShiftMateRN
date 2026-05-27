@@ -8,6 +8,7 @@ export const useSetupBusiness = () => {
   const [businessName, setBusinessName] = useState("");
   const [businessAddress, setBusinessAddress] = useState("")
   const [businessCity, setBusinessCity] = useState("")
+  const [businessType, setBusinessType] = useState("standard")
   const [loading, setLoading] = useState(false)
   const router = useRouter();
 
@@ -32,7 +33,7 @@ export const useSetupBusiness = () => {
       if (!user) throw new Error("User not found.");
 
       const inviteCode = generateInviteCode();
-      await createBusinessAndAssignOwner(user.id, businessName, inviteCode, businessAddress, businessCity);
+      await createBusinessAndAssignOwner(user.id, businessName, inviteCode, businessAddress, businessCity, businessType);
 
       Alert.alert(
         "Business Created!",
@@ -57,6 +58,8 @@ export const useSetupBusiness = () => {
     setBusinessAddress,
     businessCity,
     setBusinessCity,
+    businessType,
+    setBusinessType,
     loading,
     handleCreateBusiness
   };
