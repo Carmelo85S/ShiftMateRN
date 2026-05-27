@@ -3,10 +3,8 @@ import { supabase } from "@/lib/supabase";
 import { 
   countPendingApplications, 
   fetchManagerShifts, 
-  getManagerProfile 
 } from "@/queries/managerQueries";
 
-// Tipo per le statistiche del ristorante (Standard)
 type DepartmentStat = {
   id: string;
   name: string;
@@ -15,18 +13,17 @@ type DepartmentStat = {
   availableBudget: number;
 };
 
-// Tipo per le statistiche dell'agenzia (Staffing)
 type ClientStat = {
   id: string;
   name: string;
-  revenue: number; // Totale SEK generato da questo cliente nel mese corrente
+  revenue: number; 
 };
 
 type DashboardStats = {
-  departments: DepartmentStat[]; // Usato se businessType === "standard"
-  clients: ClientStat[];         // Usato se businessType === "staffing"
+  departments: DepartmentStat[]; 
+  clients: ClientStat[];         
   pendingCount: number;
-  totalMonthlyRevenue?: number;  // KPI extra utile solo per lo staffing
+  totalMonthlyRevenue?: number;  
 };
 
 export const useDashboardData = () => {
@@ -43,14 +40,10 @@ export const useDashboardData = () => {
       const userId = session?.user?.id;
       if (!userId) return;
 
-      const today = new Date().toISOString().split("T")[0];
-      
-      // Date correnti per filtrare il mese e anno attuale
-      const now = new Date();
-      const currentYear = now.getFullYear();
-      const currentMonth = now.getMonth();
+      const todayStr = new Date().toISOString().split("T")[0]; // "2026-05-27"
+      const [currentYear, currentMonth] = todayStr.split("-"); // ["2026", "05"]
 
-      // 1. Recuperiamo il profilo dell'utente, includendo il tipo di business
+      // 1. Recuperiamo il profilo dell'utente
       const { data: profileData, error: profileError } = await supabase
         .from("profiles")
         .select(`
@@ -64,11 +57,10 @@ export const useDashboardData = () => {
       if (profileError) throw profileError;
       if (profileData?.name) setUserName(profileData.name);
 
-      // Determiniamo il tipo di business (standard o staffing)
       const bType = (profileData?.businesses as any)?.business_type || "standard";
       setBusinessType(bType);
 
-      // 2. Fetch parallelo di turni e candidature pendenti
+      // 2. Fetch di tutti i turni del manager
       const [allShifts, pendingCount] = await Promise.all([
         fetchManagerShifts(userId),
         countPendingApplications(userId)
@@ -80,28 +72,32 @@ export const useDashboardData = () => {
       let totalRevenueAccumulator = 0;
 
       if (businessId) {
-        // 🌟 CASO A: LOGICA PER STAFFING AGENCY
+        // ==========================================
+        // 🌟 LOGICA CASO STAFFING
+        // ==========================================
         if (bType === "staffing") {
-          // Filtriamo solo i turni COMPLETATI nel mese e anno corrente
-          const completedShiftsThisMonth = allShifts?.filter(s => {
-            if (s.status?.toLowerCase() !== "completed") return false;
+          
+          const activeShiftsThisMonth = allShifts?.filter(s => {
+            // Accetta qualsiasi stato attivo o concluso che generi revenue
+            const currentStatus = s.status?.toLowerCase();
+            const isCorrectStatus = ["completed", "filled", "assigned", "open"].includes(currentStatus);
+            if (!isCorrectStatus) return false;
             if (!s.shift_date) return false;
+
+            // 🛠️ FIX SICUREZZA FUSO ORARIO: Tagliamo la stringa "YYYY-MM-DD" direttamente senza fare "new Date()"
+            // s.shift_date è es. "2026-05-15" -> split("-") -> ["2026", "05", "15"]
+            const [sYear, sMonth] = s.shift_date.split("-");
             
-            const shiftDate = new Date(s.shift_date);
-            return (
-              shiftDate.getFullYear() === currentYear &&
-              shiftDate.getMonth() === currentMonth
-            );
+            return sYear === currentYear && sMonth === currentMonth;
           }) || [];
 
-          // Estraiamo l'elenco dei clienti unici inseriti nei turni di questo mese
+          // Estrazione client_name unici
           const uniqueClients = Array.from(
-            new Set(completedShiftsThisMonth.map(s => s.client_name?.trim() || "Generic Client"))
+            new Set(activeShiftsThisMonth.map(s => s.client_name?.trim() || "Generic Client"))
           );
 
-          // Calcoliamo il fatturato (revenue) per ogni singolo cliente
           clientStatsArray = uniqueClients.map(clientName => {
-            const clientShifts = completedShiftsThisMonth.filter(
+            const clientShifts = activeShiftsThisMonth.filter(
               s => (s.client_name?.trim() || "Generic Client") === clientName
             );
             
@@ -115,7 +111,9 @@ export const useDashboardData = () => {
             };
           });
 
-        // 🌟 CASO B: LOGICA PER RISTORANTE / HOTEL STANDARD
+        // ==========================================
+        // 🌟 LOGICA CASO RISTORANTE (STANDARD)
+        // ==========================================
         } else {
           const { data: departments, error: deptError } = await supabase
             .from("departments")
@@ -131,11 +129,8 @@ export const useDashboardData = () => {
                   if (s.status?.toLowerCase() !== "completed") return false;
                   if (!s.shift_date) return false;
                   
-                  const shiftDate = new Date(s.shift_date);
-                  return (
-                    shiftDate.getFullYear() === currentYear &&
-                    shiftDate.getMonth() === currentMonth
-                  );
+                  const [sYear, sMonth] = s.shift_date.split("-");
+                  return sYear === currentYear && sMonth === currentMonth;
                 })
                 .reduce((acc, s) => acc + (Number(s.total_pay) || 0), 0);
 
@@ -153,7 +148,7 @@ export const useDashboardData = () => {
         }
       }
 
-      // Salviamo i dati formattati nello stato in base al tipo di business
+      // Invio dei dati puliti allo stato
       setStats({
         departments: departmentStatsArray,
         clients: clientStatsArray,
@@ -161,8 +156,8 @@ export const useDashboardData = () => {
         totalMonthlyRevenue: totalRevenueAccumulator
       });
 
-      // Prendiamo i primi 3 turni futuri da mostrare nella dashboard
-      setUpcomingShifts(allShifts.filter((s: any) => s.shift_date >= today).slice(0, 3));
+      // Aggiorna la sezione dei prossimi turni
+      setUpcomingShifts(allShifts.filter((s: any) => s.shift_date >= todayStr).slice(0, 3));
     } catch (error) {
       console.error("Dashboard error:", error);
     } finally {
@@ -176,32 +171,21 @@ export const useDashboardData = () => {
     setRefreshing(false);
   }, [fetchData]);
 
-  // Sottoscrizione ai canali Realtime di Supabase per aggiornamenti istantanei
   useEffect(() => {
     fetchData();
 
     const applicationsChannel = supabase
       .channel("db-applications-changes")
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "applications" },
-        (payload) => {
-          console.log("⚡ Realtime: Candidature variate!", payload);
-          fetchData(); 
-        }
-      )
+      .on("postgres_changes", { event: "*", schema: "public", table: "applications" }, () => {
+        fetchData(); 
+      })
       .subscribe();
 
     const shiftsChannel = supabase
       .channel("db-shifts-changes")
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "shifts" },
-        (payload) => {
-          console.log("⚡ Realtime: Turni variati!", payload);
-          fetchData(); 
-        }
-      )
+      .on("postgres_changes", { event: "*", schema: "public", table: "shifts" }, () => {
+        fetchData(); 
+      })
       .subscribe();
 
     return () => {
@@ -212,7 +196,7 @@ export const useDashboardData = () => {
 
   return {
     userName,
-    businessType, // 🌟 Restituito così la Dashboard sa quale grafica mostrare
+    businessType, 
     stats,
     upcomingShifts,
     loading,

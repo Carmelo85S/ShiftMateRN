@@ -38,7 +38,7 @@ export const useHandleCreateShift = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("User not found");
 
-      // 🌟 SICUREZZA DOPPIA: Intercettiamo SIA l'oggetto validato che l'argomento raw del form
+      // 🌟 SICUREZZA DOPPIA
       const incomingDepartment = validatedData.department || form.department;
       const finalDepartmentId = incomingDepartment === "staffing_agency_global" ? null : incomingDepartment;
 
@@ -46,10 +46,7 @@ export const useHandleCreateShift = () => {
       const payload = {
         title: validatedData.title,
         description: validatedData.description || "",
-        
-        // Blindato: Se c'è la stringa "staffing_agency_global", viene tassativamente convertita in null
         departmentId: finalDepartmentId,
-        
         hourly_rate: validatedData.hourly_rate, 
         date: formatDate(validatedData.shift_date), 
         startTime: formatTime(validatedData.start_time), 
@@ -57,6 +54,7 @@ export const useHandleCreateShift = () => {
         required_workers: validatedData.required_workers || form.required_workers || 1, 
         address: (validatedData as any).address || form.address || null,
         city: (validatedData as any).city || form.city || null,
+        client_name: (validatedData as any).client_name || form.client_name || null, // 🌟 AGGIUNTO QUI!
       };
 
       // Invia alla query

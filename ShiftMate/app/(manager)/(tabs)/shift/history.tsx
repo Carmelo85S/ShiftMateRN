@@ -27,9 +27,16 @@ export default function HistoryScreen() {
   // Tab switch state
   const [activeTab, setActiveTab] = useState<"shifts" | "finance">("shifts");
 
+  // Business type tracking
+  const [businessType, setBusinessType] = useState<"standard" | "staffing">("standard");
+
   // Historical data states calculated locally per month
   const [filteredHistory, setFilteredHistory] = useState<any[]>([]);
-  const [reportStats, setReportStats] = useState<{ departments: any[] }>({ departments: [] });
+  const [reportStats, setReportStats] = useState<{ departments: any[]; clients: any[]; totalMonthlyRevenue: number }>({ 
+    departments: [], 
+    clients: [], 
+    totalMonthlyRevenue: 0 
+  });
   const [monthlySpending, setMonthlySpending] = useState(0);
   const [loading, setLoading] = useState(true);
 
@@ -46,12 +53,23 @@ export default function HistoryScreen() {
       const userId = session?.user?.id;
       if (!userId) return;
 
-      // Calculate date range for the selected month
-      const startDate = new Date(currentYear, currentMonth, 1).toISOString().split('T')[0];
-      const endDate = new Date(currentYear, currentMonth + 1, 0).toISOString().split('T')[0];
+      // 1. Recupera il profilo e determina dinamicamente il tipo di business
+      const { data: profileData } = await supabase
+        .from("profiles")
+        .select("name, business_id, businesses ( business_type )")
+        .eq("id", userId)
+        .single();
+      
+      const bType = (profileData?.businesses as any)?.business_type || "standard";
+      setBusinessType(bType);
 
-      // Fetch completed shifts only for the selected month
-      const { data: shifts, error } = await supabase
+      // Calculate date range for the selected month (Safe strings generation)
+      const pad = (n: number) => String(n).padStart(2, "0");
+      const startDate = `${currentYear}-${pad(currentMonth + 1)}-01`;
+      const endDate = `${currentYear}-${pad(currentMonth + 1)}-${pad(new Date(currentYear, currentMonth + 1, 0).getDate())}`;
+
+      // 2. Query flessibile sui turni storici del mese corrente
+      let query = supabase
         .from("shifts")
         .select(`
           *,
@@ -59,42 +77,79 @@ export default function HistoryScreen() {
           departments ( id, name, monthly_budget )
         `)
         .eq("manager_id", userId)
-        .eq("status", "completed")
         .gte("shift_date", startDate)
         .lte("shift_date", endDate);
 
+      // Se ristorante filtra solo i completati, per l'agenzia includiamo anche i turni attivi/assegnati del mese
+      if (bType === "standard") {
+        query = query.eq("status", "completed");
+      } else {
+        query = query.in("status", ["completed", "filled", "assigned", "open"]);
+      }
+
+      const { data: shifts, error } = await query;
       if (error) throw error;
 
       const currentShifts = shifts || [];
       setFilteredHistory(currentShifts);
 
-      // 1. Sum up total spending of the month for HistoryStatsCard
+      // Calcola i ricavi / costi totali generati nel mese selezionato
       const totalSpent = currentShifts.reduce((acc, s) => acc + (Number(s.total_pay) || 0), 0);
       setMonthlySpending(totalSpent);
 
-      // 2. Group by Department for the financial report calculation
-      const departmentsMap: { [key: string]: any } = {};
-      currentShifts.forEach((shift: any) => {
-        const dept = shift.departments;
-        if (!dept) return;
+      let finalizedDepartments: any[] = [];
+      let clientStatsArray: any[] = [];
 
-        if (!departmentsMap[dept.id]) {
-          departmentsMap[dept.id] = {
-            id: dept.id,
-            name: dept.name,
-            plannedBudget: Number(dept.monthly_budget) || 0,
-            effectiveSpent: 0,
+      // ==========================================
+      // 🌟 AGGREGAZIONE DATI IN BASE AL BUSINESS
+      // ==========================================
+      if (bType === "staffing") {
+        // Estrazione dei clienti unici per la vista Staffing Agency
+        const uniqueClients = Array.from(
+          new Set(currentShifts.map(s => s.client_name?.trim() || "Generic Client"))
+        );
+
+        clientStatsArray = uniqueClients.map(clientName => {
+          const clientShifts = currentShifts.filter(
+            s => (s.client_name?.trim() || "Generic Client") === clientName
+          );
+          const revenueSum = clientShifts.reduce((acc, s) => acc + (Number(s.total_pay) || 0), 0);
+          return {
+            id: clientName,
+            name: clientName,
+            revenue: revenueSum
           };
-        }
-        departmentsMap[dept.id].effectiveSpent += Number(shift.total_pay) || 0;
+        });
+      } else {
+        // Raggruppamento classico per Dipartimenti (Ristoranti Standard)
+        const departmentsMap: { [key: string]: any } = {};
+        currentShifts.forEach((shift: any) => {
+          const dept = shift.departments;
+          if (!dept) return;
+
+          if (!departmentsMap[dept.id]) {
+            departmentsMap[dept.id] = {
+              id: dept.id,
+              name: dept.name,
+              plannedBudget: Number(dept.monthly_budget) || 0,
+              effectiveSpent: 0,
+            };
+          }
+          departmentsMap[dept.id].effectiveSpent += Number(shift.total_pay) || 0;
+        });
+
+        finalizedDepartments = Object.values(departmentsMap).map((dept: any) => ({
+          ...dept,
+          availableBudget: dept.plannedBudget - dept.effectiveSpent
+        }));
+      }
+
+      // Imposta lo stato globale formattato in modo asimmetrico per la dashboard
+      setReportStats({ 
+        departments: finalizedDepartments,
+        clients: clientStatsArray,
+        totalMonthlyRevenue: totalSpent
       });
-
-      const finalizedDepartments = Object.values(departmentsMap).map((dept: any) => ({
-        ...dept,
-        availableBudget: dept.plannedBudget - dept.effectiveSpent
-      }));
-
-      setReportStats({ departments: finalizedDepartments });
 
     } catch (error) {
       console.error("Error loading monthly statistics:", error);
@@ -103,14 +158,12 @@ export default function HistoryScreen() {
     }
   }, [currentYear, currentMonth]);
 
-  // Reload data when the screen gets focus or when month/year changes
   useFocusEffect(
     useCallback(() => {
       loadMonthlyHistory();
     }, [loadMonthlyHistory])
   );
 
-  // Month navigation handlers
   const handlePrevMonth = () => {
     if (currentMonth === 0) {
       setCurrentMonth(11);
@@ -189,7 +242,13 @@ export default function HistoryScreen() {
             {/* Render FinancialOverview when finance tab is active */}
             {activeTab === "finance" && (
               <View style={styles.financeWrapper}>
-                <FinancialOverview stats={reportStats} theme={theme} refreshDashboard={loadMonthlyHistory} isHistory={true} />
+                <FinancialOverview 
+                  stats={reportStats} 
+                  theme={theme} 
+                  refreshDashboard={loadMonthlyHistory} 
+                  isHistory={true} 
+                  businessType={businessType} // 🌟 PASSO IL BUSINESS TYPE REALE
+                />
               </View>
             )}
           </View>
@@ -210,7 +269,6 @@ export default function HistoryScreen() {
                 No shifts posted in this month.
               </Text>
               
-              {/* Conditional rendering: Only render the button if it is NOT a past month */}
               {!isPastMonth && (
                 <Pressable 
                   style={({ pressed }) => [
@@ -218,10 +276,7 @@ export default function HistoryScreen() {
                     { backgroundColor: theme.text }, 
                     pressed && { opacity: 0.85, transform: [{ scale: 0.98 }] }
                   ]}
-                  onPress={() => {
-                    console.log("Navigating to create tab...");
-                    router.push('/(manager)/(tabs)/create');
-                  }} 
+                  onPress={() => router.push('/(manager)/(tabs)/create')} 
                 >
                   <Text style={[styles.btnText, { color: theme.background }]}>
                     Schedule a Shift
@@ -241,18 +296,13 @@ const styles = StyleSheet.create({
   listContent: { paddingHorizontal: 20 },
   columnRow: { justifyContent: 'space-between', marginBottom: 4 },
   headerContainer: { marginTop: 16, marginBottom: 16 },
-  
-  // Month Selector Styles
   dateSelector: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", padding: 12, borderRadius: 15, borderWidth: 1, marginBottom: 15 },
   dateText: { fontSize: 14, fontWeight: "700", textTransform: "uppercase", letterSpacing: 0.5 },
   arrowBtn: { padding: 6 },
-
-  // Tab Switch Styles
   tabSegmentContainer: { flexDirection: "row", padding: 4, borderRadius: 12, marginTop: 16, marginBottom: 8 },
   tabSegment: { flex: 1, paddingVertical: 10, alignItems: "center", borderRadius: 10 },
   tabLabel: { fontSize: 13, fontWeight: "700" },
   inactiveText: { opacity: 0.4 },
-
   financeWrapper: { marginTop: 8 },
   emptyContainer: { flex: 1, marginTop: 40, alignItems: "center", justifyContent: "center", width: "100%", alignSelf: "center", paddingHorizontal: 20 },
   emptyText: { fontSize: 14, opacity: 0.4, marginTop: 12, fontWeight: "600", textAlign: "center" },

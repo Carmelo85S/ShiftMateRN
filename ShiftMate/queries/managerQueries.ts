@@ -101,6 +101,7 @@ export const createShift = async (
     required_workers?: number;   
     address?: string | null; // 🌟 AGGIUNTO: campo opzionale per l'indirizzo dello staffing
     city?: string | null;    // 🌟 AGGIUNTO: campo opzionale per la città dello staffing
+    client_name?: string
   }
 ) => {
   const { data: profile, error: profileError } = await supabase
@@ -128,8 +129,9 @@ export const createShift = async (
       created_by: userId,
       manager_id: userId,
       required_workers: formData.required_workers || 1, 
-      address: formData.address || null, // 🌟 Ora TypeScript sa cos'è!
-      city: formData.city || null,       // 🌟 Ora TypeScript sa cos'è!
+      address: formData.address || null,
+      city: formData.city || null,      
+      client_name: formData.client_name || null,
     },
   ]);
 

@@ -26,7 +26,10 @@ export default function ShiftDetailPage() {
   const isManager = user?.role?.toLowerCase() === "manager";
   const isOwner = shift?.manager_id === user?.id;
   const currentStatus = shift?.status?.toLowerCase();
-  const isValidStatus = currentStatus === "assigned" || currentStatus === "filled" || currentStatus === "open";
+
+  // 🌟 MODIFICATO: Lo shift può essere completato solo se è attivo/assegnato ('assigned').
+  // Se è 'filled' (appena riempito) o 'open' (senza lavoratori), o già 'completed', il pulsante sparisce.
+  const isValidStatus = currentStatus === "assigned";
   const hasAcceptedWorker = applications?.some(app => app.status?.toLowerCase() === "accepted");
 
   const showCompleteButton = isManager && isOwner && isValidStatus && hasAcceptedWorker;
@@ -37,7 +40,6 @@ export default function ShiftDetailPage() {
   const calculateOvertime = (endTime: string, minutesToAdd: number): string => {
     const [hours, minutes, seconds] = endTime.split(":").map(Number);
     
-    // Convert everything to a single Date object to handle time math cleanly
     const date = new Date();
     date.setHours(hours);
     date.setMinutes(minutes + minutesToAdd);
@@ -108,27 +110,29 @@ export default function ShiftDetailPage() {
               <ShiftInfo shift={shift} theme={theme} />
               <CandidatesCard shiftId={shift?.id} applications={applications} theme={theme} />
             </View>
-            {showCompleteButton && (
-        <View style={[styles.actionContainer, { backgroundColor: theme.background, borderTopColor: theme.border }]}>
-          <Pressable 
-            style={({ pressed }) => [
-              styles.btnComplete, 
-              { backgroundColor: theme.text }, 
-              pressed && { opacity: 0.8 }
-            ]}
-            onPress={handleCompletePress}
-            disabled={isSubmitting}
-          >
-            {isSubmitting ? (
-              <ActivityIndicator color={theme.background} />
-            ) : (
-              <Text style={[styles.btnText, { color: theme.background }]}>Mark as Completed</Text>
-            )}
-          </Pressable>
-        </View>
-      )}
           </View>
         </ScreenWrapper>
+
+        {/* 🌟 SPOSTATO QUI: Il pulsante ora è fuori dallo scroll ed è ancorato rigidamente in basso */}
+        {showCompleteButton && (
+          <View style={[styles.actionContainer, { backgroundColor: theme.background, borderTopColor: theme.border }]}>
+            <Pressable 
+              style={({ pressed }) => [
+                styles.btnComplete, 
+                { backgroundColor: theme.text }, 
+                pressed && { opacity: 0.8 }
+              ]}
+              onPress={handleCompletePress}
+              disabled={isSubmitting}
+            >
+              {isSubmitting ? (
+                <ActivityIndicator color={theme.background} />
+              ) : (
+                <Text style={[styles.btnText, { color: theme.background }]}>Mark as Completed</Text>
+              )}
+            </Pressable>
+          </View>
+        )}
       </View>
     </View>
   );

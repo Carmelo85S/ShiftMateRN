@@ -54,12 +54,24 @@ export const FinancialOverview = ({
 }: Props) => {
   const [expandedId, setExpandedId] = useState<string | null>(stats.departments?.[0]?.id || null);
 
+  // Sincronizza lo stato locale quando cambiano le props esterne
+  useEffect(() => {
+    if (stats.departments && stats.departments.length > 0) {
+      if (!expandedId || !stats.departments.some(d => d.id === expandedId)) {
+        setExpandedId(stats.departments[0].id);
+      }
+    } else {
+      setExpandedId(null);
+    }
+  }, [stats.departments]);
+
   // ==========================================
   // 🌟 RENDERING PER STAFFING AGENCY (STAFFING)
   // ==========================================
   if (businessType === "staffing") {
-    const clients = stats.clients || [];
-    const totalRevenue = stats.totalMonthlyRevenue || 0;
+    // 🛠️ FIX: Pulizia dei dati in tempo reale per prevenire disallineamenti tra database e hook
+    const clients = (stats.clients || []).filter(client => client.name && client.name.trim() !== "");
+    const totalRevenue = stats.totalMonthlyRevenue || clients.reduce((acc, c) => acc + c.revenue, 0);
 
     if (isHistory && totalRevenue === 0) {
       return (
@@ -84,7 +96,20 @@ export const FinancialOverview = ({
 
         <Text style={[styles.sectionSubtitle, { color: theme.text }]}>Revenue per Client</Text>
 
-        {clients.length === 0 ? (
+        {/* 🛠️ FIX: Se l'hook fallisce il calcolo del totale ma ha una riga di ripiego o viceversa, mostriamo un fallback protetto */}
+        {clients.length === 0 && totalRevenue > 0 ? (
+          <View style={[styles.clientRowCard, { backgroundColor: theme.card }]}>
+            <View style={styles.headerLeft}>
+              <View style={[styles.iconBadge, { backgroundColor: theme.tint + "10" }]}>
+                <Ionicons name="briefcase-outline" size={16} color={theme.tint} />
+              </View>
+              <Text style={[styles.deptName, { color: theme.text }]}>Active Monthly Contracts</Text>
+            </View>
+            <Text style={[styles.clientRevenueValue, { color: theme.text }]}>
+              {totalRevenue.toLocaleString('sv-SE')} SEK
+            </Text>
+          </View>
+        ) : clients.length === 0 ? (
           <View style={[styles.emptyCard, { backgroundColor: theme.card, borderColor: theme.border }]}>
             <Ionicons name="people-outline" size={32} color={theme.text} style={{ opacity: 0.2, marginBottom: 8 }} />
             <Text style={[styles.emptyText, { color: theme.secondaryText }]}>No active clients found this month.</Text>
@@ -144,8 +169,6 @@ export const FinancialOverview = ({
     );
   }
 
-  // ... da qui in poi il codice con la funzione toggleExpand e il return dei dipartimenti rimane identico
-
   const toggleExpand = (id: string) => {
     LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
     setExpandedId(expandedId === id ? null : id);
@@ -169,7 +192,7 @@ export const FinancialOverview = ({
   );
 };
 
-// Componente Card Dipartimento per Ristoranti (Preservato intatto)
+// Componente Card Dipartimento per Ristoranti
 const DepartmentCard = ({ dept, theme, isExpanded, isHistory = false, onPressHeader, onBudgetUpdated }: DepartmentCardProps) => {
   const [budgetInput, setBudgetInput] = useState<string>(Math.round(dept.plannedBudget).toString());
   const [isSaving, setIsSaving] = useState<boolean>(false);
@@ -313,7 +336,7 @@ const styles = StyleSheet.create({
   saveButton: { height: 38, paddingHorizontal: 16, borderRadius: 8, justifyContent: 'center', alignItems: 'center' },
   saveButtonText: { color: '#FFF', fontSize: 12, fontWeight: '700' },
   
-  // 🌟 DESIGN DEDICATO ALLA STAFFING AGENCY
+  // DESIGN DEDICATO ALLA STAFFING AGENCY
   staffingTotalCard: { padding: 20, borderRadius: 22, marginBottom: 10, shadowColor: "#000", shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.05, shadowRadius: 12, elevation: 3 },
   staffingTotalLabel: { fontSize: 9, fontWeight: "700", letterSpacing: 0.5, opacity: 0.6, marginBottom: 4 },
   staffingTotalValue: { fontSize: 24, fontWeight: "800", letterSpacing: -0.5 },

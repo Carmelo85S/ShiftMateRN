@@ -33,7 +33,7 @@ export default function CreateShift() {
   const { businessType } = useDashboardData(); 
   
   // 🌟 Stati locali per agenzie di staffing
-  const [clientName, setClientName] = useState<string>(""); // ◄ AGGIUNTO
+  const [clientName, setClientName] = useState<string>(""); 
   const [address, setAddress] = useState<string>("");
   const [city, setCity] = useState<string>("");
   const [workerCount, setWorkerCount] = useState<number>(1);

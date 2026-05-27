@@ -147,18 +147,16 @@ export default function WorkerShiftDetailPage() {
     }
   };
 
+  // 🛠️ DYNAMIC DATA ENGINE: Risolve le informazioni con priorità alle agenzie di staffing
+  // 🌟 Se c'è un client_name usa quello, altrimenti fa il fallback sul nome del business standard
+  const venueName = shift.client_name || shift.businesses?.name || "The Plaza Elite Lounge";
 
-  // 🛠️ DYNAMIC DATA ENGINE: Risolve i dati dando la priorità alla singola location del turno
-  const venueName = shift.businesses?.name || "The Plaza Elite Lounge";
-
-  // 🌟 Se il turno ha un indirizzo compilato a mano (Staffing) usa quello, altrimenti passa a quello del locale fisso (Standard)
+  // Se il turno ha un indirizzo compilato a mano (Staffing) usa quello, altrimenti passa alle info del business fisso
   const addressText = shift.address || shift.businesses?.business_address || "Via Montenapoleone 8";
   const cityText = shift.city || shift.businesses?.business_city || "Milano";
 
-  // Concateniamo per mostrare un testo completo ed elegante nella Card dell'interfaccia
+  // Stringa unificata visualizzata all'interno della mappa nativa e della card logistica
   const fullDisplayAddress = `${addressText}, ${cityText}`;
-
-  
 
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
@@ -260,7 +258,7 @@ export default function WorkerShiftDetailPage() {
                 pressed && styles.btnPressedScale
               ]}
               onPress={() => {
-                // Uniamo Nome Locale + Indirizzo + Città per una precisione GPS assoluta
+                // Sincronizzazione precisa: unisce Nome Cliente/Locale + Indirizzo del Turno + Città del Turno
                 const fullQuery = encodeURIComponent(`${venueName} ${addressText} ${cityText}`);
                 const url = Platform.select({
                   ios: `maps:0,0?q=${fullQuery}`,
@@ -283,7 +281,7 @@ export default function WorkerShiftDetailPage() {
                   {venueName}
                 </Text>
                 <Text style={[styles.addressText, { color: theme.secondaryText }]} numberOfLines={1}>
-                  {fullDisplayAddress} {/* ◄ Mostrerà es. "Via Roma 12, Milano" */}
+                  {fullDisplayAddress}
                 </Text>
               </View>
               
