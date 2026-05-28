@@ -17,6 +17,7 @@ interface ScreenWrapperProps {
   scrollable?: boolean;
   onRefresh?: () => void;
   refreshing?: boolean;
+  extraPaddingBottom?: number; // 🌟 Nuova prop opzionale per gestire spazi extra (es. bottoni floating)
 }
 
 export const ScreenWrapper = ({ 
@@ -24,7 +25,8 @@ export const ScreenWrapper = ({
   style, 
   scrollable = true, 
   onRefresh,
-  refreshing = false
+  refreshing = false,
+  extraPaddingBottom = 0 // 🌟 Default a 0 se non passato
 }: ScreenWrapperProps) => {
   const insets = useSafeAreaInsets();
   const theme = Colors[useColorScheme() ?? "light"];
@@ -38,7 +40,8 @@ export const ScreenWrapper = ({
   ];
 
   const contentStyle = {
-    paddingBottom: TAB_BAR_HEIGHT + 20, 
+    // 🌟 Sommiamo il padding della Tab Bar a quello extra richiesto dalla pagina
+    paddingBottom: TAB_BAR_HEIGHT + 20 + extraPaddingBottom, 
     paddingTop: Platform.OS === 'android' ? insets.top + 10 : 0, 
   };
 
@@ -48,14 +51,13 @@ export const ScreenWrapper = ({
         style={containerStyle}
         contentContainerStyle={contentStyle}
         showsVerticalScrollIndicator={false}
-        // Il RefreshControl è ora gestito internamente
         refreshControl={
           onRefresh ? (
             <RefreshControl 
               refreshing={refreshing} 
               onRefresh={onRefresh} 
-              tintColor={theme.tint} // Colore rotellina iOS
-              colors={[theme.tint]}  // Colore rotellina Android
+              tintColor={theme.tint} 
+              colors={[theme.tint]}  
             />
           ) : undefined
         }

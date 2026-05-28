@@ -1,5 +1,14 @@
-import React, { useState, useCallback, useEffect } from "react";
-import { View, Text, StyleSheet, FlatList, ActivityIndicator, useColorScheme, Pressable } from "react-native";
+
+import React, { useCallback, useState } from "react";
+import { 
+  View, 
+  Text, 
+  StyleSheet, 
+  FlatList, 
+  ActivityIndicator, 
+  useColorScheme, 
+  Pressable 
+} from "react-native";
 import { Colors } from "@/constants/theme";
 import { useFocusEffect, Stack, router } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -11,26 +20,23 @@ import { HistoryStatsCard } from "@/components/manager/history/HistoryStatsCard"
 import { FinancialOverview } from "@/components/manager/dashboard/FinancialOverview";
 
 const MONTHS_IT = [
-  "January", "February", "Mars", "April", "Maj", "Juni",
-  "Juli", "August", "September", "October", "November", "December"
+  "January", "February", "March", "April", "May", "June",
+  "July", "August", "September", "October", "November", "December"
 ];
 
 export default function HistoryScreen() {
   const theme = Colors[useColorScheme() ?? "light"];
   const insets = useSafeAreaInsets();
 
-  // State for past months navigation
   const now = new Date();
   const [currentYear, setCurrentYear] = useState(now.getFullYear());
   const [currentMonth, setCurrentMonth] = useState(now.getMonth());
-
-  // Tab switch state
   const [activeTab, setActiveTab] = useState<"shifts" | "finance">("shifts");
+  
+  // Stati per la gestione del profilo e filtri aziendali
+  const [businessType, setBusinessType] = useState<"standard" | "staffing" | null>(null);
 
-  // Business type tracking
-  const [businessType, setBusinessType] = useState<"standard" | "staffing">("standard");
-
-  // Historical data states calculated locally per month
+  // Stati dei dati storici del mese selezionato
   const [filteredHistory, setFilteredHistory] = useState<any[]>([]);
   const [reportStats, setReportStats] = useState<{ departments: any[]; clients: any[]; totalMonthlyRevenue: number }>({ 
     departments: [], 
@@ -38,14 +44,15 @@ export default function HistoryScreen() {
     totalMonthlyRevenue: 0 
   });
   const [monthlySpending, setMonthlySpending] = useState(0);
-  const [loading, setLoading] = useState(true);
+  
+  // 🌟 GESTIONE LOADING OTTIMIZZATA ANTI-SFARFALLIO
+  const [isInitialLoading, setIsInitialLoading] = useState(true); // Solo per il primo avvio assoluto
+  const [loading, setLoading] = useState(false);                 // Per i caricamenti silenziosi tra i mesi
 
-  // Check if the selected month/year is in the past compared to the current date
   const isPastMonth = 
     currentYear < now.getFullYear() || 
     (currentYear === now.getFullYear() && currentMonth < now.getMonth());
 
-  // Dynamic fetch driven by selected month and year
   const loadMonthlyHistory = useCallback(async () => {
     try {
       setLoading(true);
@@ -53,22 +60,23 @@ export default function HistoryScreen() {
       const userId = session?.user?.id;
       if (!userId) return;
 
-      // 1. Recupera il profilo e determina dinamicamente il tipo di business
-      const { data: profileData } = await supabase
-        .from("profiles")
-        .select("name, business_id, businesses ( business_type )")
-        .eq("id", userId)
-        .single();
-      
-      const bType = (profileData?.businesses as any)?.business_type || "standard";
-      setBusinessType(bType);
+      // Recupera il profilo solo se non l'abbiamo ancora fatto
+      let bType = businessType;
+      if (!bType) {
+        const { data: profileData } = await supabase
+          .from("profiles")
+          .select("name, business_id, businesses ( business_type )")
+          .eq("id", userId)
+          .single();
+        
+        bType = (profileData?.businesses as any)?.business_type || "standard";
+        setBusinessType(bType);
+      }
 
-      // Calculate date range for the selected month (Safe strings generation)
       const pad = (n: number) => String(n).padStart(2, "0");
       const startDate = `${currentYear}-${pad(currentMonth + 1)}-01`;
       const endDate = `${currentYear}-${pad(currentMonth + 1)}-${pad(new Date(currentYear, currentMonth + 1, 0).getDate())}`;
 
-      // 2. Query flessibile sui turni storici del mese corrente
       let query = supabase
         .from("shifts")
         .select(`
@@ -80,7 +88,6 @@ export default function HistoryScreen() {
         .gte("shift_date", startDate)
         .lte("shift_date", endDate);
 
-      // Se ristorante filtra solo i completati, per l'agenzia includiamo anche i turni attivi/assegnati del mese
       if (bType === "standard") {
         query = query.eq("status", "completed");
       } else {
@@ -93,18 +100,13 @@ export default function HistoryScreen() {
       const currentShifts = shifts || [];
       setFilteredHistory(currentShifts);
 
-      // Calcola i ricavi / costi totali generati nel mese selezionato
       const totalSpent = currentShifts.reduce((acc, s) => acc + (Number(s.total_pay) || 0), 0);
       setMonthlySpending(totalSpent);
 
       let finalizedDepartments: any[] = [];
       let clientStatsArray: any[] = [];
 
-      // ==========================================
-      // 🌟 AGGREGAZIONE DATI IN BASE AL BUSINESS
-      // ==========================================
       if (bType === "staffing") {
-        // Estrazione dei clienti unici per la vista Staffing Agency
         const uniqueClients = Array.from(
           new Set(currentShifts.map(s => s.client_name?.trim() || "Generic Client"))
         );
@@ -121,7 +123,6 @@ export default function HistoryScreen() {
           };
         });
       } else {
-        // Raggruppamento classico per Dipartimenti (Ristoranti Standard)
         const departmentsMap: { [key: string]: any } = {};
         currentShifts.forEach((shift: any) => {
           const dept = shift.departments;
@@ -144,7 +145,6 @@ export default function HistoryScreen() {
         }));
       }
 
-      // Imposta lo stato globale formattato in modo asimmetrico per la dashboard
       setReportStats({ 
         departments: finalizedDepartments,
         clients: clientStatsArray,
@@ -154,9 +154,10 @@ export default function HistoryScreen() {
     } catch (error) {
       console.error("Error loading monthly statistics:", error);
     } finally {
+      setIsInitialLoading(false);
       setLoading(false);
     }
-  }, [currentYear, currentMonth]);
+  }, [currentYear, currentMonth, businessType]);
 
   useFocusEffect(
     useCallback(() => {
@@ -182,7 +183,8 @@ export default function HistoryScreen() {
     }
   };
 
-  if (loading) {
+  // Blocco a schermo intero solo al primissimo avvio assoluto
+  if (isInitialLoading || businessType === null) {
     return (
       <View style={[styles.center, { backgroundColor: theme.background }]}>
         <ActivityIndicator size="small" color={theme.text} />
@@ -190,103 +192,105 @@ export default function HistoryScreen() {
     );
   }
 
+  const renderHeader = () => (
+    <View style={styles.headerContainer}>
+      {/* Selettore dei mesi */}
+      <View style={[styles.dateSelector, { backgroundColor: theme.card, borderColor: theme.border }]}>
+        <Pressable onPress={handlePrevMonth} style={styles.arrowBtn}>
+          <Ionicons name="chevron-back" size={20} color={theme.text} />
+        </Pressable>
+        <Text style={[styles.dateText, { color: theme.text }]}>
+          {MONTHS_IT[currentMonth]} {currentYear}
+        </Text>
+        <Pressable onPress={handleNextMonth} style={styles.arrowBtn}>
+          <Ionicons name="chevron-forward" size={20} color={theme.text} />
+        </Pressable>
+      </View>
+
+      {/* KPI Card riassuntive del mese */}
+      <HistoryStatsCard spending={monthlySpending} count={filteredHistory.length} theme={theme} />
+
+      {/* Segmented Control Tabs */}
+      <View style={[styles.tabSegmentContainer, { backgroundColor: theme.card }]}>
+        <Pressable 
+          onPress={() => setActiveTab("shifts")}
+          style={[styles.tabSegment, activeTab === "shifts" && { backgroundColor: theme.background }]}
+        >
+          <Text style={[styles.tabLabel, { color: theme.text }, activeTab !== "shifts" && styles.inactiveText]}>
+            Past Shifts
+          </Text>
+        </Pressable>
+        <Pressable 
+          onPress={() => setActiveTab("finance")}
+          style={[styles.tabSegment, activeTab === "finance" && { backgroundColor: theme.background }]}
+        >
+          <Text style={[styles.tabLabel, { color: theme.text }, activeTab !== "finance" && styles.inactiveText]}>
+            Finance Report
+          </Text>
+        </Pressable>
+      </View>
+    </View>
+  );
+
   return (
-    <ScreenWrapper scrollable={false}>
+    <ScreenWrapper scrollable={activeTab === "finance"}>
       <Stack.Screen options={{ title: "Shifts History", headerShadowVisible: false }} />
       
-      <FlatList
-        data={activeTab === "shifts" ? filteredHistory : []}
-        keyExtractor={(item) => item.id}
-        numColumns={2}
-        columnWrapperStyle={styles.columnRow}
-        contentContainerStyle={[styles.listContent, { paddingBottom: insets.bottom + 40 }]}
-        showsVerticalScrollIndicator={false}
-        ListHeaderComponent={
-          <View style={styles.headerContainer}>
-            {/* Month selector component */}
-            <View style={[styles.dateSelector, { backgroundColor: theme.card, borderColor: theme.border }]}>
-              <Pressable onPress={handlePrevMonth} style={styles.arrowBtn}>
-                <Ionicons name="chevron-back" size={20} color={theme.text} />
-              </Pressable>
-              <Text style={[styles.dateText, { color: theme.text }]}>
-                {MONTHS_IT[currentMonth]} {currentYear}
-              </Text>
-              <Pressable onPress={handleNextMonth} style={styles.arrowBtn}>
-                <Ionicons name="chevron-forward" size={20} color={theme.text} />
-              </Pressable>
-            </View>
-
-            {/* Stats Card component integrated with the monthly data */}
-            <HistoryStatsCard spending={monthlySpending} count={filteredHistory.length} theme={theme} />
-
-            {/* Segmented Control Switch */}
-            <View style={[styles.tabSegmentContainer, { backgroundColor: theme.card }]}>
-              <Pressable 
-                onPress={() => setActiveTab("shifts")}
-                style={[styles.tabSegment, activeTab === "shifts" && { backgroundColor: theme.background }]}
-              >
-                <Text style={[styles.tabLabel, { color: theme.text }, activeTab !== "shifts" && styles.inactiveText]}>
-                  Past Shifts
-                </Text>
-              </Pressable>
-              <Pressable 
-                onPress={() => setActiveTab("finance")}
-                style={[styles.tabSegment, activeTab === "finance" && { backgroundColor: theme.background }]}
-              >
-                <Text style={[styles.tabLabel, { color: theme.text }, activeTab !== "finance" && styles.inactiveText]}>
-                  Finance Report
-                </Text>
-              </Pressable>
-            </View>
-
-            {/* Render FinancialOverview when finance tab is active */}
-            {activeTab === "finance" && (
-              <View style={styles.financeWrapper}>
-                <FinancialOverview 
-                  stats={reportStats} 
-                  theme={theme} 
-                  refreshDashboard={loadMonthlyHistory} 
-                  isHistory={true} 
-                  businessType={businessType} // 🌟 PASSO IL BUSINESS TYPE REALE
-                />
-              </View>
+      {/* 🌟 EFFETTO OPACITÀ LEGGERO: I dati caricano in background senza smontare la UI */}
+      <View style={[{ flex: 1 }, loading && styles.backgroundLoading]}>
+        {activeTab === "shifts" ? (
+          <FlatList
+            data={filteredHistory}
+            keyExtractor={(item) => item.id}
+            numColumns={2}
+            columnWrapperStyle={styles.columnRow}
+            contentContainerStyle={[styles.listContent, { paddingBottom: insets.bottom + 40 }]}
+            showsVerticalScrollIndicator={false}
+            ListHeaderComponent={renderHeader()}
+            renderItem={({ item }) => (
+              <ShiftCard 
+                item={item} 
+                onPress={() => router.push(`/(manager)/(tabs)/shift/${item.id}`)} 
+              />
             )}
-          </View>
-        }
-
-        renderItem={activeTab === "shifts" ? ({ item }) => (
-          <ShiftCard 
-            item={item} 
-            onPress={() => router.push(`/(manager)/(tabs)/shift/${item.id}`)} 
+            ListEmptyComponent={
+              <View style={styles.emptyContainer}>
+                <Ionicons name="calendar-outline" size={48} color={theme.text} style={{ opacity: 0.1 }} />
+                <Text style={[styles.emptyText, { color: theme.text, marginBottom: isPastMonth ? 0 : 24 }]}>
+                  No shifts posted in this month.
+                </Text>
+                {!isPastMonth && (
+                  <Pressable 
+                    style={({ pressed }) => [
+                      styles.btnCreateShift, 
+                      { backgroundColor: theme.text }, 
+                      pressed && { opacity: 0.85, transform: [{ scale: 0.98 }] }
+                    ]}
+                    onPress={() => router.push('/(manager)/(tabs)/create')} 
+                  >
+                    <Text style={[styles.btnText, { color: theme.background }]}>
+                      Schedule a Shift
+                    </Text>
+                  </Pressable>
+                )}
+              </View>
+            }
           />
-        ) : null}
-
-        ListEmptyComponent={
-          activeTab === "shifts" ? (
-            <View style={styles.emptyContainer}>
-              <Ionicons name="calendar-outline" size={48} color={theme.text} style={{ opacity: 0.1 }} />
-              <Text style={[styles.emptyText, { color: theme.text, marginBottom: isPastMonth ? 0 : 24 }]}>
-                No shifts posted in this month.
-              </Text>
-              
-              {!isPastMonth && (
-                <Pressable 
-                  style={({ pressed }) => [
-                    styles.btnCreateShift, 
-                    { backgroundColor: theme.text }, 
-                    pressed && { opacity: 0.85, transform: [{ scale: 0.98 }] }
-                  ]}
-                  onPress={() => router.push('/(manager)/(tabs)/create')} 
-                >
-                  <Text style={[styles.btnText, { color: theme.background }]}>
-                    Schedule a Shift
-                  </Text>
-                </Pressable>
-              )}
+        ) : (
+          <View style={[styles.listContent, { paddingBottom: insets.bottom + 40 }]}>
+            {renderHeader()}
+            <View style={styles.financeWrapper}>
+              <FinancialOverview 
+                stats={reportStats} 
+                theme={theme} 
+                refreshDashboard={loadMonthlyHistory} 
+                isHistory={true} 
+                businessType={businessType} 
+              />
             </View>
-          ) : null
-        }
-      />
+          </View>
+        )}
+      </View>
     </ScreenWrapper>
   );
 }
@@ -307,5 +311,6 @@ const styles = StyleSheet.create({
   emptyContainer: { flex: 1, marginTop: 40, alignItems: "center", justifyContent: "center", width: "100%", alignSelf: "center", paddingHorizontal: 20 },
   emptyText: { fontSize: 14, opacity: 0.4, marginTop: 12, fontWeight: "600", textAlign: "center" },
   btnCreateShift: { paddingHorizontal: 28, paddingVertical: 14, borderRadius: 16, justifyContent: "center", alignItems: "center", minWidth: 180, shadowColor: "#000", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 6, elevation: 2 },
-  btnText: { fontSize: 14, fontWeight: "700" }
+  btnText: { fontSize: 14, fontWeight: "700" },
+  backgroundLoading: { opacity: 0.6 } // Fornisce un feedback nativo senza sfarfallio bianco
 });

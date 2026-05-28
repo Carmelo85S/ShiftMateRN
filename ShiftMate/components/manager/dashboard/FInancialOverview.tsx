@@ -56,14 +56,19 @@ export const FinancialOverview = ({
 
   // Sincronizza lo stato locale quando cambiano le props esterne
   useEffect(() => {
-    if (stats.departments && stats.departments.length > 0) {
-      if (!expandedId || !stats.departments.some(d => d.id === expandedId)) {
-        setExpandedId(stats.departments[0].id);
-      }
-    } else {
-      setExpandedId(null);
+  if (businessType === "staffing") {
+    setExpandedId(null);
+    return;
+  }
+  
+  if (stats.departments && stats.departments.length > 0) {
+    if (!expandedId || !stats.departments.some(d => d.id === expandedId)) {
+      setExpandedId(stats.departments[0].id);
     }
-  }, [stats.departments]);
+  } else {
+    setExpandedId(null);
+  }
+}, [stats.departments, businessType]); 
 
   // ==========================================
   // 🌟 RENDERING PER STAFFING AGENCY (STAFFING)

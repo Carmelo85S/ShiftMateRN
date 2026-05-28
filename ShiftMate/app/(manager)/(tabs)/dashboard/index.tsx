@@ -1,4 +1,4 @@
-import React, { useCallback, useState } from "react";
+import React, { useCallback } from "react";
 import {
   StyleSheet,
   View,
@@ -20,9 +20,6 @@ export default function Dashboard() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
 
-  // 🌟 Contatore per forzare la rinfrescata dei componenti figli quando cambia il focus
-  const [focusCount, setFocusCount] = useState<number>(0);
-
   const { 
     userName, 
     businessType,
@@ -37,15 +34,14 @@ export default function Dashboard() {
   // Scatta ogni volta che la tab riceve il focus visivo
   useFocusEffect(
     useCallback(() => {
-      // 1. Recupera i dati aggiornati da Supabase
       fetchData();
-      // 2. Incrementa il contatore per rigenerare i componenti figli con la nuova prop "key"
-      setFocusCount(prev => prev + 1);
     }, [fetchData])
   );
 
-  // Mostra lo spinner a tutto schermo solo al primissimo avvio assoluto
-  if (loading && !refreshing && focusCount === 0) {
+  // 🌟 BARRIERA DI SICUREZZA ANTI-FLICK: 
+  // Se non sappiamo ancora se l'utente è "standard" o "staffing" (businessType === null), 
+  // congeliamo lo schermo su un loader pulito. Non mostriamo componenti a metà.
+  if (businessType === null) {
     return (
       <View style={[styles.center, { backgroundColor: theme.background }]}>
         <ActivityIndicator size="small" color={theme.text} />
@@ -59,7 +55,7 @@ export default function Dashboard() {
       onRefresh={onRefresh}
       refreshing={refreshing}
       style={styles.wrapperCustom}
-      key={`dashboard-focus-${focusCount}`} // 🌟 FORZA IL RE-RENDER COMPLETO: resetta la cache visiva di React
+      // ❌ RIMOSSA LA KEY DINAMICA: Ora React aggiorna solo i dati interni senza ricreare la UI da zero
     >
       <View style={[styles.mainContent, { paddingTop: insets.top + 8 }]}>
         
@@ -70,7 +66,7 @@ export default function Dashboard() {
           onProfilePress={() => router.push("/profile")} 
         />
 
-        {/* FINANCIAL: KPI e Statistiche (Ora reattivo al 100%) */}
+        {/* FINANCIAL: KPI e Statistiche (Ora sa già al 100% che layout renderizzare) */}
         <FinancialOverview 
           stats={stats}
           theme={theme}
