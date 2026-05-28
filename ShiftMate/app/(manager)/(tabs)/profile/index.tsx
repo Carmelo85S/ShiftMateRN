@@ -59,11 +59,13 @@ export default function ProfileManager() {
         />
 
         {/* INFO ROLE AND STATUS*/}
-        <ProfileInfoCard 
-          role={profile?.job_role || "Manager"} 
+       <ProfileInfoCard 
+          role={
+            profile?.job_role || 
+            (profile?.role ? profile.role.charAt(0).toUpperCase() + profile.role.slice(1) : "User")
+          } 
           theme={theme} 
         />
-
         {/* BIO */}
         <BiographySection 
           bio={profile?.bio} 

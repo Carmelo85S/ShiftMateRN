@@ -330,7 +330,7 @@ export const fetchUserProfile = async (userId: string) => {
   try {
     const { data, error } = await supabase
       .from("profiles")
-      .select("id, name, surname, job_role, bio, phone, avatar_url, business_id") // AGGIORNATO: Allineato senza colonna department text
+      .select("id, name, surname, role, job_role, bio, phone, avatar_url, business_id")
       .eq("id", userId)
       .maybeSingle();
 
