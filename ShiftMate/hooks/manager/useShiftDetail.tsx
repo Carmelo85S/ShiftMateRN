@@ -62,23 +62,16 @@ export const useShiftDetail = (id: string | string[] | undefined) => {
   };
 
   // 2. Nuova funzione per completare il turno e aggiornare la UI all'istante
-  const completeShift = async (actualEndTime: string) => {
-    if (!id) return;
-    
-    // Invia i dati a Supabase (dove il tuo trigger ricalcolerà la paga reale con l'overtime)
-    await completeShiftWithActualTime(id as string, actualEndTime);
-    
-    // Aggiorna ottimisticamente lo stato locale dello shift in React
-    // In questo modo lo 'status' diventa 'completed', l'orario si aggiorna e il pulsante scompare subito
-    setShift((prevShift: any) => {
-      if (!prevShift) return null;
-      return {
-        ...prevShift,
-        status: "completed",
-        end_time: actualEndTime
-      };
-    });
-  };
+    const completeShift = async (actualEndTime: string) => {
+      if (!id) return;
+      
+      // 1. Invia i dati al DB (dove passa a 'completed')
+      await completeShiftWithActualTime(id as string, actualEndTime);
+      
+      // 2. 🌟 FORZA IL RE-FETCH REALE DEI DATI DAL DATABASE
+      // Questo scarica i dati aggiornati dal DB e costringe TUTTA la pagina a ridisegnarsi
+      await loadData(); 
+    };
 
   return {
     shift,          // Esposto direttamente in modo lineare alla UI

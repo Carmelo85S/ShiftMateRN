@@ -44,6 +44,7 @@ export const ShiftCard = ({
           <Ionicons name="apps-outline" size={30} color={theme.tint + "40"} />
         )}
         
+        {/* PREZZO DINAMICO: Mostra il total_pay aggiornato in tempo reale dal trigger DB */}
         <View style={styles.priceTag}>
           <Text style={styles.priceText}>€{Math.round(item.total_pay || 0)}</Text>
         </View>
@@ -68,22 +69,34 @@ export const ShiftCard = ({
           </View>
         </View>
 
-        {/* CARD FOOTER*/}
+        {/* CARD FOOTER */}
         <View style={styles.footer}>
-          {/* Badge del Dipartimento */}
-          <View style={[styles.deptBadge, { backgroundColor: theme.tint + "10" }]}>
-            <Text style={[styles.deptText, { color: theme.tint }]}>
-              {item.departments?.name || 'General'}
-            </Text>
-          </View>
+          
+          {/* 🌟 GESTIONE DINAMICA BADGE: Staffing (Client Name) vs Hospitality (Department) */}
+          {item.client_name ? (
+            // ================= VIEW MODALITÀ STAFFING =================
+            <View style={[styles.deptBadge, { backgroundColor: "rgba(16, 185, 129, 0.1)", borderColor: "rgba(16, 185, 129, 0.15)", borderWidth: 1 }]}>
+              <Ionicons name="business" size={11} color="#10B981" style={{ marginRight: 4 }} />
+              <Text style={[styles.deptText, { color: "#10B981" }]} numberOfLines={1}>
+                {item.client_name}
+              </Text>
+            </View>
+          ) : (
+            // ================= VIEW MODALITÀ HOSPITALITY =================
+            <View style={[styles.deptBadge, { backgroundColor: theme.tint + "10" }]}>
+              <Text style={[styles.deptText, { color: theme.tint }]} numberOfLines={1}>
+                {item.departments?.name || 'General'}
+              </Text>
+            </View>
+          )}
 
           {/* CONTENITORE STATO STATUS BADGE */}
           <View style={styles.statusContainer}>
-            {/* 🌟 SAFE-CHECK GLOBALE: Se lo status è completato, mostra sempre Completed a prescindere dal variant */}
+            {/* 🌟 SAFE-CHECK GLOBALE: Se completato mostra sempre il badge verde di successo */}
             {dbStatus === "completed" ? (
               <View style={styles.statusBadge}>
-                <Ionicons name="archive-outline" size={13} color="#6B7280" />
-                <Text style={[styles.statusText, { color: '#6B7280' }]}>Completed</Text>
+                <Ionicons name="checkmark-circle" size={13} color="#10B981" />
+                <Text style={[styles.statusText, { color: '#10B981' }]}>Completed</Text>
               </View>
             ) : variant === "worker" ? (
               // ================= VIEW STILE WORKER =================
@@ -143,7 +156,6 @@ export const ShiftCard = ({
   );
 };
 
-// Esportazione di default di sicurezza per evitare conflitti d'importazione obsoleti
 export default ShiftCard;
 
 const styles = StyleSheet.create({
@@ -177,7 +189,14 @@ const styles = StyleSheet.create({
     marginTop: 'auto', 
     paddingBottom: 4 
   },
-  deptBadge: { paddingHorizontal: 8, paddingVertical: 4, borderRadius: 10 },
+  deptBadge: { 
+    flexDirection: 'row',       // Assicura l'allineamento orizzontale di Icona + Testo Cliente
+    alignItems: 'center',       // Centra verticalmente l'icona rispetto al testo
+    paddingHorizontal: 8, 
+    paddingVertical: 4, 
+    borderRadius: 10,
+    maxWidth: '100%'            // Evita che testi aziendali lunghi deformino il layout della card
+  },
   deptText: { fontSize: 8, fontWeight: '800', textTransform: 'uppercase', letterSpacing: 0.5 },
   statusContainer: {
     paddingLeft: 2 

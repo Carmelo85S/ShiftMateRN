@@ -194,17 +194,27 @@ export const completeShiftWithActualTime = async (
 ) => {
   if (!shiftId) throw new Error("ID turno mancante nella query.");
 
-  const { error } = await supabase
+  console.log("✈️ Inviando a Supabase - ID:", shiftId, "status: completed, end_time:", actualEndTime);
+
+  const { data, error } = await supabase
     .from("shifts")
     .update({ 
-      end_time: actualEndTime,   // Aggiorna l'orario (il trigger del DB ricalcolerà il total_pay)
-      status: "completed"         // Sposta il turno nello stato finale
+      end_time: actualEndTime,   
+      status: "completed"         
     })
-    .eq("id", shiftId);
+    .eq("id", shiftId)
+    .select(); // 🌟 IMPORTANTE: .select() costringe Supabase a restituire la riga modificata
 
   if (error) {
-    console.error("Errore durante il completamento del turno su Supabase:", error);
+    console.error("❌ Errore Supabase rilevato:", error.message, error.details);
     throw error;
+  }
+  
+  console.log("📊 Dati restituiti dopo l'update:", data);
+
+  if (!data || data.length === 0) {
+    console.warn("⚠️ ATTENZIONE: L'update ha avuto successo ma ha modificato 0 righe! Controlla le RLS su Supabase o che l'ID sia corretto.");
+    throw new Error("Permesso negato o turno non trovato.");
   }
   
   return true;
