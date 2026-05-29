@@ -26,7 +26,7 @@ export const ScreenWrapper = ({
   scrollable = true, 
   onRefresh,
   refreshing = false,
-  extraPaddingBottom = 0 // 🌟 Default a 0 se non passato
+  extraPaddingBottom = 0
 }: ScreenWrapperProps) => {
   const insets = useSafeAreaInsets();
   const theme = Colors[useColorScheme() ?? "light"];
@@ -40,7 +40,6 @@ export const ScreenWrapper = ({
   ];
 
   const contentStyle = {
-    // 🌟 Sommiamo il padding della Tab Bar a quello extra richiesto dalla pagina
     paddingBottom: TAB_BAR_HEIGHT + 20 + extraPaddingBottom, 
     paddingTop: Platform.OS === 'android' ? insets.top + 10 : 0, 
   };
@@ -75,5 +74,5 @@ export const ScreenWrapper = ({
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1 },
+  container: { flex: 1, paddingTop: 100},
 });

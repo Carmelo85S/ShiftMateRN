@@ -1,22 +1,21 @@
-import React, { useState, useEffect } from "react";
-import { View, Pressable, StyleSheet, Text, Dimensions, Platform } from "react-native";
+import React from "react";
+import { View, Pressable, StyleSheet, Text, Dimensions } from "react-native";
 import { Tabs, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { supabase } from "@/lib/supabase";
 import { Colors } from "@/constants/theme";
 import { useColorScheme } from "react-native";
 import { CommonActions } from '@react-navigation/native';
-import { useDashboardData } from "@/hooks/manager/useFetchDataDashboard"; // 🌟 Importiamo l'hook
+import { useDashboardData } from "@/hooks/manager/useFetchDataDashboard"; 
 
 const { width } = Dimensions.get("window");
 
-function OrbitTabBar({ state, descriptors, navigation, badgeCount, theme }: any) {
+function OrbitTabBar({ state, descriptors, navigation, theme }: any) {
   const insets = useSafeAreaInsets();
-  const router = useRouter(); // 🌟 Inizializziamo il router di expo-router
+  const router = useRouter(); 
   const BAR_ZONE_HEIGHT = insets.bottom + 85;
   
-  // 🌟 Recuperiamo il tipo di business corrente
+  // Recuperiamo il tipo di business corrente dall'hook globale
   const { businessType } = useDashboardData();
 
   return (
@@ -44,13 +43,11 @@ function OrbitTabBar({ state, descriptors, navigation, badgeCount, theme }: any)
               });
 
               if (!event.defaultPrevented) {
-                // 🌟 GESTIONE BIVIO TASTO "+" CENTRALE
+                // GESTIONE BIVIO TASTO "+" CENTRALE
                 if (isCenter) {
                   if (businessType === "staffing") {
-                    // Agenzia: Salta tutto e va diretta al form dei turni
                     router.push("/(manager)/(tabs)/create/createShift");
                   } else {
-                    // Ristorante standard: Va alle 2 Card di selezione
                     navigation.dispatch(
                       CommonActions.reset({
                         index: 0,
@@ -58,10 +55,10 @@ function OrbitTabBar({ state, descriptors, navigation, badgeCount, theme }: any)
                       })
                     );
                   }
-                  return; // Blocca l'esecuzione ulteriore
+                  return; 
                 }
 
-                // Navigazione normale per gli altri tab
+                // Navigazione nativa resettata per mantenere la cronologia pulita
                 navigation.dispatch(
                   CommonActions.reset({
                     index: 0,
@@ -71,13 +68,14 @@ function OrbitTabBar({ state, descriptors, navigation, badgeCount, theme }: any)
               }
             };
 
+            // 🌟 MAPPATURA ICONE CORRETTA E AGGIORNATA
             const getIcon = (name: string): any => {
               const map: any = {
                 dashboard: "grid-sharp",
                 shift: "receipt-sharp",
                 create: "add",
                 profile: "person-sharp",
-                'notifications/notificationsManager': "notifications-sharp",
+                "reports/analytics": "bar-chart-sharp", 
               };
               return map[name] || "ellipse";
             };
@@ -103,12 +101,6 @@ function OrbitTabBar({ state, descriptors, navigation, badgeCount, theme }: any)
                   color={isFocused ? theme.text : theme.secondaryText + "80"}
                 />
                 {isFocused && <View style={[styles.activeIndicator, { backgroundColor: theme.tint }]} />}
-                
-                {route.name.includes("notifications") && badgeCount > 0 && (
-                  <View style={[styles.orbitBadge, { backgroundColor: theme.delete }]}>
-                    <Text style={styles.orbitBadgeText}>{badgeCount}</Text>
-                  </View>
-                )}
               </Pressable>
             );
           })}
@@ -121,30 +113,10 @@ function OrbitTabBar({ state, descriptors, navigation, badgeCount, theme }: any)
 export default function TabLayout() {
   const colorScheme = useColorScheme();
   const theme = Colors[colorScheme ?? "light"];
-  const [unreadCount, setUnreadCount] = useState(0);
-
-  useEffect(() => {
-    const fetchCount = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
-      const { count } = await supabase
-        .from('notifications')
-        .select('*', { count: 'exact', head: true })
-        .match({ profile_id: user.id, is_read: false, is_archived: false });
-      setUnreadCount(count || 0);
-    };
-    fetchCount();
-    
-    const channel = supabase.channel('orbit-v3')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'notifications' }, fetchCount)
-      .subscribe();
-      
-    return () => { if (channel) supabase.removeChannel(channel); };
-  }, []);
 
   return (
     <Tabs 
-      tabBar={(props) => <OrbitTabBar {...props} badgeCount={unreadCount} theme={theme} />} 
+      tabBar={(props) => <OrbitTabBar {...props} theme={theme} />} 
       screenOptions={{ 
         headerShown: false,
       }}
@@ -153,7 +125,7 @@ export default function TabLayout() {
       <Tabs.Screen name="shift" />
       <Tabs.Screen name="create" />
       <Tabs.Screen name="profile" />
-      <Tabs.Screen name="notifications/notificationsManager" />
+      <Tabs.Screen name="reports/analytics" />
     </Tabs>
   );
 }
@@ -167,6 +139,4 @@ const styles = StyleSheet.create({
   centerOuter: { marginTop: -45, padding: 7, borderRadius: 45, shadowColor: "#000", shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.15, shadowRadius: 8, elevation: 8 },
   centerButton: { width: 64, height: 64, borderRadius: 32, justifyContent: "center", alignItems: "center" },
   activeIndicator: { position: "absolute", bottom: 12, width: 5, height: 5, borderRadius: 2.5 },
-  orbitBadge: { position: "absolute", top: 18, right: 12, minWidth: 18, height: 18, borderRadius: 9, justifyContent: "center", alignItems: "center", borderWidth: 2, borderColor: "#FFF", paddingHorizontal: 2 },
-  orbitBadgeText: { color: "#FFF", fontSize: 9, fontWeight: "900" }
 });

@@ -2,7 +2,7 @@ import React, { useCallback } from "react";
 import { View, FlatList, ActivityIndicator, useColorScheme, StyleSheet, RefreshControl } from "react-native";
 import { Colors } from "@/constants/theme";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { useFocusEffect } from "expo-router";
+import { Stack, useFocusEffect } from "expo-router";
 
 import { useHandleNotifications } from "@/hooks/manager/useHandleNotifications";
 import { NotificationsItem } from "@/components/shared/notification/NotificationsItem";
@@ -40,6 +40,13 @@ export default function NotificationsScreen() {
 
   return (
     <ScreenWrapper scrollable={false}>
+      <Stack.Screen options={{ 
+        headerTitle: "Notifications",
+        headerBackButtonDisplayMode: "minimal",
+        headerShadowVisible: false,
+        headerStyle: { backgroundColor: theme.background },
+        headerTintColor: theme.text
+      }} />
       <View style={{ flex: 1, backgroundColor: theme.background }}>
         <FlatList
           data={notifications}

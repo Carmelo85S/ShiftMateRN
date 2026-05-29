@@ -30,6 +30,7 @@ export const useDashboardData = () => {
   const [userName, setUserName] = useState("Manager");
   // Inizializza a null per indicare che non sappiamo ancora che business sia
   const [businessType, setBusinessType] = useState<"standard" | "staffing" | null>(null); 
+  const [businessId, setBusinessId] = useState<string | null>(null); // 🌟 Stato aggiunto per tracciare l'ID del business
   const [stats, setStats] = useState<DashboardStats>({ departments: [], clients: [], pendingCount: 0 });
   const [upcomingShifts, setUpcomingShifts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -48,7 +49,7 @@ export const useDashboardData = () => {
       const currentMonth = String(now.getMonth() + 1).padStart(2, "0"); // "01" - "12"
       const todayStr = now.toISOString().split("T")[0];
 
-      // 1. Recuperiamo il profilo dell'utente
+      // 1. Recuperiamo il profilo dell'utente con lo schema esatto name/surname
       const { data: profileData, error: profileError } = await supabase
         .from("profiles")
         .select(`
@@ -63,9 +64,11 @@ export const useDashboardData = () => {
       if (profileData?.name) setUserName(profileData.name);
 
       const bType = (profileData?.businesses as any)?.business_type || "standard";
+      const bId = profileData?.business_id || null;
       
-      // Impostiamo il business type
+      // Impostiamo gli stati del business recuperati dal DB
       setBusinessType(bType);
+      setBusinessId(bId); // 🌟 Assegnazione dello stato per esporlo all'esterno
 
       // 2. Fetch dei turni e dei dati paralleli
       const [allShifts, pendingCount] = await Promise.all([
@@ -73,12 +76,11 @@ export const useDashboardData = () => {
         countPendingApplications(userId)
       ]);
 
-      const businessId = profileData?.business_id;
       let departmentStatsArray: DepartmentStat[] = [];
       let clientStatsArray: ClientStat[] = [];
       let totalRevenueAccumulator = 0;
 
-      if (businessId) {
+      if (bId) {
         // ==========================================
         // 🌟 LOGICA CASO STAFFING
         // ==========================================
@@ -119,7 +121,7 @@ export const useDashboardData = () => {
           const { data: departments, error: deptError } = await supabase
             .from("departments")
             .select("id, name, monthly_budget")
-            .eq("business_id", businessId);
+            .eq("business_id", bId);
 
           if (!deptError && departments) {
             departmentStatsArray = departments.map((dept) => {
@@ -197,6 +199,7 @@ export const useDashboardData = () => {
   return {
     userName,
     businessType, 
+    businessId, // 🌟 Valore esposto nel return: corregge l'errore TypeScript nella pagina analytics.tsx
     stats,
     upcomingShifts,
     loading,
