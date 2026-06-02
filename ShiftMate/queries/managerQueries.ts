@@ -46,7 +46,7 @@ export const createBusinessAndAssignOwner = async (
   inviteCode: string, 
   business_address: string, 
   business_city: string,
-  businessType: string // standard or staffing
+  businessType: string
 ) => {
   const { data: business, error: businessError } = await supabase
     .from("businesses")
@@ -57,7 +57,7 @@ export const createBusinessAndAssignOwner = async (
       business_city: business_city.trim(),
       business_type: businessType
     }])
-    .select()
+    .select("id")
     .single();
 
   if (businessError) throw businessError;
@@ -68,7 +68,8 @@ export const createBusinessAndAssignOwner = async (
     .eq("id", userId);
 
   if (profileError) throw profileError;
-  return { business, inviteCode };
+  
+  return business.id;
 };
 
 // --- SHIFT MANAGEMENT ---

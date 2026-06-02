@@ -1,4 +1,5 @@
 import { Stack, useRouter } from "expo-router"; 
+import * as Linking from 'expo-linking';
 import { ThemeProvider, DefaultTheme } from "@react-navigation/native";
 import { useAssets } from "expo-asset";
 import * as SplashScreen from "expo-splash-screen";
@@ -91,6 +92,51 @@ export default function RootLayout() {
       }).start();
     }
   }, [isAppReady, session]);
+
+  // 🔗 Gestione Deep Link per reindirizzamento da Stripe dopo il checkout
+  useEffect(() => {
+  const handleDeepLink = (event: { url: string }) => {
+    const data = Linking.parse(event.url);
+    if (data.path === 'dashboard') {
+      navigationRouter.replace('/(manager)/(tabs)/dashboard');
+    }
+  };
+
+  const subscription = Linking.addEventListener('url', handleDeepLink);
+  
+  // Opzionale: gestisci il link se l'app è stata aperta da chiuso
+  Linking.getInitialURL().then((url) => {
+    if (url) handleDeepLink({ url });
+  });
+
+  return () => subscription.remove();
+}, []);
+
+  // 🔒 Controllo Abbonamento: Se l'utente è loggato ma non abbonato, reindirizzalo alla pagina di pagamento
+  useEffect(() => {
+    const checkSubscription = async () => {
+
+      if (!session?.user?.id) return;
+
+      if (profile && !profile.is_subscribed) {
+        navigationRouter.replace("/subscription"); 
+      }
+
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('is_subscribed')
+        .eq('id', session.user.id)
+        .single();
+
+      // Se l'utente è loggato ma non abbonato, forzalo alla pagina di pagamento
+      if (profile && !profile.is_subscribed) {
+        // Assicurati di avere una pagina /subscription
+        navigationRouter.replace("/subscription"); 
+      }
+    };
+
+    if (session) checkSubscription();
+  }, [session]);
 
   const handleLogout = async () => {
     try {
