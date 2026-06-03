@@ -2,18 +2,9 @@
   "tasks": {
     "start": "deno run --allow-net --allow-env index.ts"
   },
-  "lint": {
-    "rules": {
-      "tags": ["recommended"]
-    }
-  },
   "compilerOptions": {
     "allowJs": true,
     "lib": ["deno.window"],
     "strict": true
-  },
-  "imports": {
-    "stripe": "https://esm.sh/stripe@12.0.0?target=deno",
-    "std/": "https://deno.land/std@0.168.0/"
   }
 }

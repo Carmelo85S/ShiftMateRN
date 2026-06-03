@@ -1,4 +1,5 @@
 import React from "react";
+import { supabase } from "@/lib/supabase";
 import { 
   View, 
   StyleSheet, 
@@ -15,6 +16,7 @@ import { SetupInfoBox } from "@/components/manager/setup-business/SetupInfoBox";
 import { SetupInput } from "@/components/manager/setup-business/SetupInput";
 import { SetupButton } from "@/components/manager/setup-business/SetupButton";
 import { Ionicons } from "@expo/vector-icons";
+import { useRouter } from "expo-router";
 
 export default function SetupBusiness() {
   const theme = Colors.light;
@@ -29,11 +31,13 @@ export default function SetupBusiness() {
     businessType,     
     setBusinessType,  
     loading, 
-    handleCreateBusiness 
+    handleCreateBusiness,
+    createBusinessRecord
   } = useSetupBusiness();
 
   // 🌟 Condizione per capire se mostrare la geolocalizzazione fissa della struttura
   const showAddressFields = businessType === "standard";
+  const router = useRouter();
 
   return (
     <KeyboardAvoidingView
@@ -133,11 +137,17 @@ export default function SetupBusiness() {
           )}
 
           <SetupButton 
-            title="CREATE BUSINESS"
-            onPress={handleCreateBusiness}
-            loading={loading}
-            icon="checkmark-circle"
+            title="CONTINUE TO SUBSCRIPTION"
             theme={theme}
+            loading={loading}
+            icon="arrow-forward-circle"
+            onPress={async () => {
+              const { data: { user } } = await supabase.auth.getUser();
+              if (user) {
+                const businessId = await createBusinessRecord(user.id);
+                router.push({ pathname: "/subscription", params: { businessId } });
+              }
+            }}
           />
         </View>
       </ScrollView>

@@ -1,66 +1,85 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, ActivityIndicator, SafeAreaView, Dimensions } from 'react-native';
+import { View, Text, StyleSheet, Pressable, ScrollView } from 'react-native';
+import { Ionicons } from "@expo/vector-icons";
 import { useSetupBusiness } from '@/hooks/manager/useSetupBusiness';
 import { useLocalSearchParams } from 'expo-router';
-
-const { width } = Dimensions.get('window');
+import { Colors } from "@/constants/theme";
 
 const PLANS = [
-  // ONE-TIME (Pagamenti Singoli)
-  { id: 'price_1TdRUfPf9BDNyCap2gvWBsOm', name: 'Quick Start', price: '390 SEK', mode: 'payment', color: '#4F46E5', desc: '1 job / 14 days' },
-  { id: 'price_1TdpSEPf9BDNyCapTpA1yPPY', name: 'Flexi Pack', price: '1500 SEK', mode: 'payment', color: '#4F46E5', desc: '2 jobs / 30 days' },
-  { id: 'price_1TdpTlPf9BDNyCapsKtthz8K', name: 'Business Flow', price: '3000 SEK', mode: 'payment', color: '#4F46E5', desc: '3 jobs / 30 days' },
-  // SUBSCRIPTION (Abbonamenti)
-  { id: 'price_1TdRTrPf9BDNyCapNvDt0Cxt', name: 'Essential', price: '1490 SEK', mode: 'subscription', color: '#8B5CF6', desc: 'Up to 3 managers' },
-  { id: 'price_1TdpUqPf9BDNyCaphUprM3xC', name: 'Growth', price: '2990 SEK', mode: 'subscription', color: '#8B5CF6', desc: 'Advanced features' },
-  { id: 'price_1TdpVXPf9BDNyCapRO9apxU0', name: 'Scale', price: '5990 SEK', mode: 'subscription', color: '#8B5CF6', desc: 'Unlimited access' },
+  // ABBONAMENTI (Mostrati in alto per priorità)
+  { id: 'price_1TdRTrPf9BDNyCapNvDt0Cxt', name: 'Essential', price: '1490 SEK', mode: 'subscription', desc: 'Up to 3 managers', kpi: 'ESSENTIAL', icon: 'infinite-outline', isBest: false },
+  { id: 'price_1TdpUqPf9BDNyCaphUprM3xC', name: 'Growth', price: '2990 SEK', mode: 'subscription', desc: 'Advanced features', kpi: 'GROWTH', icon: 'trending-up-outline', isBest: true },
+  { id: 'price_1TdpVXPf9BDNyCapRO9apxU0', name: 'Scale', price: '5990 SEK', mode: 'subscription', desc: 'Unlimited access', kpi: 'SCALE', icon: 'rocket-outline', isBest: false },
+  // PAGAMENTI SINGOLI
+  { id: 'price_1TdRUfPf9BDNyCap2gvWBsOm', name: 'Quick Start', price: '390 SEK', mode: 'payment', desc: '1 job / 14 days', kpi: 'STARTER', icon: 'wallet-outline', isBest: false },
+  { id: 'price_1TdpSEPf9BDNyCapTpA1yPPY', name: 'Flexi Pack', price: '1500 SEK', mode: 'payment', desc: '2 jobs / 30 days', kpi: 'FLEXI', icon: 'wallet-outline', isBest: false },
+  { id: 'price_1TdpTlPf9BDNyCapsKtthz8K', name: 'Business Flow', price: '3000 SEK', mode: 'payment', desc: '3 jobs / 30 days', kpi: 'FLOW', icon: 'wallet-outline', isBest: false },
 ];
 
 export default function SubscriptionScreen() {
   const { businessId } = useLocalSearchParams<{ businessId: string }>();
-  const { handlePayment, loading, businessName } = useSetupBusiness();
-
-  const renderCard = (plan: typeof PLANS[0]) => (
-    <TouchableOpacity 
-      key={plan.id}
-      style={[styles.card, { borderColor: plan.color }]}
-      onPress={() => handlePayment(plan.id, businessId, plan.mode as 'payment' | 'subscription')}
-      disabled={loading}
-    >
-      <Text style={[styles.planName, { color: plan.color }]}>{plan.name}</Text>
-      <Text style={styles.priceText}>{plan.price}</Text>
-      <Text style={styles.descText}>{plan.desc}</Text>
-    </TouchableOpacity>
-  );
+  const { handlePayment, loading } = useSetupBusiness();
+  const theme = Colors.light;
 
   return (
-    <SafeAreaView style={styles.container}>
-      <ScrollView contentContainerStyle={styles.scrollContent}>
-        <View style={styles.header}>
-          <Text style={styles.title}>Complete your setup</Text>
-          <Text style={styles.subtitle}>Plan for {businessName || 'your business'}</Text>
-        </View>
+    <ScrollView style={{ flex: 1, backgroundColor: theme.background }} contentContainerStyle={styles.container}>
+      <View style={styles.header}>
+        <Text style={[styles.kpiHeader, { color: theme.tint }]}>UPGRADE YOUR BUSINESS</Text>
+        <Text style={[styles.title, { color: theme.text }]}>Choose your power</Text>
+      </View>
 
-        <Text style={styles.sectionHeader}>Pagamenti Singoli</Text>
-        <View style={styles.grid}>{PLANS.filter(p => p.mode === 'payment').map(renderCard)}</View>
-
-        <Text style={styles.sectionHeader}>Abbonamenti Mensili</Text>
-        <View style={styles.grid}>{PLANS.filter(p => p.mode === 'subscription').map(renderCard)}</View>
-      </ScrollView>
-    </SafeAreaView>
+      {PLANS.map((plan) => (
+        <Pressable 
+          key={plan.id} 
+          style={[styles.card, plan.isBest && { backgroundColor: theme.tint }]}
+          onPress={() => handlePayment(plan.id, businessId, plan.mode as 'payment' | 'subscription')}
+          disabled={loading}
+        >
+          {plan.isBest && (
+            <View style={styles.badgeBest}>
+              <Text style={styles.badgeBestText}>MOST POPULAR</Text>
+            </View>
+          )}
+          
+          <View style={styles.cardHeader}>
+            <Text style={[styles.kpi, { color: plan.isBest ? '#FFF' : theme.tint }]}>{plan.kpi}</Text>
+            <Ionicons name={plan.icon as any} size={22} color={plan.isBest ? '#FFF' : theme.text} />
+          </View>
+          
+          <Text style={[styles.cardTitle, { color: plan.isBest ? '#FFF' : theme.text }]}>{plan.name}</Text>
+          <Text style={[styles.priceText, { color: plan.isBest ? '#FFF' : theme.tint }]}>{plan.price}</Text>
+          <Text style={[styles.cardSubtitle, { color: plan.isBest ? 'rgba(255,255,255,0.8)' : theme.secondaryText }]}>{plan.desc}</Text>
+          
+          <View style={[styles.button, { backgroundColor: plan.isBest ? '#FFF' : theme.tint }]}>
+            <Text style={[styles.buttonText, { color: plan.isBest ? theme.tint : '#FFF' }]}>
+              {plan.isBest ? 'ACTIVATE NOW' : 'SELECT PLAN'}
+            </Text>
+          </View>
+        </Pressable>
+      ))}
+      
+      <Text style={styles.footer}>🔒 256-bit SSL Secure Payment</Text>
+    </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F9FAFB' },
-  scrollContent: { padding: 20 },
-  header: { marginBottom: 20, alignItems: 'center' },
-  title: { fontSize: 24, fontWeight: 'bold' },
-  subtitle: { color: '#666' },
-  sectionHeader: { fontSize: 16, fontWeight: '700', marginTop: 20, marginBottom: 10, color: '#333' },
-  grid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', gap: 10 },
-  card: { width: (width / 2) - 25, padding: 15, borderRadius: 12, borderWidth: 2, backgroundColor: '#FFF', alignItems: 'center' },
-  planName: { fontSize: 14, fontWeight: '700', marginBottom: 5 },
-  priceText: { fontSize: 16, fontWeight: '800' },
-  descText: { fontSize: 11, color: '#666', marginTop: 5, textAlign: 'center' }
+  container: { padding: 32, paddingVertical: 100 },
+  header: { marginBottom: 30 },
+  kpiHeader: { fontSize: 13, fontWeight: "800", letterSpacing: 1, marginBottom: 8 },
+  title: { fontSize: 38, fontWeight: "800", letterSpacing: -1 },
+  card: { 
+    borderRadius: 32, padding: 28, marginBottom: 20, borderWidth: 1, borderColor: "rgba(0,0,0,0.05)",
+    backgroundColor: '#FFF', elevation: 5, shadowColor: '#000', shadowOffset: { width: 0, height: 10 }, shadowOpacity: 0.1, shadowRadius: 20
+  },
+  badgeBest: { position: 'absolute', top: -12, right: 24, backgroundColor: '#FFD700', paddingHorizontal: 12, paddingVertical: 4, borderRadius: 12 },
+  badgeBestText: { fontSize: 10, fontWeight: '900', color: '#000' },
+  cardHeader: { flexDirection: "row", justifyContent: "space-between", marginBottom: 16 },
+  kpi: { fontSize: 11, fontWeight: "800", letterSpacing: 1 },
+  cardTitle: { fontSize: 24, fontWeight: "800", marginBottom: 8 },
+  priceText: { fontSize: 32, fontWeight: "900", marginBottom: 12 },
+  cardSubtitle: { fontSize: 16, marginBottom: 24, opacity: 0.8 },
+  button: { paddingVertical: 18, borderRadius: 16, alignItems: 'center' },
+  buttonText: { fontSize: 15, fontWeight: "800", letterSpacing: 0.5 },
+  footer: { textAlign: 'center', marginTop: 20, marginBottom: 40, color: '#9CA3AF', fontSize: 12 }
 });

@@ -341,7 +341,22 @@ export const fetchUserProfile = async (userId: string) => {
   try {
     const { data, error } = await supabase
       .from("profiles")
-      .select("id, name, surname, role, job_role, bio, phone, avatar_url, business_id")
+      .select(`
+        id, 
+        name, 
+        surname, 
+        role, 
+        job_role, 
+        bio, 
+        phone, 
+        avatar_url, 
+        business_id,
+        businesses (
+          stripe_customer_id,
+          stripe_subscription_status,
+          is_active_subscriber
+        )
+      `)
       .eq("id", userId)
       .maybeSingle();
 
