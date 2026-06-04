@@ -1,16 +1,14 @@
 import React from 'react';
-import { View, Text, StyleSheet, Pressable, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, Pressable, ScrollView, Alert } from 'react-native';
 import { Ionicons } from "@expo/vector-icons";
 import { useSetupBusiness } from '@/hooks/manager/useSetupBusiness';
-import { useLocalSearchParams } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Colors } from "@/constants/theme";
 
 const PLANS = [
-  // ABBONAMENTI (Mostrati in alto per priorità)
   { id: 'price_1TdRTrPf9BDNyCapNvDt0Cxt', name: 'Essential', price: '1490 SEK', mode: 'subscription', desc: 'Up to 3 managers', kpi: 'ESSENTIAL', icon: 'infinite-outline', isBest: false },
   { id: 'price_1TdpUqPf9BDNyCaphUprM3xC', name: 'Growth', price: '2990 SEK', mode: 'subscription', desc: 'Advanced features', kpi: 'GROWTH', icon: 'trending-up-outline', isBest: true },
   { id: 'price_1TdpVXPf9BDNyCapRO9apxU0', name: 'Scale', price: '5990 SEK', mode: 'subscription', desc: 'Unlimited access', kpi: 'SCALE', icon: 'rocket-outline', isBest: false },
-  // PAGAMENTI SINGOLI
   { id: 'price_1TdRUfPf9BDNyCap2gvWBsOm', name: 'Quick Start', price: '390 SEK', mode: 'payment', desc: '1 job / 14 days', kpi: 'STARTER', icon: 'wallet-outline', isBest: false },
   { id: 'price_1TdpSEPf9BDNyCapTpA1yPPY', name: 'Flexi Pack', price: '1500 SEK', mode: 'payment', desc: '2 jobs / 30 days', kpi: 'FLEXI', icon: 'wallet-outline', isBest: false },
   { id: 'price_1TdpTlPf9BDNyCapsKtthz8K', name: 'Business Flow', price: '3000 SEK', mode: 'payment', desc: '3 jobs / 30 days', kpi: 'FLOW', icon: 'wallet-outline', isBest: false },
@@ -20,6 +18,14 @@ export default function SubscriptionScreen() {
   const { businessId } = useLocalSearchParams<{ businessId: string }>();
   const { handlePayment, loading } = useSetupBusiness();
   const theme = Colors.light;
+
+  const handlePress = (plan: typeof PLANS[0]) => {
+    if (!businessId) {
+      Alert.alert("Errore", "Business ID non trovato. Torna indietro e riprova.");
+      return;
+    }
+    handlePayment(plan.id, businessId, plan.mode as 'payment' | 'subscription');
+  };
 
   return (
     <ScrollView style={{ flex: 1, backgroundColor: theme.background }} contentContainerStyle={styles.container}>
@@ -32,7 +38,7 @@ export default function SubscriptionScreen() {
         <Pressable 
           key={plan.id} 
           style={[styles.card, plan.isBest && { backgroundColor: theme.tint }]}
-          onPress={() => handlePayment(plan.id, businessId, plan.mode as 'payment' | 'subscription')}
+          onPress={() => handlePress(plan)}
           disabled={loading}
         >
           {plan.isBest && (

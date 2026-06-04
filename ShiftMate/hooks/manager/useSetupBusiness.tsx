@@ -43,6 +43,7 @@ export const useSetupBusiness = () => {
         body: JSON.stringify({ priceId, businessId, mode }), 
       });
       const result = await response.json();
+      console.log("Server response:", result);
       if (result.error) throw new Error(result.error);
       if (result.url) await WebBrowser.openBrowserAsync(result.url);
     } catch (error: any) {

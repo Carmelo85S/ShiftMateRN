@@ -3,20 +3,18 @@ import * as WebBrowser from 'expo-web-browser';
 import { 
   View, 
   ScrollView, 
-  TouchableOpacity, 
-  Text,
   ActivityIndicator, 
   useColorScheme, 
-  StyleSheet 
+  StyleSheet, 
+  Alert 
 } from "react-native";
 import { useRouter, useFocusEffect } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-
 import { Colors } from "@/constants/theme";
-
+import { supabase } from "@/lib/supabase"; 
 import { useHandleProfile } from "@/hooks/manager/useHandleProfile";
 
-// Components (Shared)
+// Components
 import { ProfileHeader } from "@/components/shared/profile/ProfileHeader";
 import { ProfileInfoCard } from "@/components/shared/profile/ProfileInfoCard";
 import { BiographySection } from "@/components/shared/profile/BiographySection";
@@ -27,40 +25,50 @@ export default function ProfileManager() {
   const theme = Colors[useColorScheme() ?? "light"];
   const router = useRouter();
   const insets = useSafeAreaInsets();
-
-  // Hook fetch data profile
   const { profile, loading, loadData } = useHandleProfile();
 
-  // Refresh 
   useFocusEffect(
-    useCallback(() => { 
-      loadData(); 
-    }, [loadData])
+    useCallback(() => { loadData(); }, [loadData])
   );
 
-  // 1. Definisci la funzione in modo che accetti l'id opzionale
-  const handleManageSubscription = async () => {
-    // Accesso sicuro all'ID attraverso la JOIN
+const handleManageSubscription = async () => {
     const customerId = profile?.businesses?.stripe_customer_id;
     
-    console.log("ID recuperato dalla query:", customerId);
-
+    // 1. Se NON ha un customerId, significa che non ha mai iniziato un processo di pagamento
     if (!customerId) {
-      alert("Nessun ID cliente trovato.");
+      Alert.alert("Info", "Non hai un profilo di pagamento. Scegli un piano per iniziare.");
+      router.push("/subscription");
       return;
     }
     
+    // 2. Se ha un customerId, PERMETTIAMO comunque l'accesso al portale.
+    // Stripe gestirà internamente la situazione: se non ha abbonamenti attivi,
+    // il portale permetterà all'utente di aggiungere un metodo di pagamento o sottoscrivere un piano.
+    
     try {
-      const response = await fetch(`https://mdkwcibjxikuegurxwie.supabase.co/functions/v1/create-portal-link`, {
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      const response = await fetch(`${process.env.EXPO_PUBLIC_SUPABASE_URL}/functions/v1/create-portal-link`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ customerId: customerId }),
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session?.access_token}`
+        },
+        body: JSON.stringify({ customerId }),
       });
       
-      const { url } = await response.json();
-      if (url) await WebBrowser.openBrowserAsync(url);
+      const result = await response.json();
+      
+      if (result.error) throw new Error(result.error);
+      
+      if (result.url) {
+        await WebBrowser.openBrowserAsync(result.url);
+      } else {
+        throw new Error("URL del portale non ricevuto.");
+      }
     } catch (err) {
       console.error("Errore portale:", err);
+      Alert.alert("Errore", "Impossibile accedere al portale pagamenti. Riprova più tardi.");
     }
   };
 
@@ -72,76 +80,36 @@ export default function ProfileManager() {
   
   return (
     <ScreenWrapper>
-    <View style={{ flex: 1, backgroundColor: theme.background }}>
-      <ScrollView
-        contentContainerStyle={[
-          styles.scrollContent, 
-          { paddingTop: insets.top + 20, paddingBottom: 40 }
-        ]}
-        showsVerticalScrollIndicator={false}
-      >
-        {/* AVATAR */}
-        <ProfileHeader 
-          profile={profile} 
-          theme={theme} 
-        />
+      <View style={{ flex: 1, backgroundColor: theme.background }}>
+        <ScrollView contentContainerStyle={[styles.scrollContent, { paddingTop: insets.top + 20, paddingBottom: 40 }]}>
+          
+          <ProfileHeader profile={profile} theme={theme} />
+          <ProfileInfoCard role={profile?.job_role || "User"} theme={theme} />
+          <BiographySection bio={profile?.bio} theme={theme} />
 
-        {/* INFO ROLE AND STATUS*/}
-       <ProfileInfoCard 
-          role={
-            profile?.job_role || 
-            (profile?.role ? profile.role.charAt(0).toUpperCase() + profile.role.slice(1) : "User")
-          } 
-          theme={theme} 
-        />
-        {/* BIO */}
-        <BiographySection 
-          bio={profile?.bio} 
-          theme={theme} 
-        />
+          {/* TUTTI I MENU PROFILO */}
+          <View style={styles.menuContainer}>
+            <MenuRowProfile label="Edit Details" icon="person-outline" onPress={() => router.push("/(manager)/(tabs)/profile/editProfile")} theme={theme} />
+            <MenuRowProfile label="Security" icon="shield-checkmark-outline" onPress={() => {}} theme={theme} />
+            <MenuRowProfile label="Preferences" icon="options-outline" onPress={() => {}} theme={theme} />
+            
+            <MenuRowProfile
+              label="Subscription & Billing" 
+              icon="card-outline" 
+              subLabel={profile?.businesses?.stripe_subscription_status === 'active' ? "Active" : "Manage"}
+              onPress={handleManageSubscription}
+              theme={theme}
+              rightIcon={profile?.businesses?.stripe_subscription_status === 'active' ? "checkmark-circle" : "chevron-forward"}
+              iconColor={profile?.businesses?.stripe_subscription_status === 'active' ? "#10B981" : theme.text}
+            />
 
-        {/* MENU LIST */}
-        <View style={styles.menuContainer}>
-          <MenuRowProfile
-            label="Edit Details" 
-            icon="person-outline" 
-            onPress={() => router.push("/(manager)/(tabs)/profile/editProfile")}
-            theme={theme}
-          />
-          <MenuRowProfile
-            label="Security" 
-            icon="shield-checkmark-outline" 
-            onPress={() => {}}
-            theme={theme}
-          />
-
-          <MenuRowProfile
-            label="Subscription & Billing" 
-            icon="card-outline" 
-            // Mostriamo lo status direttamente nel menu
-            subLabel={profile?.businesses?.stripe_subscription_status === 'active' ? "Active" : "Manage"}
-            onPress={handleManageSubscription}
-            theme={theme}
-            // Aggiungiamo un colore di accento se è attivo
-            rightIcon={profile?.businesses?.stripe_subscription_status === 'active' ? "checkmark-circle" : "chevron-forward"}
-            iconColor={profile?.businesses?.stripe_subscription_status === 'active' ? "#10B981" : theme.text}
-          />
-
-          <MenuRowProfile
-            label="Notifications" 
-            icon="notifications-outline" 
-            onPress={() => {}}
-            theme={theme}
-          />
-          <MenuRowProfile
-            label="Logout" 
-            icon="log-out-outline" 
-            onPress={() => {}}
-            theme={theme}
-          />
-        </View>
-      </ScrollView>
-    </View>
+            <MenuRowProfile label="Notifications" icon="notifications-outline" onPress={() => {}} theme={theme} />
+            <MenuRowProfile label="Help & Support" icon="help-circle-outline" onPress={() => {}} theme={theme} />
+            <MenuRowProfile label="Logout" icon="log-out-outline" onPress={() => supabase.auth.signOut()} theme={theme} />
+          </View>
+          
+        </ScrollView>
+      </View>
     </ScreenWrapper>
   );
 }
@@ -149,5 +117,5 @@ export default function ProfileManager() {
 const styles = StyleSheet.create({
   center: { flex: 1, justifyContent: "center", alignItems: "center" },
   scrollContent: { paddingHorizontal: 28 },
-  menuContainer: { gap: 4, marginTop: 10 },
+  menuContainer: { gap: 4, marginTop: 20 },
 });

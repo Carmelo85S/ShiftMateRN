@@ -24,5 +24,5 @@ Deno.serve(async (req) => {
     return new Response(JSON.stringify({ error: error.message }), { status: 500 });
   }
 
-  return new Response(JSON.stringify({ message: "Successo!", data }), { status: 200 });
+  return new Response(JSON.stringify({ message: "Success!", data }), { status: 200 });
 });

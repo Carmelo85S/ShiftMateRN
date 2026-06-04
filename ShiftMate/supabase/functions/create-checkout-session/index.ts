@@ -19,13 +19,23 @@ Deno.serve(async (req: Request) => {
   try {
     const { priceId, businessId, mode } = await req.json();
 
-    const session = await stripe.checkout.sessions.create({
-      mode: mode === "subscription" ? "subscription" : "payment",
+    console.log("Creazione sessione per businessId:", businessId);
+    const isSubscription = mode === "subscription";
+
+    const sessionConfig: any = {
+      mode: isSubscription ? "subscription" : "payment",
       line_items: [{ price: priceId, quantity: 1 }],
       success_url: "shiftmate://dashboard",
       cancel_url: "shiftmate://auth/login",
-      metadata: { businessId },
-    });
+      metadata: { businessId: businessId },
+    };
+
+    // Aggiungiamo customer_creation solo se NON è un abbonamento
+    if (!isSubscription) {
+      sessionConfig.customer_creation = 'always';
+    }
+
+    const session = await stripe.checkout.sessions.create(sessionConfig);
 
     return new Response(JSON.stringify({ url: session.url }), {
       headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" },
