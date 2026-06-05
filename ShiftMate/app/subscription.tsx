@@ -2,7 +2,7 @@ import React from 'react';
 import { View, Text, StyleSheet, Pressable, ScrollView, Alert } from 'react-native';
 import { Ionicons } from "@expo/vector-icons";
 import { useSetupBusiness } from '@/hooks/manager/useSetupBusiness';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { router, Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { Colors } from "@/constants/theme";
 
 const PLANS = [
@@ -28,6 +28,18 @@ export default function SubscriptionScreen() {
   };
 
   return (
+    <>
+    <Stack.Screen 
+      options={{ 
+        headerShown: true, 
+        title: "Upgrade",
+        headerLeft: () => (
+          <Pressable onPress={() => router.back()}>
+            <Ionicons name="chevron-back" size={28} color={theme.text} />
+          </Pressable>
+        )
+      }} 
+    />
     <ScrollView style={{ flex: 1, backgroundColor: theme.background }} contentContainerStyle={styles.container}>
       <View style={styles.header}>
         <Text style={[styles.kpiHeader, { color: theme.tint }]}>UPGRADE YOUR BUSINESS</Text>
@@ -66,6 +78,7 @@ export default function SubscriptionScreen() {
       
       <Text style={styles.footer}>🔒 256-bit SSL Secure Payment</Text>
     </ScrollView>
+    </>
   );
 }
 

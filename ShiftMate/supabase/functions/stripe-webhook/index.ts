@@ -47,12 +47,12 @@ Deno.serve(async (req) => {
 
       // 2. Configurazione Piani
       const planConfig: Record<string, { name: string, type: 'sub' | 'pkg', limit: number, days?: number }> = {
-        "price_1TdpVXPf9BDNyCapRO9apxU0": { name: "Scale", type: 'sub', limit: 50 },
-        "price_1TdpUqPf9BDNyCaphUprM3xC": { name: "Growth", type: 'sub', limit: 10 },
-        "price_1TdRTrPf9BDNyCapNvDt0Cxt": { name: "Essential", type: 'sub', limit: 3 },
-        "price_1TdpTlPf9BDNyCapsKtthz8K": { name: "Business flow", type: 'pkg', limit: 12, days: 365 },
-        "price_1TdpSEPf9BDNyCapTpA1yPPY": { name: "Flexi pack", type: 'pkg', limit: 5, days: 180 },
-        "price_1TdRUfPf9BDNyCap2gvWBsOm": { name: "Quick start", type: 'pkg', limit: 1, days: 14 },
+        "price_1TdpVXPf9BDNyCapRO9apxU0": { name: "Scale", type: 'sub', limit: 50 },// Abbonamento mensile con limite di 50 manager
+        "price_1TdpUqPf9BDNyCaphUprM3xC": { name: "Growth", type: 'sub', limit: 10 },// Abbonamento mensile con limite di 10 manager
+        "price_1TdRTrPf9BDNyCapNvDt0Cxt": { name: "Essential", type: 'sub', limit: 3 },// Abbonamento mensile con limite di 3 manager
+        "price_1TdpTlPf9BDNyCapsKtthz8K": { name: "Business flow", type: 'pkg', limit: 12, days: 365 },// Pacchetto annuale con 12 job
+        "price_1TdpSEPf9BDNyCapTpA1yPPY": { name: "Flexi pack", type: 'pkg', limit: 5, days: 180 },// Pacchetto semestrale con 5 job
+        "price_1TdRUfPf9BDNyCap2gvWBsOm": { name: "Quick start", type: 'pkg', limit: 1, days: 14 },// Pacchetto di prova con 1 job e scadenza a 14 giorni
       };
 
       // 3. Recupero dinamico del Price ID

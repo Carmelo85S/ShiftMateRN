@@ -115,22 +115,26 @@ export default function RootLayout() {
   // 🔒 Controllo Abbonamento: Se l'utente è loggato ma non abbonato, reindirizzalo alla pagina di pagamento
   useEffect(() => {
     const checkSubscription = async () => {
-
       if (!session?.user?.id) return;
 
-      if (profile && !profile.is_subscribed) {
-        navigationRouter.replace("/subscription"); 
-      }
-
+      // 1. Recupera il business_id dal profilo dell'utente
       const { data: profile } = await supabase
         .from('profiles')
-        .select('is_subscribed')
+        .select('business_id')
         .eq('id', session.user.id)
         .single();
 
-      // Se l'utente è loggato ma non abbonato, forzalo alla pagina di pagamento
-      if (profile && !profile.is_subscribed) {
-        // Assicurati di avere una pagina /subscription
+      if (!profile?.business_id) return;
+
+      // 2. Recupera lo stato abbonamento dalla tabella businesses
+      const { data: business } = await supabase
+        .from('businesses')
+        .select('stripe_subscription_status') // o il campo che usi per controllare se è attivo
+        .eq('id', profile.business_id)
+        .single();
+
+      // 3. Esegui il check (es. se lo status non è 'active')
+      if (business && business.stripe_subscription_status !== 'active') {
         navigationRouter.replace("/subscription"); 
       }
     };
@@ -143,8 +147,8 @@ export default function RootLayout() {
       const { error } = await supabase.auth.signOut();
       if (error) throw error;
     } catch (err) {
-      console.error("Errore durante il logout:", err);
-      Alert.alert("Errore", "Impossibile disconnettersi.");
+      console.error("Error during logout:", err);
+      Alert.alert("Error", "Unable to log out.");
     }
   };
 

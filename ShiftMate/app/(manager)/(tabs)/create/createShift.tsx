@@ -27,6 +27,7 @@ import { ScreenWrapper } from "@/components/shared/wrapper/layout-wrapper";
 import { FormShiftSchema } from "@/src/validation/formShift.schema";
 import { Ionicons } from "@expo/vector-icons"; 
 
+
 export default function CreateShift() {
   const { form, setForm, picker, setPicker, estimatedEarnings, onPickerChange, openPicker } = useShiftForm();
   const { handleCreate, loading, imageUrl, setImageUrl } = useHandleCreateShift();
