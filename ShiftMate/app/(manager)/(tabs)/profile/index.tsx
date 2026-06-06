@@ -81,7 +81,7 @@ const handleManageSubscription = async () => {
   return (
     <ScreenWrapper>
       <View style={{ flex: 1, backgroundColor: theme.background }}>
-        <ScrollView contentContainerStyle={[styles.scrollContent, { paddingTop: insets.top + 20, paddingBottom: 40 }]}>
+        <ScrollView contentContainerStyle={[styles.scrollContent, { paddingTop: insets.top, paddingBottom: 40 }]}>
           
           <ProfileHeader profile={profile} theme={theme} />
           <ProfileInfoCard role={profile?.job_role || "User"} theme={theme} />

@@ -1,14 +1,12 @@
 import React, { useCallback } from "react";
-import {
-  StyleSheet,
-  View,
-  ActivityIndicator,
-  useColorScheme,
-} from "react-native";
+import { StyleSheet, View, Text, ActivityIndicator, useColorScheme, Pressable } from "react-native";
 import { Colors } from "@/constants/theme";
 import { useFocusEffect, useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useDashboardData } from "@/hooks/manager/useFetchDataDashboard";
+import { useAuth } from "@/hooks/auth/useAuth"; 
+import { useCheckActivation } from "@/hooks/stripe/onboarding/useCheckActivation";
+
 import { DashboardHeader } from "@/components/manager/dashboard/DashboardHeader";
 import { FinancialOverview } from "@/components/manager/dashboard/FinancialOverview";
 import { HistoryBar } from "@/components/manager/dashboard/HistoryBar";
@@ -19,32 +17,37 @@ export default function Dashboard() {
   const theme = Colors[useColorScheme() ?? "light"];
   const insets = useSafeAreaInsets();
   const router = useRouter();
+  
+  const { user, businessId, loading: authLoading } = useAuth();
+  const { hasSubscription, onboardingCompleted, loading: subLoading } = useCheckActivation(businessId ?? undefined);
 
+
+  // 1. Dati Dashboard
   const { 
     userName, 
     businessType,
     stats, 
     upcomingShifts, 
-    loading, 
+    loading: dataLoading, 
     refreshing, 
     fetchData, 
     onRefresh 
   } = useDashboardData();
 
-  // Scatta ogni volta che la tab riceve il focus visivo
   useFocusEffect(
     useCallback(() => {
       fetchData();
     }, [fetchData])
   );
 
-  // 🌟 BARRIERA DI SICUREZZA ANTI-FLICK: 
-  // Se non sappiamo ancora se l'utente è "standard" o "staffing" (businessType === null), 
-  // congeliamo lo schermo su un loader pulito. Non mostriamo componenti a metà.
-  if (businessType === null) {
+  // Loading unico aggiornato con feedback testuale
+  if (dataLoading || subLoading || businessType === null) {
     return (
       <View style={[styles.center, { backgroundColor: theme.background }]}>
-        <ActivityIndicator size="small" color={theme.text} />
+        <ActivityIndicator size="large" color={theme.text} />
+        <Text style={[styles.loadingText, { color: theme.text }]}>
+          {subLoading ? "Updating payment status..." : "Loading dashboard..."}
+        </Text>
       </View>
     );
   }
@@ -55,18 +58,29 @@ export default function Dashboard() {
       onRefresh={onRefresh}
       refreshing={refreshing}
       style={styles.wrapperCustom}
-      // ❌ RIMOSSA LA KEY DINAMICA: Ora React aggiorna solo i dati interni senza ricreare la UI da zero
     >
-      <View style={[styles.mainContent, { paddingTop: insets.top + 8 }]}>
+      <View style={[styles.mainContent, { paddingTop: insets.top }]}>
         
-        {/* HEADER */}
+        {/* Banner di avviso - Guida l'utente senza bloccarlo 
+        {!hasSubscription && (
+          <Pressable style={[styles.banner, { backgroundColor: theme.tint }]} onPress={() => router.push("/(manager)/(tabs)/subscription" as any)}>
+            <Text style={styles.bannerText}>⚠️ Piano non attivo. Clicca qui per scegliere un piano.</Text>
+          </Pressable>
+        )}
+          */}
+        
+        {hasSubscription && !onboardingCompleted && (
+          <Pressable style={[styles.banner, { backgroundColor: '#FF9F1C' }]} onPress={() => router.push("/(manager)/stripe-onboarding")}>
+            <Text style={styles.bannerText}>💳 Complete your payment setup and start offering services.</Text>
+          </Pressable>
+        )}
+
         <DashboardHeader 
           userName={userName} 
           theme={theme} 
           onProfilePress={() => router.push("/profile")} 
         />
-
-        {/* FINANCIAL: KPI e Statistiche (Ora sa già al 100% che layout renderizzare) */}
+        
         <FinancialOverview 
           stats={stats}
           theme={theme}
@@ -75,36 +89,40 @@ export default function Dashboard() {
           businessType={businessType}
         />
         
-        {/* HISTORY: Accesso rapido allo storico */}
         <HistoryBar 
           theme={theme} 
           onPress={() => router.push("/(manager)/(tabs)/shift/history")} 
         />
-
-        {/* SHIFTS: Prossimi turni in arrivo */}
+        
         <UpcomingShifts 
           shifts={upcomingShifts} 
           theme={theme} 
           onViewAll={() => router.push("/(manager)/(tabs)/shift")}
           onShiftPress={(id: string) => router.push(`/(manager)/(tabs)/shift/${id}`)}
         />
-        
       </View>
     </ScreenWrapper>
   );
 }
 
 const styles = StyleSheet.create({
-  center: { 
-    flex: 1, 
-    justifyContent: "center", 
-    alignItems: "center" 
+  center: { flex: 1, justifyContent: "center", alignItems: "center" },
+  wrapperCustom: { paddingHorizontal: 24 },
+  mainContent: { flex: 1, paddingBottom: 20 },
+  banner: { 
+    padding: 16, 
+    borderRadius: 16, 
+    marginBottom: 20,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3
   },
-  wrapperCustom: {
-    paddingHorizontal: 24,
-  },
-  mainContent: {
-    flex: 1,
-    paddingBottom: 20,
-  },
+  bannerText: { 
+    color: '#fff', 
+    fontWeight: '700', 
+    textAlign: 'center',
+    fontSize: 14 
+  }
 });

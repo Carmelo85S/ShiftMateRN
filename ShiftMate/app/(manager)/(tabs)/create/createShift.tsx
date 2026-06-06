@@ -9,6 +9,7 @@ import {
   Platform,
   useColorScheme,
   TextInput,
+  Alert,
 } from "react-native";
 import { Colors } from "@/constants/theme";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -26,13 +27,20 @@ import { ShiftDatePickerModal } from "@/components/shared/shift/ShiftDatePickerM
 import { ScreenWrapper } from "@/components/shared/wrapper/layout-wrapper";
 import { FormShiftSchema } from "@/src/validation/formShift.schema";
 import { Ionicons } from "@expo/vector-icons"; 
+import { useAuth } from "@/hooks/auth/useAuth";
+import { router } from "expo-router";
+import { useCheckActivation } from "@/hooks/stripe/onboarding/useCheckActivation";
 
 
 export default function CreateShift() {
   const { form, setForm, picker, setPicker, estimatedEarnings, onPickerChange, openPicker } = useShiftForm();
   const { handleCreate, loading, imageUrl, setImageUrl } = useHandleCreateShift();
   const { businessType } = useDashboardData(); 
-  
+
+  const { user, businessId } = useAuth();
+  console.log("Stato Auth User:", user?.id);
+  const { hasSubscription, onboardingCompleted, loading: checkLoading } = useCheckActivation(businessId ?? undefined);
+
   // 🌟 Stati locali per agenzie di staffing
   const [clientName, setClientName] = useState<string>(""); 
   const [address, setAddress] = useState<string>("");
@@ -45,7 +53,7 @@ export default function CreateShift() {
   const incrementWorkers = () => setWorkerCount(prev => prev + 1);
   const decrementWorkers = () => setWorkerCount(prev => (prev > 1 ? prev - 1 : 1));
 
-  const onSubmit = async () => {
+  /*const onSubmit = async () => {
     // 1. Prepariamo l'oggetto includendo anche client_name
     const formToValidate = {
       ...form,
@@ -53,7 +61,7 @@ export default function CreateShift() {
       department: businessType === "staffing" ? "staffing_agency_global" : form.department,
       address: businessType === "staffing" ? address : "",
       city: businessType === "staffing" ? city : "",
-      client_name: businessType === "staffing" ? clientName : "", // ◄ AGGIUNTO
+      client_name: businessType === "staffing" ? clientName : "",
     };
 
     // 2. Validiamo localmente con lo schema Zod prima di invocare l'hook
@@ -67,6 +75,43 @@ export default function CreateShift() {
     // 3. Inviamo l'oggetto validato completo all'hook
     await handleCreate(result.data);
   };
+  */
+ const onSubmit = async () => {
+
+  if (!hasSubscription) {
+    // Step 1: Deve comprare il pacchetto
+    Alert.alert("Warning", "You need an active subscription to post shifts. Please choose a plan to get started.");
+    router.push("/subscription");
+    return;
+  }
+
+  if (!onboardingCompleted) {
+    // Step 2: Se ha il pacchetto ma non ha configurato Stripe
+    Alert.alert("Last step!", "Complete your Stripe onboarding to start posting shifts and receiving applications.");
+    router.push("/stripe-onboarding");
+    return;
+  }
+
+    // Se è tutto ok, procediamo con la validazione e creazione dello shift
+    const formToValidate = {
+      ...form,
+      required_workers: businessType === "staffing" ? workerCount : 1,
+      department: businessType === "staffing" ? "staffing_agency_global" : form.department,
+      address: businessType === "staffing" ? address : "",
+      city: businessType === "staffing" ? city : "",
+      client_name: businessType === "staffing" ? clientName : "",
+    };
+
+  const result = FormShiftSchema.safeParse(formToValidate);
+  if (!result.success) {
+    const error = result.error.issues[0].message;
+    Alert.alert("Error", error);
+    return;
+  } 
+
+  // Se passa entrambi, crea lo shift
+  await handleCreate(result.data);
+};
 
   useLoadProfile(setForm);
 
@@ -80,7 +125,7 @@ export default function CreateShift() {
         scrollable={true} 
         style={styles.wrapper}
       >
-        <View style={[styles.header, { paddingTop: insets.top + 20 }]}>
+        <View style={[styles.header, { paddingTop: insets.top }]}>
           <Text style={[styles.title, { color: theme.text }]}>New Shift</Text>
           <Text style={[styles.subtitle, { color: theme.secondaryText }]}>
             {businessType === "staffing" ? "Request personnel for your clients" : "Create new shift"}

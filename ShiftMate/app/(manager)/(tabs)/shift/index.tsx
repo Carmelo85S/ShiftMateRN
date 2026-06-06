@@ -41,7 +41,7 @@ export default function ShiftsManager() {
         }
         contentContainerStyle={[
           styles.listContent, 
-          { paddingTop: insets.top + 25, paddingBottom: 120 }
+          { paddingTop: insets.top, paddingBottom: 120 }
         ]}
         showsVerticalScrollIndicator={false}
         ListHeaderComponent={

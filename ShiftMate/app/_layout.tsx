@@ -113,7 +113,8 @@ export default function RootLayout() {
 }, []);
 
   // 🔒 Controllo Abbonamento: Se l'utente è loggato ma non abbonato, reindirizzalo alla pagina di pagamento
-  useEffect(() => {
+ 
+ /* useEffect(() => {
     const checkSubscription = async () => {
       if (!session?.user?.id) return;
 
@@ -135,12 +136,13 @@ export default function RootLayout() {
 
       // 3. Esegui il check (es. se lo status non è 'active')
       if (business && business.stripe_subscription_status !== 'active') {
-        navigationRouter.replace("/subscription"); 
+        navigationRouter.replace("/(manager)/(tabs)/dashboard"); // Reindirizza comunque alla dashboard
       }
     };
 
     if (session) checkSubscription();
   }, [session]);
+  */
 
   const handleLogout = async () => {
     try {
