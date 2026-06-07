@@ -46,7 +46,7 @@ export const createBusinessAndAssignOwner = async (
   inviteCode: string, 
   business_address: string, 
   business_city: string,
-  businessType: string
+  businessType: string,
 ) => {
   const { data: business, error: businessError } = await supabase
     .from("businesses")
@@ -55,10 +55,13 @@ export const createBusinessAndAssignOwner = async (
       invite_code: inviteCode, 
       business_address: business_address.trim(),
       business_city: business_city.trim(),
-      business_type: businessType
+      business_type: businessType,
+      owner_id: userId
     }])
     .select("id")
     .single();
+
+    console.log(JSON.stringify(businessError, null, 2));
 
   if (businessError) throw businessError;
 

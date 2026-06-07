@@ -5,8 +5,8 @@ interface HeaderProps {
   kpi: string;
   title: string;
   theme: {
-    tint: string;
-    text: string;
+    tint?: string;
+    text?: string;
   };
   containerStyle?: ViewStyle;
 }

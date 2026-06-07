@@ -7,6 +7,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { ScreenWrapper } from "@/components/shared/wrapper/layout-wrapper";
 import { ShiftCard } from "@/components/shared/shiftCard/ShiftCard"; // Assicurati sia la versione quadrata
 import { useManagerShift } from "@/hooks/manager/useManagerShift";
+import { ScreenHeader } from "@/components/shared/Header";
 
 export default function ShiftsManager() {
   const router = useRouter();
@@ -40,17 +41,18 @@ export default function ShiftsManager() {
           />
         }
         contentContainerStyle={[
-          styles.listContent, 
-          { paddingTop: insets.top, paddingBottom: 120 }
+              styles.listContent, 
+              { paddingTop: insets.top }
         ]}
         showsVerticalScrollIndicator={false}
         ListHeaderComponent={
           <View style={styles.headerArea}>
             <View style={styles.titleRow}>
-              <View>
-                <Text style={[styles.kpiLabel, { color: theme.tint }]}>CENTER</Text>
-                <Text style={[styles.headerTitle, { color: theme.text }]}>Shift Hub</Text>
-              </View>
+              <ScreenHeader
+                kpi="CENTER"
+                title="Shift Hub"
+                theme={theme}
+              />
               <View style={[styles.countBadge, { backgroundColor: theme.text + "10" }]}>
                 <Text style={[styles.countText, { color: theme.text }]}>{shifts.length}</Text>
               </View>
@@ -75,15 +77,56 @@ export default function ShiftsManager() {
 }
 
 const styles = StyleSheet.create({
-  center: { flex: 1, justifyContent: "center", alignItems: "center" },
-  listContent: { paddingHorizontal: 20 },
-  columnRow: { justifyContent: 'space-between', marginBottom: 4 }, // Spazio orizzontale tra le card
-  headerArea: { marginBottom: 30, paddingHorizontal: 4 },
-  titleRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  kpiLabel: { fontSize: 12, fontWeight: "700", letterSpacing: 0.5, marginBottom: 4, opacity: 0.5 },
-  headerTitle: { fontSize: 28, fontWeight: "700", letterSpacing: -0.8 },
-  countBadge: { paddingHorizontal: 12, height: 28, borderRadius: 12, justifyContent: 'center' },
-  countText: { fontSize: 14, fontWeight: "600" },
-  emptyContainer: { marginTop: 100, alignItems: "center" },
-  emptyText: { fontSize: 16, opacity: 0.4, marginTop: 15 },
+  center: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+
+  listContent: {
+    paddingBottom: 10,
+  },
+
+  columnRow: {
+    justifyContent: "space-between",
+    marginBottom: 12,
+  },
+
+  headerArea: {
+    marginBottom: 28,
+  },
+
+  titleRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "flex-start",
+  },
+
+  countBadge: {
+    minWidth: 38,
+    height: 38,
+    borderRadius: 19,
+    justifyContent: "center",
+    alignItems: "center",
+    marginTop: 8,
+  },
+
+  countText: {
+    fontSize: 15,
+    fontWeight: "700",
+  },
+
+  emptyContainer: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingTop: 100,
+  },
+
+  emptyText: {
+    fontSize: 16,
+    fontWeight: "600",
+    opacity: 0.45,
+    marginTop: 16,
+  },
 });

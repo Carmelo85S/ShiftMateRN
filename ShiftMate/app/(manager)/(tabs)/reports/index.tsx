@@ -9,6 +9,8 @@ import { Stack, useFocusEffect } from "expo-router";
 import { supabase } from "@/lib/supabase";
 import { useDashboardData } from "@/hooks/manager/useFetchDataDashboard";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { ScreenHeader } from "@/components/shared/Header";
+import { useFetchProfile } from "@/hooks/worker/profile/useFetchProfile";
 
 export default function AnalyticsDashboardPage() {
   const { refreshing, onRefresh } = useDashboardData();
@@ -20,7 +22,7 @@ export default function AnalyticsDashboardPage() {
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
   const [reports, setReports] = useState<{ workers: any[]; clients: any[] }>({ workers: [], clients: [] });
-  const [currentDate, setCurrentDate] = useState(new Date());
+  const [currentDate, setCurrentDate] = useState(new Date());  
 
   const changeMonth = (offset: number) => {
     const newDate = new Date(currentDate);
@@ -75,22 +77,43 @@ export default function AnalyticsDashboardPage() {
     item.name?.toLowerCase().includes(search.toLowerCase())
   );
 
+  const isEmpty = !loading && filteredData.length === 0;
+
+  const EmptyState = () => (
+  <View style={styles.emptyContainer}>
+    <View style={[styles.iconWrapper, { backgroundColor: theme.card }]}>
+      <Ionicons name="bar-chart-outline" size={42} color={theme.text} />
+    </View>
+
+    <Text style={[styles.emptyTitle, { color: theme.text }]}>
+      No data found
+    </Text>
+
+    <Text style={[styles.emptySubtitle, { color: theme.text }]}>
+      There are no records for this period yet.
+    </Text>
+  </View>
+);
+
   return (
-    <>
-      <Stack.Screen options={{ headerTitle: "Analytics" }} />
       <ScreenWrapper 
         scrollable={true}
-        onRefresh={onRefresh}
-        refreshing={refreshing}
-        style={styles.wrapperCustom}
       >
-        <View style={[styles.contentContainer, { paddingTop: insets.top }]}>
-          {/* Filtro Mese */}
-          <View style={styles.datePicker}>
-            <Pressable onPress={() => changeMonth(-1)}><Ionicons name="chevron-back" size={24} color={theme.text} /></Pressable>
-            <Text style={[styles.dateText, { color: theme.text }]}>
-              {currentDate.toLocaleString('default', { month: 'long', year: 'numeric' })}
-            </Text>
+        {/* HEADER */}
+        <ScreenHeader
+          kpi="Monthly Overview"
+          title="Analytics"
+          theme={theme}
+          containerStyle={{
+            paddingTop: insets.top,
+          }}
+        />
+        {/* Filtro Mese */}
+        <View style={styles.datePicker}>
+          <Pressable onPress={() => changeMonth(-1)}><Ionicons name="chevron-back" size={24} color={theme.text} /></Pressable>
+          <Text style={[styles.dateText, { color: theme.text }]}>
+            {currentDate.toLocaleString('default', { month: 'long', year: 'numeric' })}
+          </Text>
             <Pressable onPress={() => changeMonth(1)}><Ionicons name="chevron-forward" size={24} color={theme.text} /></Pressable>
           </View>
 
@@ -113,19 +136,26 @@ export default function AnalyticsDashboardPage() {
             ))}
           </View>
 
-          {loading ? <ActivityIndicator style={{ marginTop: 20 }} /> : (
-            <View style={styles.listContainer}>
-              {filteredData.map((item, index) => (
-                <View key={index} style={[styles.reportRow, { backgroundColor: theme.card }]}>
-                  <Text style={{ color: theme.text, fontWeight: '600' }}>{item.name}</Text>
-                  <Text style={{ color: theme.text, fontWeight: '700' }}>{Math.round(item.amount).toLocaleString()} SEK</Text>
-                </View>
-              ))}
-            </View>
-          )}
-        </View>
+          {loading ? (
+          <ActivityIndicator style={{ marginTop: 20 }} />
+            ) : isEmpty ? (
+              <EmptyState />
+            ) : (
+              <View style={styles.listContainer}>
+                {filteredData.map((item, index) => (
+                  <View key={index} style={[styles.reportRow, { backgroundColor: theme.card }]}>
+                    <Text style={{ color: theme.text, fontWeight: '600' }}>
+                      {item.name}
+                    </Text>
+                    <Text style={{ color: theme.text, fontWeight: '700' }}>
+                      {Math.round(item.amount).toLocaleString()} SEK
+                    </Text>
+                  </View>
+                ))}
+              </View>
+            )}
+        
       </ScreenWrapper>
-    </>
   );
 }
 
@@ -133,12 +163,6 @@ const styles = StyleSheet.create({
   wrapperCustom: { 
     flex: 1, 
     paddingHorizontal: 0 
-  },
-  // Questo view deve avere flex 1 per occupare tutto lo spazio verticale
-  contentContainer: { 
-    flex: 1, 
-    paddingTop: 100, 
-    paddingBottom: 40 
   },
   datePicker: { 
     flexDirection: 'row', 
@@ -148,10 +172,38 @@ const styles = StyleSheet.create({
     gap: 20 
   },
   dateText: { fontSize: 18, fontWeight: '800' },
-  searchContainer: { paddingHorizontal: 24, marginBottom: 16 },
+  searchContainer: { marginBottom: 16 },
   searchInput: { height: 50, borderRadius: 16, paddingHorizontal: 20 },
-  tabContainer: { flexDirection: "row", marginHorizontal: 24, padding: 4, borderRadius: 16, marginBottom: 20 },
+  tabContainer: { flexDirection: "row", padding: 4, borderRadius: 16, marginBottom: 20 },
   tabButton: { flex: 1, height: 40, borderRadius: 12, justifyContent: "center", alignItems: "center" },
   listContainer: { paddingHorizontal: 24 },
-  reportRow: { flexDirection: "row", justifyContent: "space-between", padding: 16, borderRadius: 20, marginBottom: 10 }
+  reportRow: { flexDirection: "row", justifyContent: "space-between", padding: 16, borderRadius: 20, marginBottom: 10 },
+  emptyContainer: {
+  marginTop: 60,
+  alignItems: "center",
+  justifyContent: "center",
+  paddingHorizontal: 30,
+},
+
+iconWrapper: {
+  width: 72,
+  height: 72,
+  borderRadius: 20,
+  justifyContent: "center",
+  alignItems: "center",
+  marginBottom: 16,
+},
+
+emptyTitle: {
+  fontSize: 18,
+  fontWeight: "800",
+  marginBottom: 6,
+},
+
+emptySubtitle: {
+  fontSize: 13,
+  opacity: 0.5,
+  textAlign: "center",
+  lineHeight: 18,
+},
 });

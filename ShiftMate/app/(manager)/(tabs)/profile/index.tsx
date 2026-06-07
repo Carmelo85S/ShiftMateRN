@@ -79,36 +79,40 @@ const handleManageSubscription = async () => {
   );
   
   return (
-    <ScreenWrapper>
-      <View style={{ flex: 1, backgroundColor: theme.background }}>
-        <ScrollView contentContainerStyle={[styles.scrollContent, { paddingTop: insets.top, paddingBottom: 40 }]}>
-          
-          <ProfileHeader profile={profile} theme={theme} />
-          <ProfileInfoCard role={profile?.job_role || "User"} theme={theme} />
-          <BiographySection bio={profile?.bio} theme={theme} />
+    <ScreenWrapper style={{ paddingTop: insets.top}}>
+      <ProfileHeader profile={profile} theme={theme} />
 
-          {/* TUTTI I MENU PROFILO */}
-          <View style={styles.menuContainer}>
-            <MenuRowProfile label="Edit Details" icon="person-outline" onPress={() => router.push("/(manager)/(tabs)/profile/editProfile")} theme={theme} />
-            <MenuRowProfile label="Security" icon="shield-checkmark-outline" onPress={() => {}} theme={theme} />
-            <MenuRowProfile label="Preferences" icon="options-outline" onPress={() => {}} theme={theme} />
-            
-            <MenuRowProfile
-              label="Subscription & Billing" 
-              icon="card-outline" 
-              subLabel={profile?.businesses?.stripe_subscription_status === 'active' ? "Active" : "Manage"}
-              onPress={handleManageSubscription}
-              theme={theme}
-              rightIcon={profile?.businesses?.stripe_subscription_status === 'active' ? "checkmark-circle" : "chevron-forward"}
-              iconColor={profile?.businesses?.stripe_subscription_status === 'active' ? "#10B981" : theme.text}
-            />
+      <ProfileInfoCard
+        role={profile?.job_role || "User"}
+        theme={theme}
+      />
 
-            <MenuRowProfile label="Notifications" icon="notifications-outline" onPress={() => {}} theme={theme} />
-            <MenuRowProfile label="Help & Support" icon="help-circle-outline" onPress={() => {}} theme={theme} />
-            <MenuRowProfile label="Logout" icon="log-out-outline" onPress={() => supabase.auth.signOut()} theme={theme} />
-          </View>
-          
-        </ScrollView>
+      <BiographySection bio={profile?.bio} theme={theme} />
+
+      <View style={styles.menuContainer}>
+        <MenuRowProfile
+          label="Edit Details"
+          icon="person-outline"
+          onPress={() => router.push("/(manager)/(tabs)/profile/editProfile")}
+          theme={theme}
+        />
+
+        <MenuRowProfile label="Security" icon="shield-checkmark-outline" onPress={() => {}} theme={theme} />
+        <MenuRowProfile label="Preferences" icon="options-outline" onPress={() => {}} theme={theme} />
+
+        <MenuRowProfile
+          label="Subscription & Billing"
+          icon="card-outline"
+          subLabel={profile?.businesses?.stripe_subscription_status === "active" ? "Active" : "Manage"}
+          onPress={handleManageSubscription}
+          theme={theme}
+          rightIcon={profile?.businesses?.stripe_subscription_status === "active" ? "checkmark-circle" : "chevron-forward"}
+          iconColor={profile?.businesses?.stripe_subscription_status === "active" ? "#10B981" : theme.text}
+        />
+
+        <MenuRowProfile label="Notifications" icon="notifications-outline" onPress={() => {}} theme={theme} />
+        <MenuRowProfile label="Help & Support" icon="help-circle-outline" onPress={() => {}} theme={theme} />
+        <MenuRowProfile label="Logout" icon="log-out-outline" onPress={() => supabase.auth.signOut()} theme={theme} />
       </View>
     </ScreenWrapper>
   );

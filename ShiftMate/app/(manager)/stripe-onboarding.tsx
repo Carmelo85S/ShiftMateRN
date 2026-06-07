@@ -75,7 +75,7 @@ export default function StripeOnboarding() {
         )}
       </Pressable>
 
-      <Pressable onPress={() => router.back()} style={styles.backButton}>
+      <Pressable onPress={() => router.replace('/(manager)/(tabs)/dashboard')} style={styles.backButton}>
         <Text style={styles.backText}>Back to Dashboard</Text>
       </Pressable>
     </View>

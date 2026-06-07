@@ -1,104 +1,312 @@
-import React from 'react';
-import { View, Text, StyleSheet, Pressable, ScrollView, Alert } from 'react-native';
+import React, { useCallback, useMemo, useState } from "react";
+import {
+  View,
+  Text,
+  StyleSheet,
+  Pressable,
+  ActivityIndicator,
+  FlatList,
+} from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { useSetupBusiness } from '@/hooks/manager/useSetupBusiness';
-import { router, Stack, useLocalSearchParams, useRouter } from 'expo-router';
+import { useSetupBusiness } from "@/hooks/manager/useSetupBusiness";
+import { router, Stack, useFocusEffect, useLocalSearchParams } from "expo-router";
 import { Colors } from "@/constants/theme";
+import { supabase } from "@/lib/supabase";
+import { ScreenHeader } from "@/components/shared/Header";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 const PLANS = [
-  { id: 'price_1TdRTrPf9BDNyCapNvDt0Cxt', name: 'Essential', price: '1490 SEK', mode: 'subscription', desc: 'Up to 3 managers', kpi: 'ESSENTIAL', icon: 'infinite-outline', isBest: false },
-  { id: 'price_1TdpUqPf9BDNyCaphUprM3xC', name: 'Growth', price: '2990 SEK', mode: 'subscription', desc: 'Advanced features', kpi: 'GROWTH', icon: 'trending-up-outline', isBest: true },
-  { id: 'price_1TdpVXPf9BDNyCapRO9apxU0', name: 'Scale', price: '5990 SEK', mode: 'subscription', desc: 'Unlimited access', kpi: 'SCALE', icon: 'rocket-outline', isBest: false },
-  { id: 'price_1TdRUfPf9BDNyCap2gvWBsOm', name: 'Quick Start', price: '390 SEK', mode: 'payment', desc: '1 job / 14 days', kpi: 'STARTER', icon: 'wallet-outline', isBest: false },
-  { id: 'price_1TdpSEPf9BDNyCapTpA1yPPY', name: 'Flexi Pack', price: '1500 SEK', mode: 'payment', desc: '2 jobs / 30 days', kpi: 'FLEXI', icon: 'wallet-outline', isBest: false },
-  { id: 'price_1TdpTlPf9BDNyCapsKtthz8K', name: 'Business Flow', price: '3000 SEK', mode: 'payment', desc: '3 jobs / 30 days', kpi: 'FLOW', icon: 'wallet-outline', isBest: false },
+  {
+    id: "price_1TdRTrPf9BDNyCapNvDt0Cxt",
+    name: "Essential",
+    price: "1490 SEK",
+    mode: "subscription",
+    desc: "Up to 3 managers. Perfect for small teams starting to scale operations.",
+    kpi: "ESSENTIAL",
+    icon: "infinite-outline",
+    isBest: false,
+  },
+  {
+    id: "price_1TdpUqPf9BDNyCaphUprM3xC",
+    name: "Growth",
+    price: "2990 SEK",
+    mode: "subscription",
+    desc: "Up to 10 managers. Built for growing teams that need structure and control.",
+    kpi: "GROWTH",
+    icon: "trending-up-outline",
+    isBest: true,
+  },
+  {
+    id: "price_1TdpVXPf9BDNyCapRO9apxU0",
+    name: "Scale",
+    price: "5990 SEK",
+    mode: "subscription",
+    desc: "Unlimited managers. Designed for companies operating at full scale.",
+    kpi: "SCALE",
+    icon: "rocket-outline",
+    isBest: false,
+  },
+
+  {
+    id: "price_1TdRUfPf9BDNyCap2gvWBsOm",
+    name: "Quick Start",
+    price: "390 SEK",
+    mode: "payment",
+    desc: "1 job access for 14 days. Ideal for quick hiring needs.",
+    kpi: "STARTER",
+    icon: "wallet-outline",
+    isBest: false,
+  },
+  {
+    id: "price_1TdpSEPf9BDNyCapTpA1yPPY",
+    name: "Flexi Pack",
+    price: "1500 SEK",
+    mode: "payment",
+    desc: "2 job posts within 30 days. Flexible hiring for short cycles.",
+    kpi: "FLEXI",
+    icon: "wallet-outline",
+    isBest: false,
+  },
+  {
+    id: "price_1TdpTlPf9BDNyCapsKtthz8K",
+    name: "Business Flow",
+    price: "3000 SEK",
+    mode: "payment",
+    desc: "3 job posts within 30 days. Best for active recruiting teams.",
+    kpi: "FLOW",
+    icon: "wallet-outline",
+    isBest: false,
+  },
 ];
+
+type Mode = "subscription" | "payment";
 
 export default function SubscriptionScreen() {
   const { businessId } = useLocalSearchParams<{ businessId: string }>();
   const { handlePayment, loading } = useSetupBusiness();
-  const theme = Colors.light;
+  const [isVerifying, setIsVerifying] = useState(false);
+  const [mode, setMode] = useState<Mode>("subscription");
 
-  const handlePress = (plan: typeof PLANS[0]) => {
-    if (!businessId) {
-      Alert.alert("Errore", "Business ID non trovato. Torna indietro e riprova.");
-      return;
+  const theme = Colors.light;
+  const insets = useSafeAreaInsets();
+
+  const filteredPlans = useMemo(
+    () => PLANS.filter((p) => p.mode === mode),
+    [mode]
+  );
+
+  const checkSubscriptionStatus = useCallback(async () => {
+    if (!businessId) return;
+
+    setIsVerifying(true);
+
+    const { data } = await supabase
+      .from("businesses")
+      .select("is_active_subscriber")
+      .eq("id", businessId)
+      .single();
+
+    if (data?.is_active_subscriber) {
+      router.replace("/dashboard");
     }
-    handlePayment(plan.id, businessId, plan.mode as 'payment' | 'subscription');
+
+    setIsVerifying(false);
+  }, [businessId]);
+
+  useFocusEffect(
+    useCallback(() => {
+      checkSubscriptionStatus();
+    }, [checkSubscriptionStatus])
+  );
+
+  const handlePress = (plan: any) => {
+    if (!businessId) return;
+    handlePayment(plan.id, businessId, plan.mode);
   };
+
+  if (isVerifying) {
+    return (
+      <View style={styles.loader}>
+        <ActivityIndicator size="large" color={theme.tint} />
+        <Text style={{ marginTop: 10, opacity: 0.6 }}>
+          Checking subscription...
+        </Text>
+      </View>
+    );
+  }
 
   return (
     <>
-    <Stack.Screen 
-      options={{ 
-        headerShown: true, 
-        title: "Upgrade",
-        headerLeft: () => (
-          <Pressable onPress={() => router.back()}>
-            <Ionicons name="chevron-back" size={28} color={theme.text} />
-          </Pressable>
-        )
-      }} 
-    />
-    <ScrollView style={{ flex: 1, backgroundColor: theme.background }} contentContainerStyle={styles.container}>
-      <View style={styles.header}>
-        <Text style={[styles.kpiHeader, { color: theme.tint }]}>UPGRADE YOUR BUSINESS</Text>
-        <Text style={[styles.title, { color: theme.text }]}>Choose your power</Text>
-      </View>
+      <Stack.Screen options={{ headerShown: false }} />
 
-      {PLANS.map((plan) => (
-        <Pressable 
-          key={plan.id} 
-          style={[styles.card, plan.isBest && { backgroundColor: theme.tint }]}
-          onPress={() => handlePress(plan)}
-          disabled={loading}
-        >
-          {plan.isBest && (
-            <View style={styles.badgeBest}>
-              <Text style={styles.badgeBestText}>MOST POPULAR</Text>
+        <View style={[styles.container, { paddingTop: insets.top + 50 }]}>
+          
+          <ScreenHeader
+            kpi="UPGRADE"
+            title="Choose your plan"
+            theme={theme}
+          />
+
+          {/* TOGGLE (stile reports) */}
+          <View style={styles.toggle}>
+            <View style={styles.toggleInner}>
+              {(["subscription", "payment"] as Mode[]).map((item) => {
+                const active = mode === item;
+
+                return (
+                  <Pressable
+                    key={item}
+                    onPress={() => setMode(item)}
+                    style={[
+                      styles.toggleBtn,
+                      active && { backgroundColor: theme.text },
+                    ]}
+                  >
+                    <Text
+                      style={[
+                        styles.toggleText,
+                        active && { color: "#fff" },
+                      ]}
+                    >
+                      {item === "subscription" ? "Subscription" : "Payment"}
+                    </Text>
+                  </Pressable>
+                );
+              })}
             </View>
-          )}
-          
-          <View style={styles.cardHeader}>
-            <Text style={[styles.kpi, { color: plan.isBest ? '#FFF' : theme.tint }]}>{plan.kpi}</Text>
-            <Ionicons name={plan.icon as any} size={22} color={plan.isBest ? '#FFF' : theme.text} />
           </View>
-          
-          <Text style={[styles.cardTitle, { color: plan.isBest ? '#FFF' : theme.text }]}>{plan.name}</Text>
-          <Text style={[styles.priceText, { color: plan.isBest ? '#FFF' : theme.tint }]}>{plan.price}</Text>
-          <Text style={[styles.cardSubtitle, { color: plan.isBest ? 'rgba(255,255,255,0.8)' : theme.secondaryText }]}>{plan.desc}</Text>
-          
-          <View style={[styles.button, { backgroundColor: plan.isBest ? '#FFF' : theme.tint }]}>
-            <Text style={[styles.buttonText, { color: plan.isBest ? theme.tint : '#FFF' }]}>
-              {plan.isBest ? 'ACTIVATE NOW' : 'SELECT PLAN'}
-            </Text>
-          </View>
-        </Pressable>
-      ))}
-      
-      <Text style={styles.footer}>🔒 256-bit SSL Secure Payment</Text>
-    </ScrollView>
+
+          {/* LIST */}
+          <FlatList
+            data={filteredPlans}
+            keyExtractor={(item) => item.id}
+            showsVerticalScrollIndicator={false}
+            renderItem={({ item }) => (
+              <Pressable
+                onPress={() => handlePress(item)}
+                style={[
+                  styles.card,
+                  item.isBest && { borderColor: theme.tint },
+                ]}
+              >
+                {item.isBest && (
+                  <View style={styles.badge}>
+                    <Text style={styles.badgeText}>MOST POPULAR</Text>
+                  </View>
+                )}
+
+                <View style={styles.row}>
+                  <Text style={styles.kpi}>{item.kpi}</Text>
+                  <Ionicons name={item.icon as any} size={20} color={theme.text} />
+                </View>
+
+                <Text style={styles.title}>{item.name}</Text>
+                <Text style={styles.price}>{item.price}</Text>
+                <Text style={styles.desc}>{item.desc}</Text>
+              </Pressable>
+            )}
+          />
+        </View>
     </>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { padding: 32, paddingVertical: 100 },
-  header: { marginBottom: 30 },
-  kpiHeader: { fontSize: 13, fontWeight: "800", letterSpacing: 1, marginBottom: 8 },
-  title: { fontSize: 38, fontWeight: "800", letterSpacing: -1 },
-  card: { 
-    borderRadius: 32, padding: 28, marginBottom: 20, borderWidth: 1, borderColor: "rgba(0,0,0,0.05)",
-    backgroundColor: '#FFF', elevation: 5, shadowColor: '#000', shadowOffset: { width: 0, height: 10 }, shadowOpacity: 0.1, shadowRadius: 20
+  container: {
+    flex: 1,
+    paddingHorizontal: 20,
   },
-  badgeBest: { position: 'absolute', top: -12, right: 24, backgroundColor: '#FFD700', paddingHorizontal: 12, paddingVertical: 4, borderRadius: 12 },
-  badgeBestText: { fontSize: 10, fontWeight: '900', color: '#000' },
-  cardHeader: { flexDirection: "row", justifyContent: "space-between", marginBottom: 16 },
-  kpi: { fontSize: 11, fontWeight: "800", letterSpacing: 1 },
-  cardTitle: { fontSize: 24, fontWeight: "800", marginBottom: 8 },
-  priceText: { fontSize: 32, fontWeight: "900", marginBottom: 12 },
-  cardSubtitle: { fontSize: 16, marginBottom: 24, opacity: 0.8 },
-  button: { paddingVertical: 18, borderRadius: 16, alignItems: 'center' },
-  buttonText: { fontSize: 15, fontWeight: "800", letterSpacing: 0.5 },
-  footer: { textAlign: 'center', marginTop: 20, marginBottom: 40, color: '#9CA3AF', fontSize: 12 }
+
+  loader: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+
+  /* TOGGLE STYLE REPORT-STYLE */
+  toggle: {
+    marginBottom: 18,
+  },
+
+  toggleInner: {
+    flexDirection: "row",
+    backgroundColor: "rgba(0,0,0,0.05)",
+    borderRadius: 16,
+    padding: 4,
+  },
+
+  toggleBtn: {
+    flex: 1,
+    paddingVertical: 10,
+    borderRadius: 12,
+    alignItems: "center",
+  },
+
+  toggleText: {
+    fontSize: 13,
+    fontWeight: "700",
+    color: "#444",
+  },
+
+  /* CARD PIÙ PROFONDA */
+  card: {
+    borderRadius: 22,
+    padding: 20,
+    marginBottom: 14,
+
+    backgroundColor: "#fff",
+    borderWidth: 1,
+    borderColor: "rgba(0,0,0,0.04)",
+
+    shadowColor: "#000",
+    shadowOpacity: 0.08,
+    shadowRadius: 18,
+    shadowOffset: { width: 0, height: 10 },
+    elevation: 4,
+  },
+
+  row: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+  },
+
+  kpi: {
+    fontSize: 11,
+    fontWeight: "800",
+    opacity: 0.5,
+  },
+
+  title: {
+    fontSize: 18,
+    fontWeight: "800",
+    marginTop: 6,
+  },
+
+  price: {
+    fontSize: 24,
+    fontWeight: "900",
+    marginTop: 4,
+  },
+
+  desc: {
+    fontSize: 13,
+    opacity: 0.6,
+    marginTop: 6,
+  },
+
+  badge: {
+    position: "absolute",
+    top: 10,
+    right: 10,
+    backgroundColor: "#111",
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 8,
+  },
+
+  badgeText: {
+    color: "#fff",
+    fontSize: 10,
+    fontWeight: "700",
+  },
 });

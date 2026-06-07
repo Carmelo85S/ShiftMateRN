@@ -31,7 +31,6 @@ export default function SetupBusiness() {
     businessType,     
     setBusinessType,  
     loading, 
-    handleCreateBusiness,
     createBusinessRecord
   } = useSetupBusiness();
 
@@ -137,7 +136,7 @@ export default function SetupBusiness() {
           )}
 
           <SetupButton 
-            title="CONTINUE TO SUBSCRIPTION"
+            title="CONTINUE TO DASHBOARD"
             theme={theme}
             loading={loading}
             icon="arrow-forward-circle"
@@ -145,7 +144,7 @@ export default function SetupBusiness() {
               const { data: { user } } = await supabase.auth.getUser();
               if (user) {
                 const businessId = await createBusinessRecord(user.id);
-                router.push({ pathname: "/subscription", params: { businessId } });
+                router.push({ pathname: "/(manager)/(tabs)/dashboard", params: { businessId } });
               }
             }}
           />

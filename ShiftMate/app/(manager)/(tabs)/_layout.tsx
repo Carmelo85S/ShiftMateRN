@@ -75,7 +75,7 @@ function OrbitTabBar({ state, descriptors, navigation, theme }: any) {
                 shift: "receipt-sharp",
                 create: "add",
                 profile: "person-sharp",
-                "reports/analytics": "bar-chart-sharp", 
+                "reports": "bar-chart-sharp", 
               };
               return map[name] || "ellipse";
             };
@@ -125,7 +125,7 @@ export default function TabLayout() {
       <Tabs.Screen name="shift" />
       <Tabs.Screen name="create" />
       <Tabs.Screen name="profile" />
-      <Tabs.Screen name="reports/analytics" />
+      <Tabs.Screen name="reports" />
     </Tabs>
   );
 }

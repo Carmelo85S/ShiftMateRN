@@ -27,12 +27,20 @@ Deno.serve(async (req: Request) => {
       line_items: [{ price: priceId, quantity: 1 }],
       success_url: "shiftmate://dashboard",
       cancel_url: "shiftmate://auth/login",
-      metadata: { businessId: businessId },
+      // Questo metadata è la "chiave" che viaggia ovunque
+      metadata: { business_id: businessId }, 
     };
 
-    // Aggiungiamo customer_creation solo se NON è un abbonamento
-    if (!isSubscription) {
-      sessionConfig.customer_creation = 'always';
+    // Se è una sottoscrizione, passiamo il metadata anche a subscription_data
+    if (isSubscription) {
+      sessionConfig.subscription_data = {
+        metadata: { business_id: businessId }
+      };
+    } else {
+      // Se è un pagamento singolo (pacchetto), usiamo payment_intent_data
+      sessionConfig.payment_intent_data = {
+        metadata: { business_id: businessId }
+      };
     }
 
     const session = await stripe.checkout.sessions.create(sessionConfig);

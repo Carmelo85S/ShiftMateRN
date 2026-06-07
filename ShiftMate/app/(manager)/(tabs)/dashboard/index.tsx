@@ -61,13 +61,16 @@ export default function Dashboard() {
     >
       <View style={[styles.mainContent, { paddingTop: insets.top }]}>
         
-        {/* Banner di avviso - Guida l'utente senza bloccarlo 
         {!hasSubscription && (
-          <Pressable style={[styles.banner, { backgroundColor: theme.tint }]} onPress={() => router.push("/(manager)/(tabs)/subscription" as any)}>
-            <Text style={styles.bannerText}>⚠️ Piano non attivo. Clicca qui per scegliere un piano.</Text>
+          <Pressable style={[styles.banner, { backgroundColor: theme.tint }]} 
+            onPress={() => router.push({
+              pathname: "/subscription",
+              params: { businessId: businessId}
+            })}
+          >
+            <Text style={styles.bannerText}>⚠️ No active plan detected. Click here to choose a plan.</Text>
           </Pressable>
         )}
-          */}
         
         {hasSubscription && !onboardingCompleted && (
           <Pressable style={[styles.banner, { backgroundColor: '#FF9F1C' }]} onPress={() => router.push("/(manager)/stripe-onboarding")}>
@@ -124,5 +127,11 @@ const styles = StyleSheet.create({
     fontWeight: '700', 
     textAlign: 'center',
     fontSize: 14 
+  },
+  loadingText: {
+    marginTop: 12,
+    fontSize: 16,
+    fontWeight: '600',
+    textAlign: 'center'
   }
 });

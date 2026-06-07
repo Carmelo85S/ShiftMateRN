@@ -21,7 +21,7 @@ export const ProfileHeader = ({ profile, theme }: any) => (
 );
 
 const styles = StyleSheet.create({
-  headerRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 40, marginTop: 10 },
+  headerRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 40 },
   welcomeText: { fontSize: 14, fontWeight: "600", opacity: 0.5, letterSpacing: 0.5, textTransform: 'uppercase' },
   nameTitle: { fontSize: 32, fontWeight: "900", letterSpacing: -1 },
   avatarFrame: { width: 74, height: 74, borderRadius: 28, justifyContent: 'center', alignItems: 'center', borderWidth: 1 },

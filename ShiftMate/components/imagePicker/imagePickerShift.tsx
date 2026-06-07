@@ -38,7 +38,7 @@ export default function ShiftUploader({ initialUrl, onUpload }: ShiftUploaderPro
       if (uploadedUrl) {
         onUpload(uploadedUrl);
       } else {
-        Alert.alert("Errore", "Impossibile caricare l'immagine. Riprova.");
+        Alert.alert("Error", "Impossible to upload the image.");
       }
     }
   };
@@ -112,8 +112,8 @@ export default function ShiftUploader({ initialUrl, onUpload }: ShiftUploaderPro
             <View style={styles.iconCircle}>
               <Ionicons name="image-outline" size={32} color={"#39E467"} />
             </View>
-            <Text style={styles.placeholderText}>Aggiungi una foto al turno</Text>
-            <Text style={styles.placeholderSubtext}>Trascina o seleziona dalla galleria</Text>
+            <Text style={styles.placeholderText}>Add a photo to the shift</Text>
+            <Text style={styles.placeholderSubtext}>Choose from gallery</Text>
           </View>
         )}
       </TouchableOpacity>
