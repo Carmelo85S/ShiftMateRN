@@ -1,10 +1,17 @@
-import React, { useState } from "react";
-import { View, Text, Pressable, ActivityIndicator, StyleSheet, Alert } from "react-native";
-import { useRouter } from "expo-router";
-import * as Linking from 'expo-linking';
-import { supabase } from "@/lib/supabase";
 import { Colors } from "@/constants/theme";
 import { useAuth } from "@/hooks/auth/useAuth"; // Assicurati di usare l'hook che abbiamo creato
+import { supabase } from "@/lib/supabase";
+import * as Linking from "expo-linking";
+import { Stack, useRouter } from "expo-router";
+import React, { useState } from "react";
+import {
+  ActivityIndicator,
+  Alert,
+  Pressable,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
 
 export default function StripeOnboarding() {
   const [loading, setLoading] = useState(false);
@@ -19,24 +26,27 @@ export default function StripeOnboarding() {
     try {
       // 1. Recupera il business_id dell'utente
       const { data: profile } = await supabase
-        .from('profiles')
-        .select('business_id')
-        .eq('id', user.id)
+        .from("profiles")
+        .select("business_id")
+        .eq("id", user.id)
         .single();
 
       if (!profile?.business_id) throw new Error("Business non trovato");
 
       // 2. Chiamata alla Edge Function per ottenere il link di Onboarding
-      const { data, error } = await supabase.functions.invoke('create-stripe-onboarding-link', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
+      const { data, error } = await supabase.functions.invoke(
+        "create-stripe-onboarding-link",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            businessId: profile.business_id,
+            email: user.email,
+          }),
         },
-        body: JSON.stringify({ 
-          businessId: profile.business_id,
-          email: user.email 
-        })
-      });
+      );
 
       if (error) throw error;
 
@@ -46,7 +56,10 @@ export default function StripeOnboarding() {
       }
     } catch (err: any) {
       console.error(err);
-      Alert.alert("Errore", "Impossibile avviare la configurazione Stripe. Riprova più tardi.");
+      Alert.alert(
+        "Errore",
+        "Impossibile avviare la configurazione Stripe. Riprova più tardi.",
+      );
     } finally {
       setLoading(false);
     }
@@ -54,17 +67,19 @@ export default function StripeOnboarding() {
 
   return (
     <View style={styles.container}>
+      <Stack.Screen options={{ headerShown: false }} />
       <View style={styles.iconContainer}>
         {/* Potresti aggiungere un'icona Stripe qui */}
         <Text style={styles.emoji}>🏦</Text>
       </View>
       <Text style={styles.title}>Payment Configuration</Text>
       <Text style={styles.subtitle}>
-        Connect your Stripe account to manage payments and receive payouts. It's a quick and secure process.
+        Connect your Stripe account to manage payments and receive payouts. It's
+        a quick and secure process.
       </Text>
-      
-      <Pressable 
-        style={[styles.button, { backgroundColor: theme.text }]} 
+
+      <Pressable
+        style={[styles.button, { backgroundColor: theme.text }]}
         onPress={handleStartOnboarding}
         disabled={loading}
       >
@@ -75,7 +90,10 @@ export default function StripeOnboarding() {
         )}
       </Pressable>
 
-      <Pressable onPress={() => router.replace('/(manager)/(tabs)/dashboard')} style={styles.backButton}>
+      <Pressable
+        onPress={() => router.replace("/(manager)/(tabs)/dashboard")}
+        style={styles.backButton}
+      >
         <Text style={styles.backText}>Back to Dashboard</Text>
       </Pressable>
     </View>
@@ -83,13 +101,35 @@ export default function StripeOnboarding() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 24, justifyContent: 'center', alignItems: 'center', backgroundColor: '#fff' },
-  iconContainer: { marginBottom: 20, padding: 20, backgroundColor: '#f0f0f0', borderRadius: 30 },
+  container: {
+    flex: 1,
+    padding: 24,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "#fff",
+  },
+  iconContainer: {
+    marginBottom: 20,
+    padding: 20,
+    backgroundColor: "#f0f0f0",
+    borderRadius: 30,
+  },
   emoji: { fontSize: 40 },
-  title: { fontSize: 24, fontWeight: '800', marginBottom: 12 },
-  subtitle: { textAlign: 'center', color: '#666', fontSize: 16, marginBottom: 30, lineHeight: 22 },
-  button: { padding: 18, borderRadius: 16, width: '100%', alignItems: 'center' },
-  buttonText: { color: '#fff', fontWeight: 'bold', fontSize: 16 },
+  title: { fontSize: 24, fontWeight: "800", marginBottom: 12 },
+  subtitle: {
+    textAlign: "center",
+    color: "#666",
+    fontSize: 16,
+    marginBottom: 30,
+    lineHeight: 22,
+  },
+  button: {
+    padding: 18,
+    borderRadius: 16,
+    width: "100%",
+    alignItems: "center",
+  },
+  buttonText: { color: "#fff", fontWeight: "bold", fontSize: 16 },
   backButton: { marginTop: 20 },
-  backText: { color: '#666', fontWeight: '600' }
+  backText: { color: "#666", fontWeight: "600" },
 });

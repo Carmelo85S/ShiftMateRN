@@ -43,7 +43,8 @@ export const countBusinessWorkers = async (businessId: string) => {
 export const createBusinessAndAssignOwner = async (
   userId: string, 
   businessName: string, 
-  inviteCode: string, 
+  inviteCodeMgr: string, 
+  inviteCodeWrk: string,
   business_address: string, 
   business_city: string,
   businessType: string,
@@ -52,7 +53,8 @@ export const createBusinessAndAssignOwner = async (
     .from("businesses")
     .insert([{ 
       name: businessName.trim(), 
-      invite_code: inviteCode, 
+      invite_code_mgr: inviteCodeMgr,
+      invite_code_wrk: inviteCodeWrk, 
       business_address: business_address.trim(),
       business_city: business_city.trim(),
       business_type: businessType,

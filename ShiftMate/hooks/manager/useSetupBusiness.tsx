@@ -1,7 +1,7 @@
+import { createBusinessAndAssignOwner } from "@/queries/managerQueries";
+import * as WebBrowser from "expo-web-browser";
 import { useState } from "react";
 import { Alert } from "react-native";
-import * as WebBrowser from 'expo-web-browser';
-import { createBusinessAndAssignOwner } from "@/queries/managerQueries";
 
 export const useSetupBusiness = () => {
   const [businessName, setBusinessName] = useState("");
@@ -10,7 +10,16 @@ export const useSetupBusiness = () => {
   const [businessType, setBusinessType] = useState("standard");
   const [loading, setLoading] = useState(false);
 
-  const generateInviteCode = () => {
+  const generateInviteCodeManager = () => {
+    const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+    let result = "";
+    for (let i = 0; i < 6; i++) {
+      result += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    return result;
+  };
+
+  const generateInviteCodeTeam = () => {
     const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
     let result = "";
     for (let i = 0; i < 6; i++) {
@@ -22,9 +31,16 @@ export const useSetupBusiness = () => {
   const createBusinessRecord = async (userId: string) => {
     setLoading(true);
     try {
-      const inviteCode = generateInviteCode();
+      const inviteCodeMgr = generateInviteCodeManager();
+      const inviteCodeWrk = generateInviteCodeTeam();
       return await createBusinessAndAssignOwner(
-        userId, businessName, inviteCode, businessAddress, businessCity, businessType
+        userId,
+        businessName,
+        inviteCodeMgr,
+        inviteCodeWrk,
+        businessAddress,
+        businessCity,
+        businessType,
       );
     } catch (error: any) {
       Alert.alert("Error", error.message);
@@ -34,14 +50,21 @@ export const useSetupBusiness = () => {
     }
   };
 
-  const handlePayment = async (priceId: string, businessId: string, mode: 'payment' | 'subscription') => {
+  const handlePayment = async (
+    priceId: string,
+    businessId: string,
+    mode: "payment" | "subscription",
+  ) => {
     setLoading(true);
     try {
-      const response = await fetch(`${process.env.EXPO_PUBLIC_SUPABASE_URL}/functions/v1/create-checkout-session`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ priceId, businessId, mode }), 
-      });
+      const response = await fetch(
+        `${process.env.EXPO_PUBLIC_SUPABASE_URL}/functions/v1/create-checkout-session`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ priceId, businessId, mode }),
+        },
+      );
       const result = await response.json();
       console.log("Server response:", result);
       if (result.error) throw new Error(result.error);
@@ -54,8 +77,16 @@ export const useSetupBusiness = () => {
   };
 
   return {
-    businessName, setBusinessName, businessAddress, setBusinessAddress,
-    businessCity, setBusinessCity, businessType, setBusinessType,
-    loading, createBusinessRecord, handlePayment
+    businessName,
+    setBusinessName,
+    businessAddress,
+    setBusinessAddress,
+    businessCity,
+    setBusinessCity,
+    businessType,
+    setBusinessType,
+    loading,
+    createBusinessRecord,
+    handlePayment,
   };
 };

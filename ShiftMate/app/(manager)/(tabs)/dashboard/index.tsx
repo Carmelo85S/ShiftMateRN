@@ -73,6 +73,7 @@ export default function Dashboard() {
         {!hasSubscription && (
           <Pressable
             style={[styles.banner, { backgroundColor: theme.tint }]}
+            disabled={subLoading}
             onPress={() =>
               router.push({
                 pathname: "/subscription",
@@ -89,6 +90,7 @@ export default function Dashboard() {
         {hasSubscription && !onboardingCompleted && (
           <Pressable
             style={[styles.banner, { backgroundColor: "#FF9F1C" }]}
+            disabled={subLoading}
             onPress={() => router.push("/(manager)/stripe-onboarding")}
           >
             <Text style={styles.bannerText}>

@@ -1,20 +1,19 @@
 import { Colors } from "@/constants/theme";
 import { supabase } from "@/lib/supabase";
+import { Ionicons } from "@expo/vector-icons";
 import { Stack, useRouter } from "expo-router";
 import { useState } from "react";
 import {
   Alert,
+  KeyboardAvoidingView,
+  Platform,
   Pressable,
+  ScrollView,
   StyleSheet,
   Text,
   TextInput,
   View,
-  KeyboardAvoidingView,
-  Platform,
-  ScrollView,
-  ActivityIndicator,
 } from "react-native";
-import { Ionicons } from "@expo/vector-icons";
 
 export default function Login() {
   const theme = Colors.light;
@@ -24,7 +23,7 @@ export default function Login() {
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
 
-const handleLogin = async () => {
+  const handleLogin = async () => {
     if (!email || !password) {
       Alert.alert("Error", "Please enter email and password");
       return;
@@ -32,7 +31,10 @@ const handleLogin = async () => {
 
     setLoading(true);
     try {
-      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
       if (error) throw error;
 
       // Usiamo maybeSingle() invece di single() per evitare l'errore JSON coercion
@@ -53,7 +55,10 @@ const handleLogin = async () => {
       if (profileData.role === "manager" || profileData.role === "owner") {
         // Entrambi vanno alla sezione manager
         router.replace("/(manager)/(tabs)/dashboard");
-      } else if (profileData.role === "worker" || profileData.role === "candidate") {
+      } else if (
+        profileData.role === "worker" ||
+        profileData.role === "candidate"
+      ) {
         // Entrambi vanno alla sezione worker
         router.replace("/(worker)/(tabs)/shifts");
       } else {
@@ -79,8 +84,12 @@ const handleLogin = async () => {
         >
           {/* HEADER SECTION */}
           <View style={styles.header}>
-            <Text style={[styles.kpi, { color: theme.tint }]}>INTERNAL ACCESS</Text>
-            <Text style={[styles.title, { color: theme.text }]}>Welcome{"\n"}Back</Text>
+            <Text style={[styles.kpi, { color: theme.tint }]}>
+              INTERNAL ACCESS
+            </Text>
+            <Text style={[styles.title, { color: theme.text }]}>
+              Welcome{"\n"}Back
+            </Text>
           </View>
 
           {/* FORM SECTION */}
@@ -94,7 +103,10 @@ const handleLogin = async () => {
                 onChangeText={setEmail}
                 keyboardType="email-address"
                 autoCapitalize="none"
-                style={[styles.input, { color: theme.text, borderColor: theme.text }]}
+                style={[
+                  styles.input,
+                  { color: theme.text, borderColor: theme.text },
+                ]}
               />
             </View>
 
@@ -106,14 +118,20 @@ const handleLogin = async () => {
                 value={password}
                 onChangeText={setPassword}
                 secureTextEntry
-                style={[styles.input, { color: theme.text, borderColor: theme.text }]}
+                style={[
+                  styles.input,
+                  { color: theme.text, borderColor: theme.text },
+                ]}
               />
             </View>
 
             <Pressable
               style={({ pressed }) => [
                 styles.button,
-                { backgroundColor: theme.text, opacity: (loading || pressed) ? 0.8 : 1 }
+                {
+                  backgroundColor: theme.text,
+                  opacity: loading || pressed ? 0.8 : 1,
+                },
               ]}
               onPress={handleLogin}
               disabled={loading}
@@ -121,16 +139,25 @@ const handleLogin = async () => {
               <Text style={[styles.buttonText, { color: theme.background }]}>
                 {loading ? "AUTHENTICATING..." : "LOGIN TO DASHBOARD"}
               </Text>
-              {!loading && <Ionicons name="arrow-forward" size={20} color={theme.background} />}
+              {!loading && (
+                <Ionicons
+                  name="arrow-forward"
+                  size={20}
+                  color={theme.background}
+                />
+              )}
             </Pressable>
 
-            <Pressable 
-              onPress={() => router.push("/auth/register")} 
+            <Pressable
+              onPress={() => router.push("/auth/registerOptions")}
               style={styles.registerLink}
               disabled={loading}
             >
               <Text style={styles.registerText}>
-                New here? <Text style={{ color: theme.tint, fontWeight: '900' }}>Request Access</Text>
+                New here?{" "}
+                <Text style={{ color: theme.tint, fontWeight: "900" }}>
+                  Request Access
+                </Text>
               </Text>
             </Pressable>
           </View>
@@ -145,13 +172,11 @@ const styles = StyleSheet.create({
   container: {
     flexGrow: 1,
     paddingHorizontal: 32,
-    paddingTop: 80,
-    paddingBottom: 40,
     justifyContent: "center",
   },
   header: {
     marginBottom: 45,
-    alignItems: 'flex-start',
+    alignItems: "flex-start",
   },
   kpi: {
     fontSize: 13,
@@ -181,7 +206,7 @@ const styles = StyleSheet.create({
   },
   input: {
     width: "100%",
-    backgroundColor: "#F1F3F5", 
+    backgroundColor: "#F1F3F5",
     borderRadius: 20,
     padding: 18,
     fontSize: 16,

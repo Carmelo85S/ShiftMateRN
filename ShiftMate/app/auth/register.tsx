@@ -1,32 +1,31 @@
 import { Colors } from "@/constants/theme";
 import { supabase } from "@/lib/supabase";
-import { Stack, useRouter } from "expo-router";
+import { Ionicons } from "@expo/vector-icons";
+import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import { useState } from "react";
 import {
   Alert,
+  KeyboardAvoidingView,
+  Platform,
   Pressable,
+  ScrollView,
   StyleSheet,
   Text,
   TextInput,
   View,
-  ScrollView,
-  KeyboardAvoidingView,
-  Platform,
-  ActivityIndicator
 } from "react-native";
-import { Ionicons } from "@expo/vector-icons";
-
-type UserRole = "worker" | "manager" | "owner" | "candidate";
 
 export default function Register() {
   const theme = Colors.light;
   const router = useRouter();
+  const { role } = useLocalSearchParams<{
+    role: "owner" | "team" | "candidate";
+  }>();
 
   const [name, setName] = useState("");
   const [surname, setSurname] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [role, setRole] = useState<UserRole>("worker");
   const [inviteCode, setInviteCode] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -36,66 +35,47 @@ export default function Register() {
       return;
     }
 
-    // 1. Controllo validità codice (solo per Worker e Manager)
-    if (role !== "owner" && role !== "candidate" && !inviteCode) {
-      Alert.alert("Invite Code", "Please enter the code provided by your manager.");
-      return;
-    }
-
     setLoading(true);
     try {
       let businessId = null;
+      let finalRole = role === "team" ? "worker" : role;
 
-      // 2. Cerchiamo il business SOLO se il ruolo prevede un codice (quindi NON owner e NON candidate)
-      if (role !== "owner" && role !== "candidate") {
+      if (role === "team") {
         const cleanCode = inviteCode.trim().toUpperCase();
-        
         const { data: business, error: businessError } = await supabase
           .from("businesses")
-          .select("id")
-          .eq("invite_code", cleanCode)
+          .select("id, invite_code_mgr, invite_code_wrk")
+          .or(`invite_code_mgr.eq.${cleanCode},invite_code_wrk.eq.${cleanCode}`)
           .maybeSingle();
 
-        if (businessError) throw new Error("Connection error while checking the code.");
+        if (businessError || !business) throw new Error("Invalid invite code.");
 
-        if (!business) {
-          throw new Error("Invalid code. Please check with your manager.");
-        }
-
+        finalRole =
+          cleanCode === business.invite_code_mgr ? "manager" : "worker";
         businessId = business.id;
       }
 
-      // 3. Creazione Auth
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email,
         password,
       });
-      
       if (authError) throw authError;
       if (!authData.user) throw new Error("Auth failed.");
 
-      // 4. Creazione Profilo
       const { error: profileError } = await supabase.from("profiles").insert({
         id: authData.user.id,
         name,
         surname,
-        role,
-        business_id: businessId, // Sarà null per i Candidate e Owner (inizialmente)
+        role: finalRole,
+        business_id: businessId,
       });
 
       if (profileError) throw profileError;
 
-      // 5. Redirezione
-      if (role === "owner") {
-        router.replace("/(manager)/setupBusiness");
-      } else {
-       // Manager va in dashboard, Worker e Candidate vanno agli shifts
-       const targetPath = (role === "manager")
-          ? "/(manager)/(tabs)/dashboard" 
-          : "/(worker)/(tabs)/shifts"; 
-        router.replace(targetPath as any);
-      }
-
+      if (role === "owner") router.replace("/(manager)/setupBusiness");
+      else if (finalRole === "manager")
+        router.replace("/(manager)/(tabs)/dashboard");
+      else router.replace("/(worker)/(tabs)/shifts");
     } catch (error: any) {
       Alert.alert("Registration Failed", error.message);
     } finally {
@@ -103,105 +83,92 @@ export default function Register() {
     }
   };
 
-  const handleBack = () => {
-    if (router.canGoBack()) {
-      router.back();
-    } else {
-      router.replace("/auth/login" as any);
-    }
-  };
-
   return (
     <>
       <Stack.Screen options={{ headerShown: false }} />
       <KeyboardAvoidingView
-        style={{ flex: 1, backgroundColor: theme.background }}
         behavior={Platform.OS === "ios" ? "padding" : "height"}
+        style={{ flex: 1, backgroundColor: theme.background }}
       >
-        <ScrollView 
-          contentContainerStyle={styles.container} 
+        <ScrollView
+          contentContainerStyle={styles.container}
           keyboardShouldPersistTaps="handled"
-          showsVerticalScrollIndicator={false}
         >
-          
           <View style={styles.header}>
-            <Pressable onPress={handleBack} style={styles.backBtn}>
+            <Pressable onPress={() => router.back()} style={styles.backBtn}>
               <Ionicons name="arrow-back" size={24} color={theme.text} />
             </Pressable>
-            <Text style={[styles.kpi, { color: theme.tint }]}>SECURE ACCESS</Text>
-            <Text style={[styles.title, { color: theme.text }]}>Join the{"\n"}Team</Text>
-          </View>
-
-          {/* ROLE SELECTOR */}
-          <View style={styles.roleWrapper}>
-            <Text style={styles.inputLabel}>YOUR ROLE</Text>
-            <View style={styles.roleContainer}>
-              <RoleCard label="OWNER" selected={role === "owner"} onPress={() => setRole("owner")} theme={theme} icon="business" />
-              <RoleCard label="WORKER" selected={role === "worker"} onPress={() => setRole("worker")} theme={theme} icon="hammer" />
-              <RoleCard label="MANAGER" selected={role === "manager"} onPress={() => setRole("manager")} theme={theme} icon="briefcase" />
-              <RoleCard label="CANDIDATE" selected={role === "candidate"} onPress={() => setRole("candidate")} theme={theme} icon="star" />
-            </View>
+            <Text style={[styles.kpi, { color: theme.tint }]}>
+              CREATE ACCOUNT
+            </Text>
+            <Text style={[styles.title, { color: theme.text }]}>
+              {role === "owner"
+                ? "Setup Your\nBusiness"
+                : role === "team"
+                  ? "Join Your\nTeam"
+                  : "Apply to\nJoin"}
+            </Text>
           </View>
 
           <View style={styles.form}>
             <View style={styles.row}>
-               <View style={{ flex: 1 }}>
-                  <Text style={styles.inputLabel}>FIRST NAME</Text>
-                  <TextInput
-                    placeholder="John"
-                    placeholderTextColor="#999"
-                    value={name}
-                    onChangeText={setName}
-                    style={[styles.input, { color: theme.text, borderColor: theme.text }]}
-                  />
-               </View>
-               <View style={{ flex: 1 }}>
-                  <Text style={styles.inputLabel}>LAST NAME</Text>
-                  <TextInput
-                    placeholder="Doe"
-                    placeholderTextColor="#999"
-                    value={surname}
-                    onChangeText={setSurname}
-                    style={[styles.input, { color: theme.text, borderColor: theme.text }]}
-                  />
-               </View>
+              <View style={styles.inputWrapper}>
+                <Text style={styles.inputLabel}>FIRST NAME</Text>
+                <TextInput
+                  value={name}
+                  onChangeText={setName}
+                  placeholder="John"
+                  style={styles.input}
+                />
+              </View>
+              <View style={styles.inputWrapper}>
+                <Text style={styles.inputLabel}>LAST NAME</Text>
+                <TextInput
+                  value={surname}
+                  onChangeText={setSurname}
+                  placeholder="Doe"
+                  style={styles.input}
+                />
+              </View>
             </View>
 
             <View style={styles.inputWrapper}>
-              <Text style={styles.inputLabel}>WORK EMAIL</Text>
+              <Text style={styles.inputLabel}>EMAIL ADDRESS</Text>
               <TextInput
-                placeholder="name@company.com"
-                placeholderTextColor="#999"
                 value={email}
                 onChangeText={setEmail}
+                placeholder="name@company.com"
                 keyboardType="email-address"
                 autoCapitalize="none"
-                style={[styles.input, { color: theme.text, borderColor: theme.text }]}
+                style={styles.input}
               />
             </View>
 
             <View style={styles.inputWrapper}>
               <Text style={styles.inputLabel}>PASSWORD</Text>
               <TextInput
-                placeholder="••••••••"
-                placeholderTextColor="#999"
                 value={password}
                 onChangeText={setPassword}
+                placeholder="••••••••"
                 secureTextEntry
-                style={[styles.input, { color: theme.text, borderColor: theme.text }]}
+                style={styles.input}
               />
             </View>
 
-            {role !== "owner" && role!=="candidate" &&(
+            {role === "team" && (
               <View style={styles.inputWrapper}>
-                <Text style={[styles.inputLabel, { color: theme.tint }]}>COMPANY INVITE CODE</Text>
+                <Text style={[styles.inputLabel, { color: theme.tint }]}>
+                  INVITE CODE
+                </Text>
                 <TextInput
-                  placeholder="EX: BUSINESS2024"
-                  placeholderTextColor="#999"
                   value={inviteCode}
                   onChangeText={setInviteCode}
+                  placeholder="EX: BUSINESS123"
                   autoCapitalize="characters"
-                  style={[styles.input, { color: theme.text, borderColor: theme.tint, borderWidth: 1.5 }]}
+                  style={[
+                    styles.input,
+                    { borderColor: theme.tint, borderWidth: 1.5 },
+                  ]}
                 />
               </View>
             )}
@@ -209,15 +176,21 @@ export default function Register() {
             <Pressable
               style={({ pressed }) => [
                 styles.button,
-                { backgroundColor: theme.text, opacity: (loading || pressed) ? 0.8 : 1 }
+                { opacity: loading || pressed ? 0.8 : 1 },
               ]}
               onPress={handleRegister}
               disabled={loading}
             >
-              <Text style={[styles.buttonText, { color: theme.background }]}>
-                {loading ? "CREATING ACCOUNT..." : role === "owner" ? "REGISTER STRUCTURE" : "REGISTER"}
+              <Text style={styles.buttonText}>
+                {loading ? "PROCESSING..." : "REGISTER ACCOUNT"}
               </Text>
-              {!loading && <Ionicons name="arrow-forward" size={20} color={theme.background} />}
+              {!loading && (
+                <Ionicons
+                  name="arrow-forward"
+                  size={20}
+                  color={theme.background}
+                />
+              )}
             </Pressable>
           </View>
         </ScrollView>
@@ -226,117 +199,50 @@ export default function Register() {
   );
 }
 
-const RoleCard = ({ label, selected, onPress, theme, icon }: any) => (
-  <Pressable
-    onPress={onPress}
-    style={[
-      styles.roleButton,
-      { 
-        backgroundColor: selected ? theme.text : "#F1F3F5",
-        borderColor: selected ? theme.text : "rgba(0,0,0,0.05)",
-        borderWidth: 1
-      }
-    ]}
-  >
-    <Ionicons name={icon} size={18} color={selected ? theme.background : theme.text} />
-    <Text style={[styles.roleText, { color: selected ? theme.background : theme.text }]}>{label}</Text>
-  </Pressable>
-);
-
 const styles = StyleSheet.create({
-  container: { 
+  container: {
     flexGrow: 1,
-    paddingHorizontal: 32, 
+    paddingHorizontal: 32,
     paddingTop: 60,
     paddingBottom: 40,
   },
-  header: { 
-    marginBottom: 40, 
-    alignItems: 'flex-start' 
+  header: { marginBottom: 30 },
+  backBtn: {
+    marginBottom: 20,
+    marginLeft: -10,
+    width: 44,
+    height: 44,
+    justifyContent: "center",
   },
-  backBtn: { 
-    marginBottom: 20, 
-    marginLeft: -10, 
-    width: 44, 
-    height: 44, 
-    justifyContent: 'center' 
+  kpi: {
+    fontSize: 13,
+    fontWeight: "700",
+    letterSpacing: 0.5,
+    marginBottom: 8,
+    opacity: 0.8,
   },
-  kpi: { 
-    fontSize: 13, 
-    fontWeight: "700", 
-    letterSpacing: 0.5, 
-    marginBottom: 8, 
-    opacity: 0.8 
-  },
-  title: {
-    fontSize: 38,
-    fontWeight: "800",
-    lineHeight: 42,
-    letterSpacing: -1,
-  },
-  roleWrapper: { 
-    marginBottom: 32 
-  },
-  roleContainer: { 
-    flexDirection: "row", 
-    gap: 10, 
-    marginTop: 12 
-  },
-  roleButton: { 
-    flex: 1, 
-    alignItems: 'center', 
-    justifyContent: 'center', 
-    gap: 8, 
-    paddingVertical: 14, 
+  title: { fontSize: 38, fontWeight: "800", lineHeight: 42, letterSpacing: -1 },
+  form: { gap: 20 },
+  row: { flexDirection: "row", gap: 16 },
+  inputWrapper: { gap: 8, flex: 1 },
+  inputLabel: { fontSize: 12, fontWeight: "600", marginLeft: 4, opacity: 0.7 },
+  input: {
+    backgroundColor: "#F1F3F5",
     borderRadius: 20,
-  },
-  roleText: { 
-    fontWeight: "700", 
-    fontSize: 10, 
-    letterSpacing: 0.5 
-  },
-  form: { 
-    gap: 24 
-  },
-  row: { 
-    flexDirection: 'row', 
-    gap: 16 
-  },
-  inputWrapper: { 
-    gap: 10 
-  },
-  inputLabel: { 
-    fontSize: 14, 
-    fontWeight: "600", 
-    marginLeft: 4, 
-    opacity: 0.7 
-  },
-  input: { 
-    width: "100%", 
-    backgroundColor: "#F1F3F5", 
+    padding: 18,
+    fontSize: 16,
     borderWidth: 1,
-    padding: 18, 
-    fontSize: 16, 
-    borderRadius: 20, 
+    borderColor: "rgba(0,0,0,0.05)",
   },
-  button: { 
-    width: "100%", 
-    padding: 18, 
-    borderRadius: 22, 
+  button: {
+    backgroundColor: "#000",
+    padding: 18,
+    borderRadius: 22,
     flexDirection: "row",
-    alignItems: "center", 
+    alignItems: "center",
     justifyContent: "center",
     gap: 12,
     marginTop: 10,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.1,
-    shadowRadius: 15,
-    elevation: 5,
   },
-  buttonText: { 
-    fontWeight: "700", 
-    fontSize: 16, 
-    letterSpacing: 0.2 
-  },
+  buttonText: { color: "#FFF", fontWeight: "700", fontSize: 16 },
 });
