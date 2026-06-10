@@ -49,6 +49,9 @@ export const createBusinessAndAssignOwner = async (
   business_city: string,
   businessType: string,
 ) => {
+  // Mappatura della categoria basata sul tipo selezionato
+  const category = businessType === "staffing" ? "staffing_agency" : "independent";
+
   const { data: business, error: businessError } = await supabase
     .from("businesses")
     .insert([{ 
@@ -58,14 +61,16 @@ export const createBusinessAndAssignOwner = async (
       business_address: business_address.trim(),
       business_city: business_city.trim(),
       business_type: businessType,
+      business_category: category,
       owner_id: userId
     }])
     .select("id")
     .single();
 
-    console.log(JSON.stringify(businessError, null, 2));
-
-  if (businessError) throw businessError;
+  if (businessError) {
+    console.error("Errore creazione business:", businessError);
+    throw businessError;
+  }
 
   const { error: profileError } = await supabase
     .from("profiles")

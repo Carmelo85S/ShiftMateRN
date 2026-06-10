@@ -17,7 +17,11 @@ Deno.serve(async (req: Request) => {
   }
 
   try {
-    const { priceId, businessId, mode } = await req.json();
+    const { priceId, businessId, mode, userId } = await req.json();
+
+    console.log("Dati ricevuti dal frontend:", { priceId, businessId, mode, userId });
+    
+    const meta = { business_id: businessId, user_id: userId };  
 
     console.log("Creazione sessione per businessId:", businessId);
     const isSubscription = mode === "subscription";
@@ -28,18 +32,18 @@ Deno.serve(async (req: Request) => {
       success_url: "shiftmate://dashboard",
       cancel_url: "shiftmate://auth/login",
       // Questo metadata è la "chiave" che viaggia ovunque
-      metadata: { business_id: businessId }, 
+      metadata: meta,
     };
 
     // Se è una sottoscrizione, passiamo il metadata anche a subscription_data
     if (isSubscription) {
       sessionConfig.subscription_data = {
-        metadata: { business_id: businessId }
+        metadata: meta
       };
     } else {
       // Se è un pagamento singolo (pacchetto), usiamo payment_intent_data
       sessionConfig.payment_intent_data = {
-        metadata: { business_id: businessId }
+        metadata: { metadata: meta}
       };
     }
 

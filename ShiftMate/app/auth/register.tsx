@@ -42,11 +42,19 @@ export default function Register() {
 
       if (role === "team") {
         const cleanCode = inviteCode.trim().toUpperCase();
+        console.log("DEBUG: Cerco azienda con codice:", cleanCode);
         const { data: business, error: businessError } = await supabase
           .from("businesses")
           .select("id, invite_code_mgr, invite_code_wrk")
           .or(`invite_code_mgr.eq.${cleanCode},invite_code_wrk.eq.${cleanCode}`)
           .maybeSingle();
+
+        console.log(
+          "DEBUG: Risultato query:",
+          business,
+          "Errore:",
+          businessError,
+        );
 
         if (businessError || !business) throw new Error("Invalid invite code.");
 
@@ -176,12 +184,15 @@ export default function Register() {
             <Pressable
               style={({ pressed }) => [
                 styles.button,
-                { opacity: loading || pressed ? 0.8 : 1 },
+                {
+                  backgroundColor: theme.text, // Sfondo nero (come nel Login)
+                  opacity: loading || pressed ? 0.8 : 1,
+                },
               ]}
               onPress={handleRegister}
               disabled={loading}
             >
-              <Text style={styles.buttonText}>
+              <Text style={[styles.buttonText, { color: theme.background }]}>
                 {loading ? "PROCESSING..." : "REGISTER ACCOUNT"}
               </Text>
               {!loading && (
@@ -203,10 +214,14 @@ const styles = StyleSheet.create({
   container: {
     flexGrow: 1,
     paddingHorizontal: 32,
-    paddingTop: 60,
+    paddingTop: 80, // Aumentato per pareggiare il Login
     paddingBottom: 40,
+    justifyContent: "center", // Centratura verticale come nel Login
   },
-  header: { marginBottom: 30 },
+  header: {
+    marginBottom: 45, // Pareggiato al Login
+    alignItems: "flex-start",
+  },
   backBtn: {
     marginBottom: 20,
     marginLeft: -10,
@@ -221,21 +236,41 @@ const styles = StyleSheet.create({
     marginBottom: 8,
     opacity: 0.8,
   },
-  title: { fontSize: 38, fontWeight: "800", lineHeight: 42, letterSpacing: -1 },
-  form: { gap: 20 },
-  row: { flexDirection: "row", gap: 16 },
-  inputWrapper: { gap: 8, flex: 1 },
-  inputLabel: { fontSize: 12, fontWeight: "600", marginLeft: 4, opacity: 0.7 },
+  title: {
+    fontSize: 38,
+    fontWeight: "800",
+    lineHeight: 42,
+    letterSpacing: -1,
+  },
+  form: {
+    gap: 24, // Pareggiato al Login (era 20)
+  },
+  row: {
+    flexDirection: "row",
+    gap: 16,
+  },
+  inputWrapper: {
+    gap: 10, // Pareggiato al Login (era 8)
+    flex: 1,
+  },
+  inputLabel: {
+    fontSize: 14, // Pareggiato al Login (era 12)
+    fontWeight: "600",
+    color: "#1A1D1E",
+    marginLeft: 4,
+    opacity: 0.7,
+  },
   input: {
+    width: "100%",
     backgroundColor: "#F1F3F5",
     borderRadius: 20,
     padding: 18,
     fontSize: 16,
     borderWidth: 1,
-    borderColor: "rgba(0,0,0,0.05)",
+    borderColor: "#000",
   },
   button: {
-    backgroundColor: "#000",
+    width: "100%",
     padding: 18,
     borderRadius: 22,
     flexDirection: "row",
@@ -243,6 +278,17 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     gap: 12,
     marginTop: 10,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.1,
+    shadowRadius: 15,
+    elevation: 5,
   },
-  buttonText: { color: "#FFF", fontWeight: "700", fontSize: 16 },
+  buttonText: {
+    fontWeight: "700", // Grassetto più marcato
+    fontSize: 16, // Dimensione coerente
+    letterSpacing: 0.2,
+    // Nota: Il colore viene gestito nel componente tramite inline style
+    // per permettere il contrasto corretto (theme.background)
+  },
 });

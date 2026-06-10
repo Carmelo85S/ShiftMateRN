@@ -1,52 +1,64 @@
 import { supabase } from "@/lib/supabase";
-import { useState, useCallback } from "react";
 import { useFocusEffect } from "expo-router";
+import { useCallback, useState } from "react";
 
-export const useCheckActivation = (businessId?: string) => {
-  const [status, setStatus] = useState({ 
-    loading: true, 
-    hasSubscription: false, 
-    onboardingCompleted: false 
+export const useCheckActivation = (
+  businessId?: string,
+  userRole?: "owner" | "manager",
+  userId?: string,
+) => {
+  const [status, setStatus] = useState({
+    loading: true,
+    hasSubscription: false,
+    onboardingCompleted: false,
   });
 
   const check = useCallback(async () => {
-    if (!businessId) {
-      setStatus(prev => ({ ...prev, loading: false }));
+    if (!businessId || !userRole || !userId) {
+      setStatus((prev) => ({ ...prev, loading: false }));
       return;
     }
 
-    // 1. Chiamiamo l'Edge Function per assicurarci che lo stato su Stripe sia sincronizzato
-    // (Questo aggiorna anche il database tramite la logica della funzione)
-    await supabase.functions.invoke('check-onboarding-status', {
-      body: { businessId }
-    });
+    if (userRole === "owner") {
+      // LOGICA AGENZIA: Legge da 'businesses'
+      const { data: business } = await supabase
+        .from("businesses")
+        .select("stripe_subscription_status, stripe_onboarding_completed")
+        .eq("id", businessId)
+        .single();
 
-    // 2. Leggiamo il dato aggiornato dal database
-    const { data: business, error } = await supabase
-      .from('businesses')
-      .select('stripe_subscription_status, stripe_onboarding_completed')
-      .eq('id', businessId)
-      .single();
+      const hasSub = ["active", "trialing"].includes(
+        business?.stripe_subscription_status ?? "",
+      );
+      setStatus({
+        loading: false,
+        hasSubscription: hasSub,
+        onboardingCompleted: hasSub
+          ? !!business?.stripe_onboarding_completed
+          : false,
+      });
+    } else {
+      // LOGICA MANAGER: Legge da 'manager_purchases'
+      const { data: purchase } = await supabase
+        .from("manager_purchases")
+        .select("status")
+        .eq("user_id", userId)
+        .eq("status", "active") // Oppure 'trialing' se previsto
+        .single();
 
-    if (error) {
-      setStatus({ loading: false, hasSubscription: false, onboardingCompleted: false });
-      return;
+      setStatus({
+        loading: false,
+        hasSubscription: !!purchase, // True se ha un acquisto attivo
+        onboardingCompleted: true, // Il manager non gestisce onboarding Stripe
+      });
     }
-
-    const isActive = ['active', 'trialing'].includes(business?.stripe_subscription_status ?? '');
-    
-    setStatus({ 
-      loading: false, 
-      hasSubscription: isActive,
-      onboardingCompleted: !!business?.stripe_onboarding_completed
-    });
-  }, [businessId]);
+  }, [businessId, userRole, userId]);
 
   // Ogni volta che l'utente torna sulla schermata, rieseguiamo il check
   useFocusEffect(
     useCallback(() => {
       check();
-    }, [check])
+    }, [check]),
   );
 
   return status;

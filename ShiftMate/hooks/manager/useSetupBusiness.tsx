@@ -50,10 +50,19 @@ export const useSetupBusiness = () => {
     }
   };
 
+  const handleBusinessTypeChange = (type: string) => {
+    setBusinessType(type);
+    if (type === "staffing") {
+      setBusinessAddress("");
+      setBusinessCity("");
+    }
+  };
+
   const handlePayment = async (
     priceId: string,
     businessId: string,
     mode: "payment" | "subscription",
+    userId: string,
   ) => {
     setLoading(true);
     try {
@@ -62,7 +71,7 @@ export const useSetupBusiness = () => {
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ priceId, businessId, mode }),
+          body: JSON.stringify({ priceId, businessId, mode, userId }),
         },
       );
       const result = await response.json();
@@ -84,7 +93,7 @@ export const useSetupBusiness = () => {
     businessCity,
     setBusinessCity,
     businessType,
-    setBusinessType,
+    setBusinessType: handleBusinessTypeChange,
     loading,
     createBusinessRecord,
     handlePayment,

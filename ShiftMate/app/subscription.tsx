@@ -1,19 +1,31 @@
+import { ScreenHeader } from "@/components/shared/Header";
+import { Colors } from "@/constants/theme";
+import { useSetupBusiness } from "@/hooks/manager/useSetupBusiness";
+import { supabase } from "@/lib/supabase";
+import { Ionicons } from "@expo/vector-icons";
+import { Stack, useFocusEffect, useLocalSearchParams } from "expo-router";
 import React, { useCallback, useMemo, useState } from "react";
 import {
-  View,
-  Text,
-  StyleSheet,
-  Pressable,
   ActivityIndicator,
   FlatList,
+  Pressable,
+  StyleSheet,
+  Text,
+  View,
 } from "react-native";
-import { Ionicons } from "@expo/vector-icons";
-import { useSetupBusiness } from "@/hooks/manager/useSetupBusiness";
-import { router, Stack, useFocusEffect, useLocalSearchParams } from "expo-router";
-import { Colors } from "@/constants/theme";
-import { supabase } from "@/lib/supabase";
-import { ScreenHeader } from "@/components/shared/Header";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+
+interface Plan {
+  id: string;
+  name: string;
+  price: string;
+  mode: Mode;
+  visible_to: string[];
+  kpi: string;
+  icon: string;
+  isBest: boolean;
+  desc: string;
+}
 
 const PLANS = [
   {
@@ -21,6 +33,7 @@ const PLANS = [
     name: "Essential",
     price: "1490 SEK",
     mode: "subscription",
+    visible_to: ["owner"],
     desc: "Up to 3 managers. Perfect for small teams starting to scale operations.",
     kpi: "ESSENTIAL",
     icon: "infinite-outline",
@@ -31,6 +44,7 @@ const PLANS = [
     name: "Growth",
     price: "2990 SEK",
     mode: "subscription",
+    visible_to: ["owner"],
     desc: "Up to 10 managers. Built for growing teams that need structure and control.",
     kpi: "GROWTH",
     icon: "trending-up-outline",
@@ -41,17 +55,29 @@ const PLANS = [
     name: "Scale",
     price: "5990 SEK",
     mode: "subscription",
+    visible_to: ["owner"],
     desc: "Unlimited managers. Designed for companies operating at full scale.",
     kpi: "SCALE",
     icon: "rocket-outline",
     isBest: false,
   },
-
+  {
+    id: "price_1TgLu5Pf9BDNyCap2F80yOph",
+    name: "Solo Starter",
+    price: "600 SEK",
+    mode: "subscription",
+    visible_to: ["manager"],
+    desc: "Ideal for individual managers and micro-teams.",
+    kpi: "SOLO",
+    icon: "person-outline",
+    isBest: false,
+  },
   {
     id: "price_1TdRUfPf9BDNyCap2gvWBsOm",
     name: "Quick Start",
     price: "390 SEK",
     mode: "payment",
+    visible_to: ["manager", "owner"],
     desc: "1 job access for 14 days. Ideal for quick hiring needs.",
     kpi: "STARTER",
     icon: "wallet-outline",
@@ -62,6 +88,7 @@ const PLANS = [
     name: "Flexi Pack",
     price: "1500 SEK",
     mode: "payment",
+    visible_to: ["owner", "manager"],
     desc: "2 job posts within 30 days. Flexible hiring for short cycles.",
     kpi: "FLEXI",
     icon: "wallet-outline",
@@ -72,6 +99,7 @@ const PLANS = [
     name: "Business Flow",
     price: "3000 SEK",
     mode: "payment",
+    visible_to: ["owner", "manager"],
     desc: "3 job posts within 30 days. Best for active recruiting teams.",
     kpi: "FLOW",
     icon: "wallet-outline",
@@ -83,6 +111,9 @@ type Mode = "subscription" | "payment";
 
 export default function SubscriptionScreen() {
   const { businessId } = useLocalSearchParams<{ businessId: string }>();
+  const { userRole } = useLocalSearchParams<{
+    userRole: "owner" | "manager";
+  }>();
   const { handlePayment, loading } = useSetupBusiness();
   const [isVerifying, setIsVerifying] = useState(false);
   const [mode, setMode] = useState<Mode>("subscription");
@@ -90,25 +121,37 @@ export default function SubscriptionScreen() {
   const theme = Colors.light;
   const insets = useSafeAreaInsets();
 
-  const filteredPlans = useMemo(
-    () => PLANS.filter((p) => p.mode === mode),
-    [mode]
+  const [userId, setUserId] = useState<string | null>(null);
+
+  useFocusEffect(
+    useCallback(() => {
+      supabase.auth.getUser().then(({ data }) => {
+        setUserId(data.user?.id || null);
+      });
+    }, []),
   );
+
+  const filteredPlans = useMemo(() => {
+    const role = userRole || "manager";
+    const filtered = PLANS.filter(
+      (p) => p.mode === mode && p.visible_to.includes(role),
+    );
+
+    console.log("DEBUG - UserRole:", role);
+    console.log("DEBUG - Mode:", mode);
+    console.log("DEBUG - Plans Count:", filtered.length);
+
+    return filtered;
+  }, [mode, userRole]);
 
   const checkSubscriptionStatus = useCallback(async () => {
     if (!businessId) return;
-
     setIsVerifying(true);
-
     const { data } = await supabase
       .from("businesses")
       .select("is_active_subscriber")
       .eq("id", businessId)
       .single();
-
-    if (data?.is_active_subscriber) {
-      router.replace("/dashboard");
-    }
 
     setIsVerifying(false);
   }, [businessId]);
@@ -116,21 +159,13 @@ export default function SubscriptionScreen() {
   useFocusEffect(
     useCallback(() => {
       checkSubscriptionStatus();
-    }, [checkSubscriptionStatus])
+    }, [checkSubscriptionStatus]),
   );
-
-  const handlePress = (plan: any) => {
-    if (!businessId) return;
-    handlePayment(plan.id, businessId, plan.mode);
-  };
 
   if (isVerifying) {
     return (
       <View style={styles.loader}>
         <ActivityIndicator size="large" color={theme.tint} />
-        <Text style={{ marginTop: 10, opacity: 0.6 }}>
-          Checking subscription...
-        </Text>
       </View>
     );
   }
@@ -138,162 +173,100 @@ export default function SubscriptionScreen() {
   return (
     <>
       <Stack.Screen options={{ headerShown: false }} />
+      <View style={[styles.container, { paddingTop: insets.top + 50 }]}>
+        <ScreenHeader kpi="UPGRADE" title="Choose your plan" theme={theme} />
 
-        <View style={[styles.container, { paddingTop: insets.top + 50 }]}>
-          
-          <ScreenHeader
-            kpi="UPGRADE"
-            title="Choose your plan"
-            theme={theme}
-          />
-
-          {/* TOGGLE (stile reports) */}
-          <View style={styles.toggle}>
-            <View style={styles.toggleInner}>
-              {(["subscription", "payment"] as Mode[]).map((item) => {
-                const active = mode === item;
-
-                return (
-                  <Pressable
-                    key={item}
-                    onPress={() => setMode(item)}
-                    style={[
-                      styles.toggleBtn,
-                      active && { backgroundColor: theme.text },
-                    ]}
+        <View style={styles.toggle}>
+          <View style={styles.toggleInner}>
+            {(["subscription", "payment"] as Mode[]).map((item) => {
+              const active = mode === item;
+              return (
+                <Pressable
+                  key={item}
+                  onPress={() => setMode(item)}
+                  style={[
+                    styles.toggleBtn,
+                    active && { backgroundColor: theme.text },
+                  ]}
+                >
+                  <Text
+                    style={[styles.toggleText, active && { color: "#fff" }]}
                   >
-                    <Text
-                      style={[
-                        styles.toggleText,
-                        active && { color: "#fff" },
-                      ]}
-                    >
-                      {item === "subscription" ? "Subscription" : "Payment"}
-                    </Text>
-                  </Pressable>
-                );
-              })}
-            </View>
+                    {item === "subscription" ? "Subscription" : "Payment"}
+                  </Text>
+                </Pressable>
+              );
+            })}
           </View>
-
-          {/* LIST */}
-          <FlatList
-            data={filteredPlans}
-            keyExtractor={(item) => item.id}
-            showsVerticalScrollIndicator={false}
-            renderItem={({ item }) => (
-              <Pressable
-                onPress={() => handlePress(item)}
-                style={[
-                  styles.card,
-                  item.isBest && { borderColor: theme.tint },
-                ]}
-              >
-                {item.isBest && (
-                  <View style={styles.badge}>
-                    <Text style={styles.badgeText}>MOST POPULAR</Text>
-                  </View>
-                )}
-
-                <View style={styles.row}>
-                  <Text style={styles.kpi}>{item.kpi}</Text>
-                  <Ionicons name={item.icon as any} size={20} color={theme.text} />
-                </View>
-
-                <Text style={styles.title}>{item.name}</Text>
-                <Text style={styles.price}>{item.price}</Text>
-                <Text style={styles.desc}>{item.desc}</Text>
-              </Pressable>
-            )}
-          />
         </View>
+
+        <FlatList
+          data={filteredPlans}
+          keyExtractor={(item) => item.id}
+          showsVerticalScrollIndicator={false}
+          renderItem={({ item }) => (
+            <Pressable
+              onPress={() => {
+                if (userId) {
+                  handlePayment(item.id, businessId, item.mode as Mode, userId); // <--- Passa userId qui
+                }
+              }}
+              style={[styles.card, item.isBest && { borderColor: theme.tint }]}
+            >
+              {item.isBest && (
+                <View style={styles.badge}>
+                  <Text style={styles.badgeText}>MOST POPULAR</Text>
+                </View>
+              )}
+              <View style={styles.row}>
+                <Text style={styles.kpi}>{item.kpi}</Text>
+                <Ionicons
+                  name={item.icon as any}
+                  size={20}
+                  color={theme.text}
+                />
+              </View>
+              <Text style={styles.title}>{item.name}</Text>
+              <Text style={styles.price}>{item.price}</Text>
+              <Text style={styles.desc}>{item.desc}</Text>
+            </Pressable>
+          )}
+        />
+      </View>
     </>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    paddingHorizontal: 20,
-  },
-
-  loader: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-
-  /* TOGGLE STYLE REPORT-STYLE */
-  toggle: {
-    marginBottom: 18,
-  },
-
+  container: { flex: 1, paddingHorizontal: 20 },
+  loader: { flex: 1, justifyContent: "center", alignItems: "center" },
+  toggle: { marginBottom: 18 },
   toggleInner: {
     flexDirection: "row",
     backgroundColor: "rgba(0,0,0,0.05)",
     borderRadius: 16,
     padding: 4,
   },
-
   toggleBtn: {
     flex: 1,
     paddingVertical: 10,
     borderRadius: 12,
     alignItems: "center",
   },
-
-  toggleText: {
-    fontSize: 13,
-    fontWeight: "700",
-    color: "#444",
-  },
-
-  /* CARD PIÙ PROFONDA */
+  toggleText: { fontSize: 13, fontWeight: "700", color: "#444" },
   card: {
     borderRadius: 22,
     padding: 20,
     marginBottom: 14,
-
     backgroundColor: "#fff",
     borderWidth: 1,
     borderColor: "rgba(0,0,0,0.04)",
-
-    shadowColor: "#000",
-    shadowOpacity: 0.08,
-    shadowRadius: 18,
-    shadowOffset: { width: 0, height: 10 },
-    elevation: 4,
   },
-
-  row: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-  },
-
-  kpi: {
-    fontSize: 11,
-    fontWeight: "800",
-    opacity: 0.5,
-  },
-
-  title: {
-    fontSize: 18,
-    fontWeight: "800",
-    marginTop: 6,
-  },
-
-  price: {
-    fontSize: 24,
-    fontWeight: "900",
-    marginTop: 4,
-  },
-
-  desc: {
-    fontSize: 13,
-    opacity: 0.6,
-    marginTop: 6,
-  },
-
+  row: { flexDirection: "row", justifyContent: "space-between" },
+  kpi: { fontSize: 11, fontWeight: "800", opacity: 0.5 },
+  title: { fontSize: 18, fontWeight: "800", marginTop: 6 },
+  price: { fontSize: 24, fontWeight: "900", marginTop: 4 },
+  desc: { fontSize: 13, opacity: 0.6, marginTop: 6 },
   badge: {
     position: "absolute",
     top: 10,
@@ -303,10 +276,5 @@ const styles = StyleSheet.create({
     paddingVertical: 3,
     borderRadius: 8,
   },
-
-  badgeText: {
-    color: "#fff",
-    fontSize: 10,
-    fontWeight: "700",
-  },
+  badgeText: { color: "#fff", fontSize: 10, fontWeight: "700" },
 });

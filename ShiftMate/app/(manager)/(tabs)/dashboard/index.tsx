@@ -19,18 +19,27 @@ import { FinancialOverview } from "@/components/manager/dashboard/FinancialOverv
 import { HistoryBar } from "@/components/manager/dashboard/HistoryBar";
 import { UpcomingShifts } from "@/components/manager/dashboard/UpcomingShifts";
 import { ScreenWrapper } from "@/components/shared/wrapper/layout-wrapper";
+import { supabase } from "@/lib/supabase";
 
 export default function Dashboard() {
   const theme = Colors[useColorScheme() ?? "light"];
   const insets = useSafeAreaInsets();
   const router = useRouter();
 
-  const { user, businessId, loading: authLoading } = useAuth();
+  const { user, businessId } = useAuth();
+  const [userRole, setUserRole] = React.useState<"owner" | "manager" | null>(
+    null,
+  );
+
   const {
     hasSubscription,
     onboardingCompleted,
     loading: subLoading,
-  } = useCheckActivation(businessId ?? undefined);
+  } = useCheckActivation(
+    businessId ?? undefined,
+    userRole ?? undefined,
+    user?.id,
+  );
 
   // 1. Dati Dashboard
   const {
@@ -50,17 +59,39 @@ export default function Dashboard() {
     }, [fetchData]),
   );
 
-  // Loading unico aggiornato con feedback testuale
-  if (dataLoading || subLoading || businessType === null) {
+  // 2. Aggiungi un effetto per determinare il ruolo
+  useFocusEffect(
+    useCallback(() => {
+      async function determineRole() {
+        if (!user || !businessId) return;
+
+        const { data } = await supabase
+          .from("businesses")
+          .select("owner_id")
+          .eq("id", businessId)
+          .single();
+
+        // Se l'id utente loggato è l'owner_id del business, sei l'owner
+        setUserRole(data?.owner_id === user.id ? "owner" : "manager");
+      }
+      determineRole();
+    }, [user, businessId]),
+  );
+
+  // 3. Blocca il render finché il ruolo non è calcolato
+  if (dataLoading || subLoading || businessType === null || userRole === null) {
     return (
       <View style={[styles.center, { backgroundColor: theme.background }]}>
         <ActivityIndicator size="large" color={theme.text} />
-        <Text style={[styles.loadingText, { color: theme.text }]}>
-          {subLoading ? "Updating payment status..." : "Loading dashboard..."}
-        </Text>
       </View>
     );
   }
+
+  console.log("DEBUG DASHBOARD:", {
+    hasSubscription,
+    businessId,
+    userRole,
+  });
 
   return (
     <ScreenWrapper
@@ -70,31 +101,49 @@ export default function Dashboard() {
       style={styles.wrapperCustom}
     >
       <View style={[styles.mainContent, { paddingTop: insets.top }]}>
+        {/* 1. BANNER PIANO (Informativo per entrambi) */}
         {!hasSubscription && (
           <Pressable
-            style={[styles.banner, { backgroundColor: theme.tint }]}
-            disabled={subLoading}
-            onPress={() =>
+            style={[
+              styles.banner,
+              {
+                backgroundColor:
+                  userRole === "manager" ? "#E63946" : theme.tint,
+              },
+            ]}
+            onPress={() => {
+              // Debug per vedere cosa stiamo passando
+              console.log("Navigazione verso /subscription con:", {
+                businessId: businessId,
+                userRole: userRole,
+              });
+
               router.push({
                 pathname: "/subscription",
-                params: { businessId: businessId },
-              })
-            }
+                params: {
+                  businessId: String(businessId),
+                  userRole: String(userRole),
+                },
+              });
+            }}
           >
             <Text style={styles.bannerText}>
-              ⚠️ No active plan detected. Click here to choose a plan.
+              {userRole === "manager"
+                ? "⚠️ Acquista il pacchetto da 600 SEK per attivare il tuo profilo."
+                : "⚠️ Nessun piano attivo rilevato per la tua agenzia."}
             </Text>
           </Pressable>
         )}
 
-        {hasSubscription && !onboardingCompleted && (
+        {/* 2. BANNER ONBOARDING (SOLO PER L'OWNER) */}
+        {/* Mostriamo questo banner se l'abbonamento è attivo MA l'onboarding no */}
+        {userRole === "owner" && hasSubscription && !onboardingCompleted && (
           <Pressable
-            style={[styles.banner, { backgroundColor: "#FF9F1C" }]}
-            disabled={subLoading}
+            style={[styles.banner, { backgroundColor: "#FF9F1C" }]} // Colore di avviso diverso
             onPress={() => router.push("/(manager)/stripe-onboarding")}
           >
             <Text style={styles.bannerText}>
-              💳 Complete your payment setup and start offering services.
+              💳 Completa il setup dei pagamenti per iniziare a incassare.
             </Text>
           </Pressable>
         )}
