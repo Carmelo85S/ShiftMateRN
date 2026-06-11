@@ -38,23 +38,28 @@ export const useCheckActivation = (
           : false,
       });
     } else {
-      // LOGICA MANAGER: Legge da 'manager_purchases'
+      // LOGICA MANAGER: Legge sia acquisto che stato onboarding
       const { data: purchase } = await supabase
         .from("manager_purchases")
         .select("status")
         .eq("user_id", userId)
-        .eq("status", "active") // Oppure 'trialing' se previsto
+        .eq("status", "active")
+        .maybeSingle(); // Usiamo maybeSingle per evitare errori se non esiste
+
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("stripe_onboarding_completed")
+        .eq("id", userId)
         .single();
 
       setStatus({
         loading: false,
-        hasSubscription: !!purchase, // True se ha un acquisto attivo
-        onboardingCompleted: true, // Il manager non gestisce onboarding Stripe
+        hasSubscription: !!purchase,
+        onboardingCompleted: !!profile?.stripe_onboarding_completed,
       });
     }
   }, [businessId, userRole, userId]);
 
-  // Ogni volta che l'utente torna sulla schermata, rieseguiamo il check
   useFocusEffect(
     useCallback(() => {
       check();
