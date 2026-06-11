@@ -93,6 +93,9 @@ export default function Dashboard() {
     userRole,
   });
 
+  const hasActiveAccess =
+    hasSubscription || (stats?.total_available_credits ?? 0) > 0;
+
   return (
     <ScreenWrapper
       scrollable={true}
@@ -101,8 +104,8 @@ export default function Dashboard() {
       style={styles.wrapperCustom}
     >
       <View style={[styles.mainContent, { paddingTop: insets.top }]}>
-        {/* 1. BANNER PIANO (Informativo per entrambi) */}
-        {!hasSubscription && (
+        {/* 1. BANNER PIANO (Informativo) */}
+        {!hasActiveAccess && (
           <Pressable
             style={[
               styles.banner,
@@ -112,12 +115,6 @@ export default function Dashboard() {
               },
             ]}
             onPress={() => {
-              // Debug per vedere cosa stiamo passando
-              console.log("Navigazione verso /subscription con:", {
-                businessId: businessId,
-                userRole: userRole,
-              });
-
               router.push({
                 pathname: "/subscription",
                 params: {
@@ -129,8 +126,8 @@ export default function Dashboard() {
           >
             <Text style={styles.bannerText}>
               {userRole === "manager"
-                ? "⚠️ Acquista il pacchetto da 600 SEK per attivare il tuo profilo."
-                : "⚠️ Nessun piano attivo rilevato per la tua agenzia."}
+                ? "⚠️ Acquista crediti per pubblicare nuovi annunci."
+                : "⚠️ Nessun piano attivo o credito disponibile. Configura un piano o acquista un pacchetto."}
             </Text>
           </Pressable>
         )}
@@ -138,6 +135,18 @@ export default function Dashboard() {
         {/* 2. BANNER ONBOARDING (SOLO PER L'OWNER) */}
         {/* Mostriamo questo banner se l'abbonamento è attivo MA l'onboarding no */}
         {userRole === "owner" && hasSubscription && !onboardingCompleted && (
+          <Pressable
+            style={[styles.banner, { backgroundColor: "#FF9F1C" }]} // Colore di avviso diverso
+            onPress={() => router.push("/(manager)/stripe-onboarding")}
+          >
+            <Text style={styles.bannerText}>
+              💳 Completa il setup dei pagamenti per iniziare a incassare.
+            </Text>
+          </Pressable>
+        )}
+
+        {/* Mostriamo questo banner se owner ha acquistato un package "payment" e non ha onboarding attivo */}
+        {userRole === "owner" && !hasSubscription && !onboardingCompleted && (
           <Pressable
             style={[styles.banner, { backgroundColor: "#FF9F1C" }]} // Colore di avviso diverso
             onPress={() => router.push("/(manager)/stripe-onboarding")}

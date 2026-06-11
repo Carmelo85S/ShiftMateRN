@@ -1,10 +1,10 @@
-import { useState, useEffect } from "react";
-import { Alert } from "react-native";
+import { planConfigName } from "@/constants/plans";
 import { supabase } from "@/lib/supabase";
 import { createShift } from "@/queries/managerQueries";
-import { useRouter } from "expo-router";
 import { FormShiftSchema } from "@/src/validation/formShift.schema";
-import { planConfigName } from "@/constants/plans";
+import { useRouter } from "expo-router";
+import { useEffect, useState } from "react";
+import { Alert } from "react-native";
 
 export const useHandleCreateShift = () => {
   const [loading, setLoading] = useState(false);
