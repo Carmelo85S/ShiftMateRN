@@ -26,6 +26,8 @@ export const useCheckActivation = (
       .eq("id", businessId)
       .single();
 
+    console.log("Dati Business da Supabase:", business);
+
     if (userRole === "owner") {
       setStatus({
         loading: false,

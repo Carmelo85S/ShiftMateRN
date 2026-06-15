@@ -15,7 +15,7 @@ import { useShiftForm } from "@/hooks/manager/useShiftForm";
 import { useCheckActivation } from "@/hooks/stripe/onboarding/useCheckActivation";
 import { FormShiftSchema } from "@/src/validation/formShift.schema";
 import { Ionicons } from "@expo/vector-icons";
-import { router, useLocalSearchParams } from "expo-router";
+import { router } from "expo-router";
 import React, { useState } from "react";
 import {
   ActivityIndicator,
@@ -41,22 +41,29 @@ export default function CreateShift() {
     onPickerChange,
     openPicker,
   } = useShiftForm();
-  const { userRole } = useLocalSearchParams<{
-    userRole: "owner" | "manager";
-  }>();
 
   const { handleCreate, loading, imageUrl, setImageUrl } =
     useHandleCreateShift();
   const { businessType, stats } = useDashboardData();
 
-  const { user, businessId } = useAuth();
-  console.log("Stato Auth User:", user?.id);
+  const {
+    user,
+    userId,
+    businessId,
+    userRole,
+    loading: authLoading,
+  } = useAuth();
+
+  // Ora puoi passare i parametri all'hook di attivazione senza errori:
   const {
     hasSubscription,
     onboardingCompleted,
     loading: checkLoading,
-  } = useCheckActivation(businessId ?? undefined);
-
+  } = useCheckActivation(
+    businessId ?? undefined,
+    userRole ?? undefined,
+    userId ?? undefined,
+  );
   // 🌟 Stati locali per agenzie di staffing
   const [clientName, setClientName] = useState<string>("");
   const [address, setAddress] = useState<string>("");

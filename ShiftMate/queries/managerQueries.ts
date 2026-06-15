@@ -414,13 +414,19 @@ export const countPendingApplications = async (userId: string) => {
 };
 
 export const deleteShift = async (shiftId: string) => {
-  const { error } = await supabase
+  console.log("Deleting shift:", shiftId);
+
+  const { data, error } = await supabase
     .from("shifts")
     .delete()
-    .eq("id", shiftId);
+    .eq("id", shiftId)
+    .select();
+
+  console.log("DELETE RESULT:", { data, error });
 
   if (error) throw error;
-  return true;
+
+  return data;
 };
 
 export const completeShiftStatus = async (shiftId: string) => {

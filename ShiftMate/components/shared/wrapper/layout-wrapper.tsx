@@ -1,15 +1,15 @@
+import { Colors } from "@/constants/theme";
 import React from "react";
-import { 
-  View, 
-  StyleSheet, 
-  ScrollView, 
-  ViewStyle, 
-  Platform, 
-  RefreshControl 
+import {
+  Platform,
+  RefreshControl,
+  ScrollView,
+  StyleSheet,
+  useColorScheme,
+  View,
+  ViewStyle,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { useColorScheme } from "react-native";
-import { Colors } from "@/constants/theme";
 
 interface ScreenWrapperProps {
   children: React.ReactNode;
@@ -20,13 +20,13 @@ interface ScreenWrapperProps {
   extraPaddingBottom?: number; // 🌟 Nuova prop opzionale per gestire spazi extra (es. bottoni floating)
 }
 
-export const ScreenWrapper = ({ 
-  children, 
-  style, 
-  scrollable = true, 
+export const ScreenWrapper = ({
+  children,
+  style,
+  scrollable = true,
   onRefresh,
   refreshing = false,
-  extraPaddingBottom = 0
+  extraPaddingBottom = 0,
 }: ScreenWrapperProps) => {
   const insets = useSafeAreaInsets();
   const theme = Colors[useColorScheme() ?? "light"];
@@ -36,12 +36,12 @@ export const ScreenWrapper = ({
   const containerStyle = [
     styles.container,
     { backgroundColor: theme.background },
-    style
+    style,
   ];
 
   const contentStyle = {
-    paddingBottom: TAB_BAR_HEIGHT + 20 + extraPaddingBottom, 
-    paddingTop: Platform.OS === 'android' ? insets.top + 10 : 0, 
+    paddingBottom: TAB_BAR_HEIGHT + 20 + extraPaddingBottom,
+    paddingTop: Platform.OS === "android" ? insets.top + 10 : 0,
   };
 
   if (scrollable) {
@@ -52,11 +52,11 @@ export const ScreenWrapper = ({
         showsVerticalScrollIndicator={false}
         refreshControl={
           onRefresh ? (
-            <RefreshControl 
-              refreshing={refreshing} 
-              onRefresh={onRefresh} 
-              tintColor={theme.tint} 
-              colors={[theme.tint]}  
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              tintColor={theme.tint}
+              colors={[theme.tint]}
             />
           ) : undefined
         }
@@ -67,12 +67,17 @@ export const ScreenWrapper = ({
   }
 
   return (
-    <View style={[containerStyle, { flex: 1, paddingBottom: contentStyle.paddingBottom }]}>
+    <View
+      style={[
+        containerStyle,
+        { flex: 1, paddingBottom: contentStyle.paddingBottom },
+      ]}
+    >
       {children}
     </View>
   );
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, paddingHorizontal: 24 },
+  container: { flex: 1 },
 });
