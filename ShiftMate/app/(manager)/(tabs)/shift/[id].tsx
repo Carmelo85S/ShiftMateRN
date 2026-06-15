@@ -17,11 +17,12 @@ import {
   useColorScheme,
   View,
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 export default function ShiftDetailPage() {
   const { id } = useLocalSearchParams();
   const theme = Colors[useColorScheme() ?? "light"];
-
+  const insets = useSafeAreaInsets();
   const { businessType } = useDashboardData();
   const {
     shift,
@@ -125,6 +126,7 @@ export default function ShiftDetailPage() {
   return (
     <ScrollView
       style={[styles.container, { backgroundColor: theme.background }]}
+      contentContainerStyle={{ paddingBottom: insets.bottom + 60 }}
     >
       <View style={{ flex: 1 }}>
         <ShiftHero shift={shift} theme={theme} />

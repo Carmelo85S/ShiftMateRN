@@ -1,27 +1,36 @@
-
-import React, { useCallback, useState } from "react";
-import { 
-  View, 
-  Text, 
-  StyleSheet, 
-  FlatList, 
-  ActivityIndicator, 
-  useColorScheme, 
-  Pressable 
-} from "react-native";
-import { Colors } from "@/constants/theme";
-import { useFocusEffect, Stack, router } from "expo-router";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { supabase } from "@/lib/supabase";
-import { ScreenWrapper } from "@/components/shared/wrapper/layout-wrapper";
-import { ShiftCard } from "@/components/shared/shiftCard/ShiftCard";
-import { Ionicons } from "@expo/vector-icons";
-import { HistoryStatsCard } from "@/components/manager/history/HistoryStatsCard";
 import { FinancialOverview } from "@/components/manager/dashboard/FinancialOverview";
+import { HistoryStatsCard } from "@/components/manager/history/HistoryStatsCard";
+import { ShiftCard } from "@/components/shared/shiftCard/ShiftCard";
+import { ScreenWrapper } from "@/components/shared/wrapper/layout-wrapper";
+import { Colors } from "@/constants/theme";
+import { supabase } from "@/lib/supabase";
+import { Ionicons } from "@expo/vector-icons";
+import { Stack, router, useFocusEffect } from "expo-router";
+import React, { useCallback, useState } from "react";
+import {
+  ActivityIndicator,
+  FlatList,
+  Pressable,
+  StyleSheet,
+  Text,
+  View,
+  useColorScheme,
+} from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 const MONTHS_IT = [
-  "January", "February", "March", "April", "May", "June",
-  "July", "August", "September", "October", "November", "December"
+  "January",
+  "February",
+  "March",
+  "April",
+  "May",
+  "June",
+  "July",
+  "August",
+  "September",
+  "October",
+  "November",
+  "December",
 ];
 
 export default function HistoryScreen() {
@@ -32,31 +41,39 @@ export default function HistoryScreen() {
   const [currentYear, setCurrentYear] = useState(now.getFullYear());
   const [currentMonth, setCurrentMonth] = useState(now.getMonth());
   const [activeTab, setActiveTab] = useState<"shifts" | "finance">("shifts");
-  
+
   // Stati per la gestione del profilo e filtri aziendali
-  const [businessType, setBusinessType] = useState<"standard" | "staffing" | null>(null);
+  const [businessType, setBusinessType] = useState<
+    "standard" | "staffing" | null
+  >(null);
 
   // Stati dei dati storici del mese selezionato
   const [filteredHistory, setFilteredHistory] = useState<any[]>([]);
-  const [reportStats, setReportStats] = useState<{ departments: any[]; clients: any[]; totalMonthlyRevenue: number }>({ 
-    departments: [], 
-    clients: [], 
-    totalMonthlyRevenue: 0 
+  const [reportStats, setReportStats] = useState<{
+    departments: any[];
+    clients: any[];
+    totalMonthlyRevenue: number;
+  }>({
+    departments: [],
+    clients: [],
+    totalMonthlyRevenue: 0,
   });
   const [monthlySpending, setMonthlySpending] = useState(0);
-  
+
   // 🌟 GESTIONE LOADING OTTIMIZZATA ANTI-SFARFALLIO
   const [isInitialLoading, setIsInitialLoading] = useState(true); // Solo per il primo avvio assoluto
-  const [loading, setLoading] = useState(false);                 // Per i caricamenti silenziosi tra i mesi
+  const [loading, setLoading] = useState(false); // Per i caricamenti silenziosi tra i mesi
 
-  const isPastMonth = 
-    currentYear < now.getFullYear() || 
+  const isPastMonth =
+    currentYear < now.getFullYear() ||
     (currentYear === now.getFullYear() && currentMonth < now.getMonth());
 
   const loadMonthlyHistory = useCallback(async () => {
     try {
       setLoading(true);
-      const { data: { session } } = await supabase.auth.getSession();
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
       const userId = session?.user?.id;
       if (!userId) return;
 
@@ -68,7 +85,7 @@ export default function HistoryScreen() {
           .select("name, business_id, businesses ( business_type )")
           .eq("id", userId)
           .single();
-        
+
         bType = (profileData?.businesses as any)?.business_type || "standard";
         setBusinessType(bType);
       }
@@ -79,11 +96,13 @@ export default function HistoryScreen() {
 
       let query = supabase
         .from("shifts")
-        .select(`
+        .select(
+          `
           *,
           department_id,
           departments ( id, name, monthly_budget )
-        `)
+        `,
+        )
         .eq("manager_id", userId)
         .gte("shift_date", startDate)
         .lte("shift_date", endDate);
@@ -100,7 +119,10 @@ export default function HistoryScreen() {
       const currentShifts = shifts || [];
       setFilteredHistory(currentShifts);
 
-      const totalSpent = currentShifts.reduce((acc, s) => acc + (Number(s.total_pay) || 0), 0);
+      const totalSpent = currentShifts.reduce(
+        (acc, s) => acc + (Number(s.total_pay) || 0),
+        0,
+      );
       setMonthlySpending(totalSpent);
 
       let finalizedDepartments: any[] = [];
@@ -108,18 +130,23 @@ export default function HistoryScreen() {
 
       if (bType === "staffing") {
         const uniqueClients = Array.from(
-          new Set(currentShifts.map(s => s.client_name?.trim() || "Generic Client"))
+          new Set(
+            currentShifts.map((s) => s.client_name?.trim() || "Generic Client"),
+          ),
         );
 
-        clientStatsArray = uniqueClients.map(clientName => {
+        clientStatsArray = uniqueClients.map((clientName) => {
           const clientShifts = currentShifts.filter(
-            s => (s.client_name?.trim() || "Generic Client") === clientName
+            (s) => (s.client_name?.trim() || "Generic Client") === clientName,
           );
-          const revenueSum = clientShifts.reduce((acc, s) => acc + (Number(s.total_pay) || 0), 0);
+          const revenueSum = clientShifts.reduce(
+            (acc, s) => acc + (Number(s.total_pay) || 0),
+            0,
+          );
           return {
             id: clientName,
             name: clientName,
-            revenue: revenueSum
+            revenue: revenueSum,
           };
         });
       } else {
@@ -136,21 +163,23 @@ export default function HistoryScreen() {
               effectiveSpent: 0,
             };
           }
-          departmentsMap[dept.id].effectiveSpent += Number(shift.total_pay) || 0;
+          departmentsMap[dept.id].effectiveSpent +=
+            Number(shift.total_pay) || 0;
         });
 
-        finalizedDepartments = Object.values(departmentsMap).map((dept: any) => ({
-          ...dept,
-          availableBudget: dept.plannedBudget - dept.effectiveSpent
-        }));
+        finalizedDepartments = Object.values(departmentsMap).map(
+          (dept: any) => ({
+            ...dept,
+            availableBudget: dept.plannedBudget - dept.effectiveSpent,
+          }),
+        );
       }
 
-      setReportStats({ 
+      setReportStats({
         departments: finalizedDepartments,
         clients: clientStatsArray,
-        totalMonthlyRevenue: totalSpent
+        totalMonthlyRevenue: totalSpent,
       });
-
     } catch (error) {
       console.error("Error loading monthly statistics:", error);
     } finally {
@@ -162,24 +191,24 @@ export default function HistoryScreen() {
   useFocusEffect(
     useCallback(() => {
       loadMonthlyHistory();
-    }, [loadMonthlyHistory])
+    }, [loadMonthlyHistory]),
   );
 
   const handlePrevMonth = () => {
     if (currentMonth === 0) {
       setCurrentMonth(11);
-      setCurrentYear(prev => prev - 1);
+      setCurrentYear((prev) => prev - 1);
     } else {
-      setCurrentMonth(prev => prev - 1);
+      setCurrentMonth((prev) => prev - 1);
     }
   };
 
   const handleNextMonth = () => {
     if (currentMonth === 11) {
       setCurrentMonth(0);
-      setCurrentYear(prev => prev + 1);
+      setCurrentYear((prev) => prev + 1);
     } else {
-      setCurrentMonth(prev => prev + 1);
+      setCurrentMonth((prev) => prev + 1);
     }
   };
 
@@ -195,7 +224,12 @@ export default function HistoryScreen() {
   const renderHeader = () => (
     <View style={styles.headerContainer}>
       {/* Selettore dei mesi */}
-      <View style={[styles.dateSelector, { backgroundColor: theme.card, borderColor: theme.border }]}>
+      <View
+        style={[
+          styles.dateSelector,
+          { backgroundColor: theme.card, borderColor: theme.border },
+        ]}
+      >
         <Pressable onPress={handlePrevMonth} style={styles.arrowBtn}>
           <Ionicons name="chevron-back" size={20} color={theme.text} />
         </Pressable>
@@ -208,23 +242,47 @@ export default function HistoryScreen() {
       </View>
 
       {/* KPI Card riassuntive del mese */}
-      <HistoryStatsCard spending={monthlySpending} count={filteredHistory.length} theme={theme} />
+      <HistoryStatsCard
+        spending={monthlySpending}
+        count={filteredHistory.length}
+        theme={theme}
+      />
 
       {/* Segmented Control Tabs */}
-      <View style={[styles.tabSegmentContainer, { backgroundColor: theme.card }]}>
-        <Pressable 
+      <View
+        style={[styles.tabSegmentContainer, { backgroundColor: theme.card }]}
+      >
+        <Pressable
           onPress={() => setActiveTab("shifts")}
-          style={[styles.tabSegment, activeTab === "shifts" && { backgroundColor: theme.background }]}
+          style={[
+            styles.tabSegment,
+            activeTab === "shifts" && { backgroundColor: theme.background },
+          ]}
         >
-          <Text style={[styles.tabLabel, { color: theme.text }, activeTab !== "shifts" && styles.inactiveText]}>
+          <Text
+            style={[
+              styles.tabLabel,
+              { color: theme.text },
+              activeTab !== "shifts" && styles.inactiveText,
+            ]}
+          >
             Past Shifts
           </Text>
         </Pressable>
-        <Pressable 
+        <Pressable
           onPress={() => setActiveTab("finance")}
-          style={[styles.tabSegment, activeTab === "finance" && { backgroundColor: theme.background }]}
+          style={[
+            styles.tabSegment,
+            activeTab === "finance" && { backgroundColor: theme.background },
+          ]}
         >
-          <Text style={[styles.tabLabel, { color: theme.text }, activeTab !== "finance" && styles.inactiveText]}>
+          <Text
+            style={[
+              styles.tabLabel,
+              { color: theme.text },
+              activeTab !== "finance" && styles.inactiveText,
+            ]}
+          >
             Finance Report
           </Text>
         </Pressable>
@@ -234,8 +292,10 @@ export default function HistoryScreen() {
 
   return (
     <ScreenWrapper scrollable={activeTab === "finance"}>
-      <Stack.Screen options={{ title: "Shifts History", headerShadowVisible: false }} />
-      
+      <Stack.Screen
+        options={{ title: "Shifts History", headerShadowVisible: false }}
+      />
+
       {/* 🌟 EFFETTO OPACITÀ LEGGERO: I dati caricano in background senza smontare la UI */}
       <View style={[{ flex: 1 }, loading && styles.backgroundLoading]}>
         {activeTab === "shifts" ? (
@@ -244,29 +304,44 @@ export default function HistoryScreen() {
             keyExtractor={(item) => item.id}
             numColumns={2}
             columnWrapperStyle={styles.columnRow}
-            contentContainerStyle={[styles.listContent, { paddingBottom: insets.bottom + 40 }]}
+            contentContainerStyle={[{ paddingBottom: insets.bottom + 40 }]}
             showsVerticalScrollIndicator={false}
             ListHeaderComponent={renderHeader()}
             renderItem={({ item }) => (
-              <ShiftCard 
-                item={item} 
-                onPress={() => router.push(`/(manager)/(tabs)/shift/${item.id}`)} 
+              <ShiftCard
+                item={item}
+                onPress={() =>
+                  router.push(`/(manager)/(tabs)/shift/${item.id}`)
+                }
               />
             )}
             ListEmptyComponent={
               <View style={styles.emptyContainer}>
-                <Ionicons name="calendar-outline" size={48} color={theme.text} style={{ opacity: 0.1 }} />
-                <Text style={[styles.emptyText, { color: theme.text, marginBottom: isPastMonth ? 0 : 24 }]}>
+                <Ionicons
+                  name="calendar-outline"
+                  size={48}
+                  color={theme.text}
+                  style={{ opacity: 0.1 }}
+                />
+                <Text
+                  style={[
+                    styles.emptyText,
+                    { color: theme.text, marginBottom: isPastMonth ? 0 : 24 },
+                  ]}
+                >
                   No shifts posted in this month.
                 </Text>
                 {!isPastMonth && (
-                  <Pressable 
+                  <Pressable
                     style={({ pressed }) => [
-                      styles.btnCreateShift, 
-                      { backgroundColor: theme.text }, 
-                      pressed && { opacity: 0.85, transform: [{ scale: 0.98 }] }
+                      styles.btnCreateShift,
+                      { backgroundColor: theme.text },
+                      pressed && {
+                        opacity: 0.85,
+                        transform: [{ scale: 0.98 }],
+                      },
                     ]}
-                    onPress={() => router.push('/(manager)/(tabs)/create')} 
+                    onPress={() => router.push("/(manager)/(tabs)/create")}
                   >
                     <Text style={[styles.btnText, { color: theme.background }]}>
                       Schedule a Shift
@@ -277,15 +352,15 @@ export default function HistoryScreen() {
             }
           />
         ) : (
-          <View style={[styles.listContent, { paddingBottom: insets.bottom + 40 }]}>
+          <View style={{ paddingBottom: insets.bottom + 40 }}>
             {renderHeader()}
             <View style={styles.financeWrapper}>
-              <FinancialOverview 
-                stats={reportStats} 
-                theme={theme} 
-                refreshDashboard={loadMonthlyHistory} 
-                isHistory={true} 
-                businessType={businessType} 
+              <FinancialOverview
+                stats={reportStats}
+                theme={theme}
+                refreshDashboard={loadMonthlyHistory}
+                isHistory={true}
+                businessType={businessType}
               />
             </View>
           </View>
@@ -297,20 +372,69 @@ export default function HistoryScreen() {
 
 const styles = StyleSheet.create({
   center: { flex: 1, justifyContent: "center", alignItems: "center" },
-  listContent: { paddingHorizontal: 20 },
-  columnRow: { justifyContent: 'space-between', marginBottom: 4 },
+  columnRow: { justifyContent: "space-between", marginBottom: 4 },
   headerContainer: { marginTop: 16, marginBottom: 16 },
-  dateSelector: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", padding: 12, borderRadius: 15, borderWidth: 1, marginBottom: 15 },
-  dateText: { fontSize: 14, fontWeight: "700", textTransform: "uppercase", letterSpacing: 0.5 },
+  dateSelector: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    padding: 12,
+    borderRadius: 15,
+    borderWidth: 1,
+    marginBottom: 15,
+  },
+  dateText: {
+    fontSize: 14,
+    fontWeight: "700",
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
+  },
   arrowBtn: { padding: 6 },
-  tabSegmentContainer: { flexDirection: "row", padding: 4, borderRadius: 12, marginTop: 16, marginBottom: 8 },
-  tabSegment: { flex: 1, paddingVertical: 10, alignItems: "center", borderRadius: 10 },
+  tabSegmentContainer: {
+    flexDirection: "row",
+    padding: 4,
+    borderRadius: 12,
+    marginTop: 16,
+    marginBottom: 8,
+  },
+  tabSegment: {
+    flex: 1,
+    paddingVertical: 10,
+    alignItems: "center",
+    borderRadius: 10,
+  },
   tabLabel: { fontSize: 13, fontWeight: "700" },
   inactiveText: { opacity: 0.4 },
   financeWrapper: { marginTop: 8 },
-  emptyContainer: { flex: 1, marginTop: 40, alignItems: "center", justifyContent: "center", width: "100%", alignSelf: "center", paddingHorizontal: 20 },
-  emptyText: { fontSize: 14, opacity: 0.4, marginTop: 12, fontWeight: "600", textAlign: "center" },
-  btnCreateShift: { paddingHorizontal: 28, paddingVertical: 14, borderRadius: 16, justifyContent: "center", alignItems: "center", minWidth: 180, shadowColor: "#000", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 6, elevation: 2 },
+  emptyContainer: {
+    flex: 1,
+    marginTop: 40,
+    alignItems: "center",
+    justifyContent: "center",
+    width: "100%",
+    alignSelf: "center",
+    paddingHorizontal: 20,
+  },
+  emptyText: {
+    fontSize: 14,
+    opacity: 0.4,
+    marginTop: 12,
+    fontWeight: "600",
+    textAlign: "center",
+  },
+  btnCreateShift: {
+    paddingHorizontal: 28,
+    paddingVertical: 14,
+    borderRadius: 16,
+    justifyContent: "center",
+    alignItems: "center",
+    minWidth: 180,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 6,
+    elevation: 2,
+  },
   btnText: { fontSize: 14, fontWeight: "700" },
-  backgroundLoading: { opacity: 0.6 } // Fornisce un feedback nativo senza sfarfallio bianco
+  backgroundLoading: { opacity: 0.6 }, // Fornisce un feedback nativo senza sfarfallio bianco
 });
