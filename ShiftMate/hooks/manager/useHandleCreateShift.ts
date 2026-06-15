@@ -1,4 +1,3 @@
-import { planConfigName } from "@/constants/plans";
 import { supabase } from "@/lib/supabase";
 import { createShift } from "@/queries/managerQueries";
 import { FormShiftSchema } from "@/src/validation/formShift.schema";
@@ -49,83 +48,25 @@ export const useHandleCreateShift = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("User not found");
 
-      // 1. Recupero business_id dal profilo
+      // 1. Recupero business_id
       const { data: profile, error: profileError } = await supabase
         .from("profiles")
         .select("business_id")
         .eq("id", user.id)
         .single();
 
-      if (profileError || !profile?.business_id) {
-        throw new Error("No business linked to your account.");
-      }
+      if (profileError || !profile?.business_id) throw new Error("No business linked.");
 
       // 2. Recupero dati business
       const { data: business, error: bizError } = await supabase
         .from("businesses")
-        .select("id, job_postings_limit, job_postings_used, business_type, plan_type")
+        .select("id, owner_id, business_type, plan_type")
         .eq("id", profile.business_id)
         .single();
 
-      console.log("DEBUG - Profilo/Business:", profile, business);
-
       if (bizError || !business) throw new Error("Business data not found.");
 
-      // 3. Controllo limiti basato su planConfig
-      const currentPlan = planConfigName[business.plan_type];
-      
-      console.log("DEBUG - Piano in uso:", business.plan_type);
-      console.log("DEBUG - Configurazione trovata:", currentPlan);
-
-      if (!currentPlan) {
-        console.error("ERRORE CRITICO: Nessun piano trovato per chiave:", business.plan_type);
-        Alert.alert("System error", `Your plan '${business.plan_type}' is not configured.`);
-        return;
-      }
-
-      if (business.business_type === 'staffing') {
-        const { count, error: countError } = await supabase
-          .from("profiles")
-          .select("*", { count: 'exact', head: true })
-          .eq("business_id", business.id)
-          .eq("role", "manager");
-
-        if (countError) throw new Error("Error counting managers.");
-        
-        if ((count ?? 0) >= currentPlan.limit) {
-          Alert.alert("Limit Reached", `The ${currentPlan.name} plan allows a maximum of ${currentPlan.limit} managers.`);
-          return;
-        }
-      } else {
-        // Forza il confronto numerico per sicurezza
-        const used = Number(business.job_postings_used);
-        const limit = Number(currentPlan.limit);
-        
-        console.log(`DEBUG - Confronto crediti: ${used} >= ${limit}`);
-        
-        if (used >= limit) {
-          Alert.alert(
-            "Limit Reached", 
-            `You have reached the limit of ${limit} shifts allowed by the ${currentPlan.name} plan.`,
-            [
-              { 
-                text: "Cancel", 
-                style: "cancel" 
-              },
-              { 
-                text: "Manage Subscription", 
-                onPress: () => router.push({
-                  pathname: "/subscription", 
-                  params: { businessId: business.id } // Passa l'ID qui
-                })
-              }
-            ]
-          );
-          return; // BLOCCA l'esecuzione
-        }
-      }
-
-      // 4. Creazione payload
+      // 3. Creazione payload
       const payload = {
         title: result.data.title,
         description: result.data.description || "",
@@ -140,19 +81,24 @@ export const useHandleCreateShift = () => {
         client_name: (result.data as any).client_name || null,
       };
 
+      // 4. Creazione effettiva dello Shift nel DB
       await createShift(user.id, imageUrl, payload);
 
-      // 5. Aggiornamento contatore (solo per modelli Standard)
-      if (business.business_type !== 'staffing') {
-        const { error: updateError } = await supabase
-          .from("businesses")
-          .update({ job_postings_used: business.job_postings_used + 1 })
-          .eq("id", business.id);
+      // 5. Scalata credito atomica via RPC
+      const isOwner = (user.id === business.owner_id);
+      const { data: success, error: rpcError } = await supabase
+        .rpc('increment_job_usage', { 
+          p_user_id: user.id,
+          p_business_id: business.id, 
+          p_is_owner: isOwner
+        });
 
-        if (updateError) throw new Error("Shift created but could not update credits.");
+      if (rpcError || !success) {
+        throw new Error("Shift created, but failed to deduct credit. Contact support.");
       }
 
       router.push("/(manager)/(tabs)/shift");
+
     } catch (err: any) {
       console.error("DEBUG - Errore finale:", err);
       Alert.alert("Error", err.message);

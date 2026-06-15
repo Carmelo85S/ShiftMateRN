@@ -104,7 +104,7 @@ export default function Dashboard() {
       style={styles.wrapperCustom}
     >
       <View style={[styles.mainContent, { paddingTop: insets.top }]}>
-        {/* 1. BANNER PIANO (Informativo) */}
+        {/* 1. BANNER PIANO (Appare se l'utente non ha modo di pubblicare) */}
         {!hasActiveAccess && (
           <Pressable
             style={[
@@ -114,15 +114,15 @@ export default function Dashboard() {
                   userRole === "manager" ? "#E63946" : theme.tint,
               },
             ]}
-            onPress={() => {
+            onPress={() =>
               router.push({
                 pathname: "/subscription",
                 params: {
                   businessId: String(businessId),
                   userRole: String(userRole),
                 },
-              });
-            }}
+              })
+            }
           >
             <Text style={styles.bannerText}>
               {userRole === "manager"
@@ -132,23 +132,10 @@ export default function Dashboard() {
           </Pressable>
         )}
 
-        {/* 2. BANNER ONBOARDING (SOLO PER L'OWNER) */}
-        {/* Mostriamo questo banner se l'abbonamento è attivo MA l'onboarding no */}
-        {userRole === "owner" && hasSubscription && !onboardingCompleted && (
+        {/* 2. BANNER ONBOARDING UNIFICATO (Appare solo all'Owner, sempre se onboarding incompleto) */}
+        {userRole === "owner" && !onboardingCompleted && (
           <Pressable
-            style={[styles.banner, { backgroundColor: "#FF9F1C" }]} // Colore di avviso diverso
-            onPress={() => router.push("/(manager)/stripe-onboarding")}
-          >
-            <Text style={styles.bannerText}>
-              💳 Completa il setup dei pagamenti per iniziare a incassare.
-            </Text>
-          </Pressable>
-        )}
-
-        {/* Mostriamo questo banner se owner ha acquistato un package "payment" e non ha onboarding attivo */}
-        {userRole === "owner" && !hasSubscription && !onboardingCompleted && (
-          <Pressable
-            style={[styles.banner, { backgroundColor: "#FF9F1C" }]} // Colore di avviso diverso
+            style={[styles.banner, { backgroundColor: "#FF9F1C" }]}
             onPress={() => router.push("/(manager)/stripe-onboarding")}
           >
             <Text style={styles.bannerText}>

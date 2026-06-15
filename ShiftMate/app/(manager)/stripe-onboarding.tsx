@@ -2,8 +2,8 @@ import { Colors } from "@/constants/theme";
 import { useAuth } from "@/hooks/auth/useAuth"; // Assicurati di usare l'hook che abbiamo creato
 import { supabase } from "@/lib/supabase";
 import * as Linking from "expo-linking";
-import { Stack, useRouter } from "expo-router";
-import React, { useState } from "react";
+import { Stack, useFocusEffect, useRouter } from "expo-router";
+import React, { useCallback, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -18,6 +18,23 @@ export default function StripeOnboarding() {
   const { user } = useAuth();
   const router = useRouter();
   const theme = Colors.light;
+
+  useFocusEffect(
+    useCallback(() => {
+      const handleDeepLink = async (event: { url: string }) => {
+        if (event.url.includes("stripe-return")) {
+          // L'utente è tornato, forziamo il check dello stato tramite la funzione
+          await supabase.functions.invoke("check-stripe-status", {
+            body: { businessId: "f3316687-59e2-4251-9fa6-79378f6690f2" },
+          });
+          router.replace("/(manager)/(tabs)/dashboard");
+        }
+      };
+
+      const subscription = Linking.addEventListener("url", handleDeepLink);
+      return () => subscription.remove();
+    }, []),
+  );
 
   const handleStartOnboarding = async () => {
     if (!user) return;

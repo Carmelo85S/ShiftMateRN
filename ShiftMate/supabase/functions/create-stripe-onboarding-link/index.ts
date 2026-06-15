@@ -1,5 +1,5 @@
-import Stripe from "https://esm.sh/stripe@16.0.0?target=deno";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.44.0";
+import Stripe from "https://esm.sh/stripe@16.0.0?target=deno";
 
 const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY") ?? "", {
   httpClient: Stripe.createFetchHttpClient(),
@@ -54,8 +54,8 @@ Deno.serve(async (req) => {
     // 2. Genera il link
     const accountLink = await stripe.accountLinks.create({
       account: accountId,
-      refresh_url: 'https://alguer.it', //Only for testing
-      return_url: 'https://google.com', //Only for testing
+      return_url: `https://shiftmate.dev/stripe-return`,
+      refresh_url: `https://shiftmate.dev/stripe-return`,
       type: 'account_onboarding',
     });
 

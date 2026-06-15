@@ -19,43 +19,35 @@ export const useCheckActivation = (
       return;
     }
 
-    if (userRole === "owner") {
-      // LOGICA AGENZIA: Legge da 'businesses'
-      const { data: business } = await supabase
-        .from("businesses")
-        .select("stripe_subscription_status, stripe_onboarding_completed")
-        .eq("id", businessId)
-        .single();
+    // Interroghiamo SOLO la tabella businesses
+    const { data: business } = await supabase
+      .from("businesses")
+      .select("stripe_subscription_status, stripe_onboarding_completed")
+      .eq("id", businessId)
+      .single();
 
-      const hasSub = ["active", "trialing"].includes(
-        business?.stripe_subscription_status ?? "",
-      );
+    if (userRole === "owner") {
       setStatus({
         loading: false,
-        hasSubscription: hasSub,
-        onboardingCompleted: hasSub
-          ? !!business?.stripe_onboarding_completed
-          : false,
+        hasSubscription: ["active", "trialing"].includes(
+          business?.stripe_subscription_status ?? "",
+        ),
+        onboardingCompleted: !!business?.stripe_onboarding_completed,
       });
     } else {
-      // LOGICA MANAGER: Legge sia acquisto che stato onboarding
+      // Per il manager, verifichiamo solo se ha un acquisto attivo nella sua tabella
       const { data: purchase } = await supabase
         .from("manager_purchases")
-        .select("status")
+        .select("id")
         .eq("user_id", userId)
         .eq("status", "active")
-        .maybeSingle(); // Usiamo maybeSingle per evitare errori se non esiste
-
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("stripe_onboarding_completed")
-        .eq("id", userId)
-        .single();
+        .gt("expires_at", new Date().toISOString())
+        .maybeSingle();
 
       setStatus({
         loading: false,
         hasSubscription: !!purchase,
-        onboardingCompleted: !!profile?.stripe_onboarding_completed,
+        onboardingCompleted: !!business?.stripe_onboarding_completed,
       });
     }
   }, [businessId, userRole, userId]);
