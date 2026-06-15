@@ -236,7 +236,7 @@ export const fetchShiftFullDetails = async (shiftId: string) => {
     supabase
       .from("shifts")
       .select(`
-        id, title, status, image_url, shift_date, start_time, end_time, description, hourly_rate, total_pay, manager_id, department_id,
+        id, title, status, image_url, shift_date, start_time, end_time, description, client_name, address, hourly_rate, total_pay, manager_id, department_id,
         businesses ( name ),
         departments ( name )
       `) 

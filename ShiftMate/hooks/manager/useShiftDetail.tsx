@@ -11,6 +11,7 @@ export const useShiftDetail = (id: string | string[] | undefined) => {
   const [applications, setApplications] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [notFound, setNotFound] = useState(false);
 
   const [user, setUser] = useState<{ id: string; role: string } | null>(null);
 
@@ -37,24 +38,30 @@ export const useShiftDetail = (id: string | string[] | undefined) => {
     if (!id) return;
 
     try {
+      setLoading(true);
+
       const result = await fetchShiftFullDetails(id as string);
 
       console.log("📊 SHIFT RESULT:", result);
 
-      // ⚠️ SHIFT NON ESISTE (deleted or invalid id)
+      // ⚠️ SHIFT NON ESISTE
       if (!result?.shift) {
-        console.log("⚠️ Shift not found (deleted or missing)");
-
         setShift(null);
         setApplications([]);
+        setNotFound(true);
         return;
       }
 
+      setNotFound(false);
       setShift(result.shift);
       setApplications(result.applications ?? []);
     } catch (err) {
       console.log("===== FETCH ERROR =====");
       console.log(err);
+
+      setShift(null);
+      setApplications([]);
+      setNotFound(true);
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -77,8 +84,13 @@ export const useShiftDetail = (id: string | string[] | undefined) => {
   const completeShift = async (actualEndTime: string) => {
     if (!id) return;
 
-    await completeShiftWithActualTime(id as string, actualEndTime);
-    await loadData();
+    try {
+      await completeShiftWithActualTime(id as string, actualEndTime);
+      await loadData();
+    } catch (err) {
+      console.log("Complete shift error:", err);
+      throw err;
+    }
   };
 
   return {
@@ -89,5 +101,6 @@ export const useShiftDetail = (id: string | string[] | undefined) => {
     onRefresh,
     user,
     completeShift,
+    notFound,
   };
 };
