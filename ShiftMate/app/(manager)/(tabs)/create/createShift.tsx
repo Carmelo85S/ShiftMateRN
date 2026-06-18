@@ -44,82 +44,70 @@ export default function CreateShift() {
 
   const { handleCreate, loading, imageUrl, setImageUrl } =
     useHandleCreateShift();
+
   const { businessType, stats } = useDashboardData();
 
-  const {
-    user,
-    userId,
-    businessId,
-    userRole,
-    loading: authLoading,
-  } = useAuth();
+  const { userId, businessId, userRole } = useAuth();
 
-  // Ora puoi passare i parametri all'hook di attivazione senza errori:
-  const {
-    hasSubscription,
-    onboardingCompleted,
-    loading: checkLoading,
-  } = useCheckActivation(
+  const { hasSubscription, onboardingCompleted } = useCheckActivation(
     businessId ?? undefined,
     userRole ?? undefined,
     userId ?? undefined,
   );
-  // 🌟 Stati locali per agenzie di staffing
-  const [clientName, setClientName] = useState<string>("");
-  const [address, setAddress] = useState<string>("");
-  const [city, setCity] = useState<string>("");
-  const [workerCount, setWorkerCount] = useState<number>(1);
+
+  const [clientName, setClientName] = useState("");
+  const [address, setAddress] = useState("");
+  const [city, setCity] = useState("");
+  const [workerCount, setWorkerCount] = useState(1);
 
   const insets = useSafeAreaInsets();
   const theme = Colors[useColorScheme() ?? "light"];
 
-  const incrementWorkers = () => setWorkerCount((prev) => prev + 1);
-  const decrementWorkers = () =>
-    setWorkerCount((prev) => (prev > 1 ? prev - 1 : 1));
+  const incrementWorkers = () => setWorkerCount((p) => p + 1);
+  const decrementWorkers = () => setWorkerCount((p) => (p > 1 ? p - 1 : 1));
 
   const onSubmit = async () => {
+    // 1. Stripe onboarding check
     if (!onboardingCompleted) {
-      Alert.alert(
-        "Action Required",
-        "Complete your Stripe onboarding to start posting shifts and receiving payouts.",
-      );
+      Alert.alert("Action Required", "Complete Stripe onboarding first.");
       router.push("/(manager)/stripe-onboarding");
       return;
     }
 
-    // 2. Hybrid Access Check: Subscription OR Credits
-    const hasActiveAccess =
+    // 2. Access check (subscription OR credits)
+    const hasAccess =
       hasSubscription || (stats?.total_available_credits ?? 0) > 0;
-    if (!hasActiveAccess) {
-      Alert.alert(
-        "No Access",
-        "You need an active plan or available credits to post shifts. Please purchase a package.",
-      );
+
+    if (!hasAccess) {
+      Alert.alert("No Access", "Purchase a plan or credits to continue.");
       router.push("/subscription");
       return;
     }
 
-    // Se è tutto ok, procediamo con la validazione e creazione dello shift
-    const formToValidate = {
+    // 3. Build payload (CLEAN MODEL)
+    const payload = {
       ...form,
+
+      department_id: businessType === "staffing" ? null : form.department, // UUID reale
+
+      business_type: businessType,
+
       required_workers: businessType === "staffing" ? workerCount : 1,
-      department:
-        businessType === "staffing"
-          ? "staffing_agency_global"
-          : form.department,
-      address: businessType === "staffing" ? address : "",
-      city: businessType === "staffing" ? city : "",
-      client_name: businessType === "staffing" ? clientName : "",
+
+      address: businessType === "staffing" ? address : null,
+      city: businessType === "staffing" ? city : null,
+      client_name: businessType === "staffing" ? clientName : null,
     };
 
-    const result = FormShiftSchema.safeParse(formToValidate);
+    // 4. validation
+    const result = FormShiftSchema.safeParse(payload);
+
     if (!result.success) {
-      const error = result.error.issues[0].message;
-      Alert.alert("Error", error);
+      Alert.alert("Error", result.error.issues[0].message);
       return;
     }
 
-    // Se passa entrambi, crea lo shift
+    // 5. create shift
     await handleCreate(result.data);
   };
 
@@ -129,23 +117,19 @@ export default function CreateShift() {
     <KeyboardAvoidingView
       behavior={Platform.OS === "ios" ? "padding" : "height"}
       style={{ flex: 1, backgroundColor: theme.background }}
-      keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 20}
     >
-      <ScreenWrapper scrollable={true} style={styles.wrapper}>
+      <ScreenWrapper scrollable style={styles.wrapper}>
         <View style={[styles.header, { paddingTop: insets.top }]}>
           <Text style={[styles.title, { color: theme.text }]}>New Shift</Text>
           <Text style={[styles.subtitle, { color: theme.secondaryText }]}>
             {businessType === "staffing"
-              ? "Request personnel for your clients"
-              : "Create new shift"}
+              ? "Request workers for clients"
+              : "Create shift"}
           </Text>
         </View>
 
-        <View style={styles.imageSection}>
-          <ShiftUploader initialUrl={imageUrl} onUpload={setImageUrl} />
-        </View>
+        <ShiftUploader initialUrl={imageUrl} onUpload={setImageUrl} />
 
-        {/* DEPARTMENT SELECTOR */}
         {businessType === "standard" && (
           <DepartmentSelector
             selectedId={form.department}
@@ -156,177 +140,114 @@ export default function CreateShift() {
           />
         )}
 
-        {/* TITLES */}
         <TitleSuggestions
           department={
             businessType === "staffing" ? "staffing" : form.department
           }
           titleValue={form.title}
-          onTitleChange={(text) => setForm({ ...form, title: text })}
+          onTitleChange={(t) => setForm({ ...form, title: t })}
           theme={theme}
         />
 
-        {/* UI SPECIFICA PER AGENZIE DI STAFFING */}
+        {/* STAFFING MODE */}
         {businessType === "staffing" && (
           <View style={styles.staffingContainer}>
-            {/* COUNTER LAVORATORI */}
-            <View
-              style={[
-                styles.workerCounterContainer,
-                { backgroundColor: theme.card, borderColor: theme.border },
-              ]}
-            >
-              <View>
-                <Text style={[styles.counterLabel, { color: theme.text }]}>
-                  Workers Needed
-                </Text>
-                <Text
-                  style={[
-                    styles.counterSubtitle,
-                    { color: theme.secondaryText },
-                  ]}
-                >
-                  How many people do you need?
-                </Text>
-              </View>
-              <View style={styles.counterRow}>
-                <Pressable
-                  style={[
-                    styles.counterBtn,
-                    { backgroundColor: theme.background },
-                  ]}
-                  onPress={decrementWorkers}
-                >
+            <View style={styles.counter}>
+              <Text style={styles.label}>Workers Needed</Text>
+
+              <View style={styles.row}>
+                <Pressable style={styles.counterBtn} onPress={decrementWorkers}>
                   <Ionicons name="remove" size={20} color={theme.text} />
                 </Pressable>
+
                 <Text style={[styles.counterValue, { color: theme.text }]}>
                   {workerCount}
                 </Text>
-                <Pressable
-                  style={[
-                    styles.counterBtn,
-                    { backgroundColor: theme.background },
-                  ]}
-                  onPress={incrementWorkers}
-                >
+
+                <Pressable style={styles.counterBtn} onPress={incrementWorkers}>
                   <Ionicons name="add" size={20} color={theme.text} />
                 </Pressable>
               </View>
             </View>
 
-            {/* CAMPI DI LOCALIZZAZIONE E DETTAGLI CLIENTE */}
-            <View style={styles.staffingFieldsBlock}>
-              <Text style={[styles.fieldBlockTitle, { color: theme.text }]}>
-                Location & Client Details
-              </Text>
+            <View style={styles.inputGroup}>
+              <Text style={styles.inputLabel}>CLIENT / VENUE</Text>
 
-              {/* Campo Nome Cliente 🌟 */}
-              <View
-                style={[
-                  styles.inputGroup,
-                  { backgroundColor: theme.card, borderColor: theme.border },
-                ]}
-              >
-                <Text
-                  style={[styles.inputLabel, { color: theme.secondaryText }]}
-                >
-                  CLIENT / VENUE NAME
-                </Text>
-                <TextInput
-                  style={[styles.textInput, { color: theme.text }]}
-                  placeholder="e.g. Grand Hotel Executive"
-                  placeholderTextColor={theme.secondaryText + "80"}
-                  value={clientName}
-                  onChangeText={setClientName}
-                />
-              </View>
+              <TextInput
+                style={[styles.input, { color: theme.text }]}
+                placeholder="Grand Hotel Stockholm"
+                placeholderTextColor={theme.secondaryText}
+                value={clientName}
+                onChangeText={setClientName}
+              />
+            </View>
 
-              {/* Campo Indirizzo */}
-              <View
-                style={[
-                  styles.inputGroup,
-                  { backgroundColor: theme.card, borderColor: theme.border },
-                ]}
-              >
-                <Text
-                  style={[styles.inputLabel, { color: theme.secondaryText }]}
-                >
-                  WORKPLACE ADDRESS
-                </Text>
-                <TextInput
-                  style={[styles.textInput, { color: theme.text }]}
-                  placeholder="e.g. Vasagatan 12"
-                  placeholderTextColor={theme.secondaryText + "80"}
-                  value={address}
-                  onChangeText={setAddress}
-                />
-              </View>
+            <View style={styles.inputGroup}>
+              <Text style={styles.inputLabel}>WORKPLACE ADDRESS</Text>
 
-              {/* Campo Città */}
-              <View
-                style={[
-                  styles.inputGroup,
-                  { backgroundColor: theme.card, borderColor: theme.border },
-                ]}
-              >
-                <Text
-                  style={[styles.inputLabel, { color: theme.secondaryText }]}
-                >
-                  CITY
-                </Text>
-                <TextInput
-                  style={[styles.textInput, { color: theme.text }]}
-                  placeholder="e.g. Stockholm"
-                  placeholderTextColor={theme.secondaryText + "80"}
-                  value={city}
-                  onChangeText={setCity}
-                />
-              </View>
+              <TextInput
+                style={[styles.input, { color: theme.text }]}
+                placeholder="Vasagatan 12"
+                placeholderTextColor={theme.secondaryText}
+                value={address}
+                onChangeText={setAddress}
+              />
+            </View>
+
+            <View style={styles.inputGroup}>
+              <Text style={styles.inputLabel}>CITY</Text>
+
+              <TextInput
+                style={[styles.input, { color: theme.text }]}
+                placeholder="Stockholm"
+                placeholderTextColor={theme.secondaryText}
+                value={city}
+                onChangeText={setCity}
+              />
             </View>
           </View>
         )}
 
-        {/* HOURLY RATE */}
         <HourlyRate
           value={form.hourly_rate}
-          onChange={(text) =>
-            setForm((prev) => ({ ...prev, hourly_rate: text }))
-          }
+          onChange={(t) => setForm((p) => ({ ...p, hourly_rate: t }))}
           estimatedEarnings={estimatedEarnings}
           theme={theme}
         />
 
-        {/* DESCRIPTION */}
         <Description
           value={form.description}
-          onChange={(text) => setForm({ ...form, description: text })}
+          onChange={(t) => setForm((p) => ({ ...p, description: t }))}
           theme={theme}
         />
 
-        {/** SHIFT SCHEDULING */}
         <ShiftScheduling openPicker={openPicker} form={form} theme={theme} />
 
         <Pressable
-          style={({ pressed }) => [
-            styles.submitButton,
+          style={[
+            styles.button,
             {
-              backgroundColor: theme.text,
-              opacity: pressed || loading ? 0.8 : 1,
+              opacity: loading ? 0.8 : 1,
             },
           ]}
           onPress={onSubmit}
           disabled={loading}
         >
           {loading ? (
-            <ActivityIndicator color={theme.background} />
+            <ActivityIndicator color="#FFF" />
           ) : (
-            <Text style={[styles.submitText, { color: theme.background }]}>
+            <Text
+              style={{
+                color: "#FFF",
+                fontSize: 16,
+                fontWeight: "800",
+              }}
+            >
               Post Shift
             </Text>
           )}
         </Pressable>
 
-        {/* PICKER MODAL */}
         <ShiftDatePickerModal
           picker={picker}
           form={form}
@@ -340,69 +261,110 @@ export default function CreateShift() {
 }
 
 const styles = StyleSheet.create({
-  wrapper: { paddingHorizontal: 28 },
-  header: { marginBottom: 30 },
-  title: { fontSize: 32, fontWeight: "900", letterSpacing: -1 },
-  subtitle: { fontSize: 14, fontWeight: "600", opacity: 0.5 },
-  submitButton: {
+  wrapper: {
+    paddingHorizontal: 28,
+  },
+
+  header: {
+    marginBottom: 36,
+  },
+
+  title: {
+    fontSize: 36,
+    fontWeight: "900",
+    letterSpacing: -1,
+  },
+
+  subtitle: {
+    fontSize: 15,
+    fontWeight: "600",
+    opacity: 0.55,
+    marginTop: 4,
+  },
+
+  staffingContainer: {
+    gap: 16,
+    marginTop: 12,
+    marginBottom: 12,
+  },
+
+  counter: {
+    backgroundColor: "#F5F6F7",
+    borderRadius: 24,
+    padding: 18,
+    borderWidth: 1,
+    borderColor: "#EAEAEA",
+  },
+
+  label: {
+    fontSize: 15,
+    fontWeight: "800",
+    marginBottom: 12,
+  },
+
+  row: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+
+  counterBtn: {
+    width: 42,
+    height: 42,
+    borderRadius: 14,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "#FFF",
+    borderWidth: 1,
+    borderColor: "#E5E5E5",
+  },
+
+  counterValue: {
+    fontSize: 22,
+    fontWeight: "900",
+    minWidth: 40,
+    textAlign: "center",
+  },
+
+  inputGroup: {
+    backgroundColor: "#F5F6F7",
+    borderRadius: 22,
+    paddingHorizontal: 18,
+    paddingVertical: 14,
+    borderWidth: 1,
+    borderColor: "#ECECEC",
+  },
+
+  inputLabel: {
+    fontSize: 11,
+    fontWeight: "700",
+    opacity: 0.55,
+    marginBottom: 6,
+    letterSpacing: 0.4,
+  },
+
+  input: {
+    fontSize: 15,
+    fontWeight: "600",
+    paddingVertical: 4,
+  },
+
+  button: {
     height: 64,
     borderRadius: 24,
     justifyContent: "center",
     alignItems: "center",
-    marginTop: 20,
+    marginTop: 28,
     marginBottom: 40,
-  },
-  submitText: { fontSize: 17, fontWeight: "800" },
-  imageSection: { marginBottom: 30 },
+    backgroundColor: "#000",
 
-  staffingContainer: { marginBottom: 24 },
-  workerCounterContainer: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    padding: 16,
-    borderRadius: 20,
-    borderWidth: 1,
-    marginBottom: 20,
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: 8,
+    },
+    shadowOpacity: 0.08,
+    shadowRadius: 18,
+    elevation: 6,
   },
-  counterLabel: { fontSize: 15, fontWeight: "700" },
-  counterSubtitle: {
-    fontSize: 12,
-    fontWeight: "500",
-    opacity: 0.6,
-    marginTop: 2,
-  },
-  counterRow: { flexDirection: "row", alignItems: "center", gap: 16 },
-  counterBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: 12,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  counterValue: {
-    fontSize: 16,
-    fontWeight: "800",
-    minWidth: 20,
-    textAlign: "center",
-  },
-
-  staffingFieldsBlock: { gap: 12 },
-  fieldBlockTitle: {
-    fontSize: 13,
-    fontWeight: "800",
-    marginBottom: 4,
-    textTransform: "uppercase",
-    letterSpacing: 0.5,
-    opacity: 0.7,
-  },
-  inputGroup: { padding: 14, borderRadius: 20, borderWidth: 1 },
-  inputLabel: {
-    fontSize: 8,
-    fontWeight: "700",
-    marginBottom: 4,
-    letterSpacing: 0.5,
-    opacity: 0.6,
-  },
-  textInput: { fontSize: 14, fontWeight: "600", padding: 0 },
 });

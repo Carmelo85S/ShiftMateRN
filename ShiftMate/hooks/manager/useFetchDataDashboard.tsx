@@ -91,7 +91,7 @@ export const useDashboardData = () => {
           totalCredits = busData?.job_postings_limit || 0;
         } else {
           const { data: purchases } = await supabase
-            .from("manager_purchases")
+            .from("billing_accounts")
             .select("total_job_posts_limit, used_job_posts")
             .eq("business_id", bId)
             .gt("expires_at", new Date().toISOString());

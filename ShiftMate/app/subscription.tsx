@@ -178,7 +178,7 @@ export default function SubscriptionScreen() {
   );
 
   const filteredPlans = useMemo(() => {
-    const role = userRole || "manager";
+    const role = userRole;
     const filtered = PLANS.filter(
       (p) => p.mode === mode && p.visible_to.includes(role),
     );

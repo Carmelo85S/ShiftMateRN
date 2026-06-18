@@ -57,10 +57,13 @@ serve(async (req) => {
 
         console.log("Processing checkout.session.completed");
 
-        const businessId = session.metadata?.business_id;
+        const fullSession = await stripe.checkout.sessions.retrieve(session.id);
 
-        if (!businessId) {
-          console.error("Missing business_id metadata");
+        const businessId = fullSession.metadata?.business_id;
+        const userId = fullSession.metadata?.user_id;
+
+        if (!businessId || !userId) {
+          console.error("Missing metadata", fullSession.metadata);
           return new Response("Missing metadata", { status: 400 });
         }
 
@@ -70,9 +73,9 @@ serve(async (req) => {
             is_active_subscriber: true,
             stripe_subscription_status: "active",
             stripe_customer_id:
-              typeof session.customer === "string"
-                ? session.customer
-                : session.customer?.id ?? null,
+              typeof fullSession.customer === "string"
+                ? fullSession.customer
+                : fullSession.customer?.id ?? null,
           })
           .eq("id", businessId);
 
@@ -82,7 +85,6 @@ serve(async (req) => {
         }
 
         console.log(`Business ${businessId} activated`);
-
         break;
       }
 

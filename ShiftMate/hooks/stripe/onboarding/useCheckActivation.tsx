@@ -39,7 +39,7 @@ export const useCheckActivation = (
     } else {
       // Per il manager, verifichiamo solo se ha un acquisto attivo nella sua tabella
       const { data: purchase } = await supabase
-        .from("manager_purchases")
+        .from("billing_accounts")
         .select("id")
         .eq("user_id", userId)
         .eq("status", "active")
