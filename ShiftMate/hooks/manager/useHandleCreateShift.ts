@@ -107,8 +107,6 @@ export const useHandleCreateShift = () => {
         client_name: result.data.client_name || null,
       };
 
-      // 5. Create shift
-      await createShift(user.id, imageUrl, payload);
 
       // 6. Role check
       //const role = await getBusinessRole(user.id, business.id);
@@ -117,57 +115,67 @@ export const useHandleCreateShift = () => {
       console.log("isOwner: ", isOwner)
 
       // 1. verifica crediti
-const { data: success, error: rpcError } = await supabase.rpc(
-  "increment_job_usage",
-  {
-    p_user_id: user.id,
-    p_business_id: business.id,
-    p_is_owner: isOwner,
-  }
-);
 
-if (rpcError) {
-  throw rpcError;
-}
+      console.log("BEFORE RPC", {
+        userId: user.id,
+        businessId: business.id,
+        isOwner,
+        planType: business.plan_type,
+      });
 
-if (!success) {
-  Alert.alert(
-    "No credits remaining",
-    "You have used all available job posting credits. Renew your plan to continue posting shifts.",
-    [
-      {
-        text: "Cancel",
-        style: "cancel",
-      },
-      {
-        text: "Renew Plan",
-        onPress: () =>
-          router.push({
-            pathname: "/subscription",
-            params: {
-              businessId: business.id,
-              userRole: isOwner ? "owner" : "manager",
+            
+      const { data: success, error } = await supabase.rpc(
+        "consume_job_credit",
+        {
+          p_business_id: business.id
+        }
+      );
+
+      console.log("AFTER RPC", {
+        success,
+        error,
+      });
+
+      if (error) {
+        throw error;
+      }
+
+      if (!success) {
+        Alert.alert(
+          "No credits remaining",
+          "You have used all available job posting credits. Renew your plan to continue posting shifts.",
+          [
+            { text: "Cancel", style: "cancel" },
+            {
+              text: "Renew Plan",
+              onPress: () =>
+                router.push({
+                  pathname: "/subscription",
+                  params: {
+                    businessId: business.id,
+                    userRole: isOwner ? "owner" : "manager",
+                  },
+                }),
             },
-          }),
-      },
-    ]
-  );
+          ]
+        );
 
-  return;
-}
+        return;
+      }
 
-// 2. crea shift SOLO se autorizzato
-await createShift(user.id, imageUrl, payload);
+      // SHIFT CREATION
+      await createShift(user.id, imageUrl, payload);
+      console.log("Create Shift: ", payload)
 
-// 3. redirect
-router.push("/(manager)/(tabs)/shift");
-    } catch (err: any) {
-      console.error("DEBUG - Errore finale:", err);
-      Alert.alert("Error", err.message);
-    } finally {
-      setLoading(false);
-    }
-  };
+      // 3. redirect
+      router.push("/(manager)/(tabs)/shift");
+          } catch (err: any) {
+            console.error("DEBUG - Errore finale:", err);
+            Alert.alert("Error", err.message);
+          } finally {
+            setLoading(false);
+          }
+        };
 
   return { handleCreate, loading, imageUrl, setImageUrl };
 };

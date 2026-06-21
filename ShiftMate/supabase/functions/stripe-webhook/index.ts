@@ -10,6 +10,17 @@ const supabase = createClient(
   Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
 );
 
+const planConfig: Record<string, { name: string; type: "sub" | "pkg"; limit: number }> = {
+  "price_1TdpVXPf9BDNyCapRO9apxU0": { name: "Scale", type: "sub", limit: 50 },
+  "price_1TdpUqPf9BDNyCaphUprM3xC": { name: "Growth", type: "sub", limit: 10 },
+  "price_1TdRTrPf9BDNyCapNvDt0Cxt": { name: "Essential", type: "sub", limit: 3 },
+
+  "price_1Th5NLPf9BDNyCapAFoF8oNT": { name: "Solo Start", type: "pkg", limit: 10 },
+  "price_1TdpTlPf9BDNyCapsKtthz8K": { name: "Business flow", type: "pkg", limit: 12 },
+  "price_1TdpSEPf9BDNyCapTpA1yPPY": { name: "Flexi pack", type: "pkg", limit: 5 },
+  "price_1TdRUfPf9BDNyCap2gvWBsOm": { name: "Quick start", type: "pkg", limit: 1 },
+};
+
 Deno.serve(async (req) => {
   const signature = req.headers.get("stripe-signature");
   if (!signature) return new Response("No signature", { status: 400 });
@@ -24,179 +35,110 @@ Deno.serve(async (req) => {
       Deno.env.get("STRIPE_WEBHOOK_SECRET")!
     );
   } catch (err: any) {
+    console.error("❌ Stripe webhook error:", err.message);
     return new Response(`Webhook Error: ${err.message}`, { status: 400 });
   }
 
-  switch (event.type) {
+  console.log("\n==============================");
+  console.log("🔥 STRIPE EVENT:", event.type);
+  console.log("==============================\n");
 
-    /* =========================
-       CHECKOUT SUCCESS
-    ========================= */
-    case "checkout.session.completed": {
-      const session = event.data.object as any;
+  if (event.type !== "checkout.session.completed") {
+    console.log("⏭ Ignored event type");
+    return new Response(JSON.stringify({ received: true }), { status: 200 });
+  }
 
-      const businessId = session.metadata?.business_id;
-      const userId = session.metadata?.user_id;
+  const session = event.data.object as any;
 
-      if (!businessId || !userId) {
-        return new Response("Missing metadata", { status: 400 });
-      }
+  const businessId = session.metadata?.business_id;
 
-      const planConfig: Record<string, { name: string; type: "sub" | "pkg"; limit: number }> = {
-        //Limit refer to max_managers
-        "price_1TdpVXPf9BDNyCapRO9apxU0": { name: "Scale", type: "sub", limit: 50 },
-        "price_1TdpUqPf9BDNyCaphUprM3xC": { name: "Growth", type: "sub", limit: 10 },
-        "price_1TdRTrPf9BDNyCapNvDt0Cxt": { name: "Essential", type: "sub", limit: 3 },
+  console.log("📦 SESSION ID:", session.id);
+  console.log("🏢 BUSINESS ID:", businessId);
 
-        //Limit refer to job_posting_limit
-        "price_1Th5NLPf9BDNyCapAFoF8oNT": { name: "Solo Start", type: "pkg", limit: 10 },
-        "price_1TdpTlPf9BDNyCapsKtthz8K": { name: "Business flow", type: "pkg", limit: 12 },
-        "price_1TdpSEPf9BDNyCapTpA1yPPY": { name: "Flexi pack", type: "pkg", limit: 5 },
-        "price_1TdRUfPf9BDNyCap2gvWBsOm": { name: "Quick start", type: "pkg", limit: 1 },
-      };
+  if (!businessId) {
+    console.error("❌ Missing businessId in metadata");
+    return new Response("Missing businessId", { status: 400 });
+  }
 
-      const priceId = session.subscription
-        ? (await stripe.subscriptions.retrieve(session.subscription))
-            .items.data[0].price.id
-        : (await stripe.checkout.sessions.listLineItems(session.id))
-            .data[0].price.id;
+  const eventId = event.id;
 
-      const cfg = planConfig[priceId] ?? null;
+  // =========================
+  // PRICE RESOLUTION (SAFE)
+  // =========================
+  let priceId: string | undefined;
 
-      if (!cfg) {
-        console.error("Unknown priceId:", priceId);
-        return new Response("Unknown plan", { status: 400 });
-      }
+  try {
+    if (session.subscription) {
+      const sub = await stripe.subscriptions.retrieve(session.subscription);
+      priceId = sub.items.data[0]?.price?.id;
+    } else {
+      const items = await stripe.checkout.sessions.listLineItems(session.id);
+      priceId = items.data[0]?.price?.id;
+    }
 
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("role")
-        .eq("id", userId)
-        .single();
+    console.log("💳 PRICE ID:", priceId);
+  } catch (err) {
+    console.error("❌ Price resolution error:", err);
+  }
 
-      const userRole = profile?.role;
+  console.log("🔎 PLAN CONFIG KEYS:", Object.keys(planConfig));
 
-      /* =========================
-         👑 OWNER FLOW (NO RPC)
-      ========================= */
-if (userRole === "owner") {
+  const cfg = planConfig[priceId!];
 
+  console.log("🎯 MATCHED CFG:", cfg);
+
+  if (!cfg) {
+    console.error("❌ Unknown priceId:", priceId);
+    return new Response("Unknown plan", { status: 400 });
+  }
+
+  // =========================
+  // SUBSCRIPTION FLOW
+  // =========================
   if (cfg.type === "sub") {
-    await supabase
+    console.log("👑 SUBSCRIPTION FLOW");
+
+    const { error } = await supabase
       .from("businesses")
       .update({
         plan_type: cfg.name,
         max_managers: cfg.limit,
         is_active_subscriber: true,
-        stripe_customer_id: session.customer ?? null,
         stripe_subscription_status: "active",
+        stripe_customer_id: session.customer
       })
       .eq("id", businessId);
+
+    if (error) {
+      console.error("❌ Subscription update error:", error);
+      return new Response("DB error", { status: 500 });
+    }
+
+    console.log("✅ Subscription updated");
   }
 
-if (cfg.type === "pkg") {
+  // =========================
+  // PACKAGE FLOW
+  // =========================
+  if (cfg.type === "pkg") {
+    console.log("📦 PACKAGE FLOW");
 
-  const { data: billing } = await supabase
-    .from("billing_accounts")
-    .select(`
-      total_job_posts_limit,
-      used_job_posts,
-      job_post_credits_remaining
-    `)
-    .eq("business_id", businessId)
-    .single();
+    const { error } = await supabase.rpc("handle_package_purchase", {
+      p_business_id: businessId,
+      p_amount: cfg.limit,
+      p_event_id: eventId
+    });
 
-  const currentTotal = billing?.total_job_posts_limit ?? 0;
-  const currentUsed = billing?.used_job_posts ?? 0;
-  const currentRemaining = billing?.job_post_credits_remaining ?? 0;
-
-  await supabase
-    .from("billing_accounts")
-    .upsert(
-      {
-        business_id: businessId,
-        stripe_subscription_id: session.subscription || session.id,
-        plan_type: cfg.name,
-        status: "active",
-
-        total_job_posts_limit: currentTotal + cfg.limit,
-
-        used_job_posts: currentUsed,
-
-        job_post_credits_remaining:
-          currentRemaining + cfg.limit,
-      },
-      {
-        onConflict: "business_id",
-      }
-    );
-}
-}
-
-      /* =========================
-         👤 NON OWNER (MANAGER)
-      ========================= */
-      else {
-
-        const expiresAt = new Date();
-        expiresAt.setDate(expiresAt.getDate() + 30);
-
-        await supabase.from("billing_accounts").upsert({
-          business_id: businessId,
-          user_id: userId,
-          stripe_subscription_id: session.subscription || session.id,
-          plan_type: cfg.name,
-          status: "active",
-          total_job_posts_limit: cfg.limit,
-          used_job_posts: 0,
-          job_post_credits_remaining: cfg.limit,
-          expires_at: expiresAt.toISOString(),
-        }, {
-          onConflict: "business_id"
-        });
-      }
-
-      break;
+    if (error) {
+      // Se arrivi qui, controlla i log: l'errore SQL apparirà chiaramente
+      console.error("❌ RPC FAILED:", error);
+      return new Response("RPC failed", { status: 500 });
     }
 
-    /* =========================
-       SUB STATUS UPDATE
-    ========================= */
-    case "customer.subscription.updated":
-    case "customer.subscription.deleted": {
-      const sub = event.data.object as any;
-
-      const isActive =
-        sub.status === "active" || sub.status === "trialing";
-
-      await supabase
-        .from("businesses")
-        .update({
-          is_active_subscriber: isActive,
-          stripe_subscription_status: sub.status,
-        })
-        .eq("stripe_customer_id", sub.customer);
-
-      break;
-    }
-
-    /* =========================
-       PAYMENT OK
-    ========================= */
-    case "invoice.payment_succeeded": {
-      const invoice = event.data.object as any;
-
-      await supabase
-        .from("businesses")
-        .update({
-          is_active_subscriber: true,
-          stripe_subscription_status: "active",
-        })
-        .eq("stripe_customer_id", invoice.customer);
-
-      break;
-    }
+    console.log("✅ Credits updated successfully");
   }
+
+  console.log("🎉 WEBHOOK COMPLETED SUCCESSFULLY");
 
   return new Response(JSON.stringify({ received: true }), {
     status: 200,

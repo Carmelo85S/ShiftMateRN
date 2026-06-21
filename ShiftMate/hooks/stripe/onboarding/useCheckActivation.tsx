@@ -2,57 +2,84 @@ import { supabase } from "@/lib/supabase";
 import { useFocusEffect } from "expo-router";
 import { useCallback, useState } from "react";
 
+type ActivationStatus = {
+  loading: boolean;
+  hasSubscription: boolean;
+  onboardingCompleted: boolean;
+  availableCredits: number;
+};
+
 export const useCheckActivation = (
   businessId?: string,
   userRole?: "owner" | "manager",
   userId?: string,
 ) => {
-  const [status, setStatus] = useState({
+  const [status, setStatus] = useState<ActivationStatus>({
     loading: true,
     hasSubscription: false,
     onboardingCompleted: false,
+    availableCredits: 0,
   });
 
   const check = useCallback(async () => {
-    if (!businessId || !userRole || !userId) {
-      setStatus((prev) => ({ ...prev, loading: false }));
-      return;
-    }
+    try {
+      if (!businessId) {
+        setStatus((prev) => ({ ...prev, loading: false }));
+        return;
+      }
 
-    // Interroghiamo SOLO la tabella businesses
-    const { data: business } = await supabase
-      .from("businesses")
-      .select("stripe_subscription_status, stripe_onboarding_completed")
-      .eq("id", businessId)
-      .single();
-
-    console.log("Dati Business da Supabase:", business);
-
-    if (userRole === "owner") {
-      setStatus({
-        loading: false,
-        hasSubscription: ["active", "trialing"].includes(
-          business?.stripe_subscription_status ?? "",
-        ),
-        onboardingCompleted: !!business?.stripe_onboarding_completed,
-      });
-    } else {
-      // Per il manager, verifichiamo solo se ha un acquisto attivo nella sua tabella
-      const { data: purchase } = await supabase
-        .from("billing_accounts")
-        .select("id")
-        .eq("user_id", userId)
-        .eq("status", "active")
-        .gt("expires_at", new Date().toISOString())
+      // =========================
+      // BUSINESS (SOURCE OF TRUTH)
+      // =========================
+      const { data: business, error } = await supabase
+        .from("businesses")
+        .select("stripe_subscription_status, stripe_onboarding_completed")
+        .eq("id", businessId)
         .maybeSingle();
 
+      if (error) throw error;
+
+      const hasSubscription =
+        business?.stripe_subscription_status === "active" ||
+        business?.stripe_subscription_status === "trialing";
+
+      const onboardingCompleted = !!business?.stripe_onboarding_completed;
+
+      // =========================
+      // CREDITS (UNIFIED SYSTEM)
+      // =========================
+      const { data: creditsData, error: creditsError } = await supabase
+        .from("job_credit_accounts")
+        .select("available_credits")
+        .eq("business_id", businessId)
+        .maybeSingle();
+
+      if (creditsError) {
+        console.error("Credits fetch error:", creditsError);
+      }
+
+      const availableCredits = creditsData?.available_credits || 0;
+
+      // =========================
+      // SET STATE
+      // =========================
       setStatus({
         loading: false,
-        hasSubscription: !!purchase,
-        onboardingCompleted: !!business?.stripe_onboarding_completed,
+        hasSubscription,
+        onboardingCompleted,
+        availableCredits,
+      });
+    } catch (err) {
+      console.error("Activation check error:", err);
+
+      setStatus({
+        loading: false,
+        hasSubscription: false,
+        onboardingCompleted: false,
+        availableCredits: 0,
       });
     }
-  }, [businessId, userRole, userId]);
+  }, [businessId]);
 
   useFocusEffect(
     useCallback(() => {
