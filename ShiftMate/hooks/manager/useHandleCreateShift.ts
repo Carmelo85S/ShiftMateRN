@@ -89,10 +89,11 @@ export const useHandleCreateShift = () => {
 
       // 4. Payload coerente DB
       const payload = {
+        business_id: business.id,
         title: result.data.title,
         description: result.data.description || "",
 
-        departmentId: isStaffing ? null : safeDepartmentId,
+        department_id: isStaffing ? null : safeDepartmentId,
 
         date: formatDate(result.data.shift_date),
         startTime: formatTime(result.data.start_time),

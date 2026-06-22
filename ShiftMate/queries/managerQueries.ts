@@ -72,6 +72,16 @@ export const createBusinessAndAssignOwner = async (
     throw businessError;
   }
 
+  const { error: memberError } = await supabase
+    .from("business_members")
+    .insert([{
+      business_id: business.id,
+      user_id: userId,
+      role: 'owner'
+    }]);
+
+  if (memberError) throw memberError;
+
   const { error: profileError } = await supabase
     .from("profiles")
     .update({ business_id: business.id })
@@ -84,17 +94,20 @@ export const createBusinessAndAssignOwner = async (
 
 // --- SHIFT MANAGEMENT ---
 
-export const fetchManagerShifts = async (userId: string) => {
+export const fetchManagerShifts = async (businessId: string) => {
   const { data: shifts, error } = await supabase
     .from("shifts")
     .select(`
       id, title, shift_date, start_time, end_time, status, image_url, hourly_rate, total_pay, department_id, client_name,
       departments ( name )
     `)
-    .eq("manager_id", userId)
+    .eq("business_id", businessId) // <-- Filtro sul business_id
     .order('shift_date', { ascending: true });
 
-  if (error) throw error;
+  if (error) {
+    console.error("Errore fetch shift:", error);
+    return [];
+  }
   return shifts || [];
 };
 
@@ -104,7 +117,7 @@ export const createShift = async (
   formData: {
     title: string;
     description: string;
-    departmentId: string | null; 
+    department_id: string | null; 
     date: string;         
     startTime: string;    
     endTime: string;      
@@ -130,9 +143,9 @@ export const createShift = async (
       title: formData.title,
       description: formData.description,
       department_id:
-        typeof formData.departmentId === "string" &&
-        formData.departmentId.match(/^[0-9a-fA-F-]{36}$/)
-          ? formData.departmentId
+        typeof formData.department_id === "string" &&
+        formData.department_id.match(/^[0-9a-fA-F-]{36}$/)
+          ? formData.department_id
           : null,
       business_id: profile.business_id,
       shift_date: formData.date,

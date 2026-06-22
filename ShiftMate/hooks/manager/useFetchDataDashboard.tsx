@@ -49,21 +49,14 @@ export const useDashboardData = () => {
     try {
       setLoading(true);
 
+      // 1. Recupero sessione
       const {
         data: { session },
       } = await supabase.auth.getSession();
-
       const userId = session?.user?.id;
-      if (!userId) return;
+      if (!userId) throw new Error("Utente non autenticato");
 
-      const now = new Date();
-      const currentYear = now.getFullYear();
-      const currentMonth = String(now.getMonth() + 1).padStart(2, "0");
-      const today = new Date();
-
-      // =========================
-      // PROFILE + BUSINESS
-      // =========================
+      // 2. Recupero Profilo e Business
       const { data: profileData, error: profileError } = await supabase
         .from("profiles")
         .select(
@@ -79,40 +72,36 @@ export const useDashboardData = () => {
 
       if (profileError) throw profileError;
 
-      if (profileData?.name) setUserName(profileData.name);
-
+      const bId = profileData?.business_id;
       const bType =
         (profileData?.businesses as any)?.business_type || "standard";
 
-      const bId = profileData?.business_id || null;
-
+      setUserName(profileData.name || "Manager");
       setBusinessType(bType);
       setBusinessId(bId);
 
-      // =========================
-      // CREDITS (SINGLE SOURCE OF TRUTH)
-      // =========================
+      // 3. Recupero Crediti (singola fonte di verità)
       let totalCredits = 0;
-
       if (bId) {
-        const { data: credits, error } = await supabase
+        const { data: credits } = await supabase
           .from("job_credit_accounts")
           .select("available_credits")
           .eq("business_id", bId)
           .maybeSingle();
-
-        if (!error && credits) {
-          totalCredits = credits.available_credits || 0;
-        }
+        totalCredits = credits?.available_credits || 0;
       }
 
-      // =========================
-      // DASHBOARD DATA
-      // =========================
+      // 4. Recupero Dati Dashboard (Shift e candidature)
+      // Usiamo bId per gli shift (più affidabile di manager_id)
       const [allShifts, pendingCount] = await Promise.all([
-        fetchManagerShifts(userId),
+        fetchManagerShifts(bId),
         countPendingApplications(userId),
       ]);
+
+      // 5. Logica di calcolo (Staffing vs Standard)
+      const now = new Date();
+      const currentYear = now.getFullYear();
+      const currentMonth = String(now.getMonth() + 1).padStart(2, "0");
 
       let departmentStatsArray: DepartmentStat[] = [];
       let clientStatsArray: ClientStat[] = [];
@@ -120,19 +109,16 @@ export const useDashboardData = () => {
 
       if (bId) {
         if (bType === "staffing") {
-          const activeShiftsThisMonth =
-            allShifts?.filter((s) => {
-              const status = s.status?.toLowerCase();
-
-              return (
-                ["completed", "filled", "assigned", "open"].includes(status) &&
-                new Date(s.shift_date).getFullYear() === currentYear &&
-                String(new Date(s.shift_date).getMonth() + 1).padStart(
-                  2,
-                  "0",
-                ) === currentMonth
-              );
-            }) || [];
+          const activeShiftsThisMonth = (allShifts || []).filter((s) => {
+            const sDate = new Date(s.shift_date);
+            return (
+              ["completed", "filled", "assigned", "open"].includes(
+                s.status?.toLowerCase(),
+              ) &&
+              sDate.getFullYear() === currentYear &&
+              String(sDate.getMonth() + 1).padStart(2, "0") === currentMonth
+            );
+          });
 
           const uniqueClients = Array.from(
             new Set(
@@ -149,14 +135,8 @@ export const useDashboardData = () => {
                   (s.client_name?.trim() || "Generic Client") === clientName,
               )
               .reduce((acc, s) => acc + (Number(s.total_pay) || 0), 0);
-
             totalRevenueAccumulator += revenueSum;
-
-            return {
-              id: clientName,
-              name: clientName,
-              revenue: revenueSum,
-            };
+            return { id: clientName, name: clientName, revenue: revenueSum };
           });
         } else {
           const { data: departments } = await supabase
@@ -166,16 +146,12 @@ export const useDashboardData = () => {
 
           if (departments) {
             departmentStatsArray = departments.map((dept) => {
-              const effectiveSum = allShifts
-                ?.filter(
+              const effectiveSum = (allShifts || [])
+                .filter(
                   (s) =>
                     s.department_id === dept.id &&
                     s.status === "completed" &&
-                    new Date(s.shift_date).getFullYear() === currentYear &&
-                    String(new Date(s.shift_date).getMonth() + 1).padStart(
-                      2,
-                      "0",
-                    ) === currentMonth,
+                    new Date(s.shift_date).getMonth() === now.getMonth(),
                 )
                 .reduce((acc, s) => acc + (Number(s.total_pay) || 0), 0);
 
@@ -192,16 +168,19 @@ export const useDashboardData = () => {
         }
       }
 
-      // =========================
-      // UPCOMING SHIFTS
-      // =========================
+      // 6. Upcoming Shifts (Filtro data normalizzato)
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+
       const upcoming = (allShifts || [])
-        .filter((s) => new Date(s.shift_date) >= today)
+        .filter((s) => {
+          const d = new Date(s.shift_date);
+          d.setHours(0, 0, 0, 0);
+          return d >= today;
+        })
         .slice(0, 3);
 
-      // =========================
-      // SET STATE
-      // =========================
+      // 7. Aggiornamento stato
       setStats({
         departments: departmentStatsArray,
         clients: clientStatsArray,
@@ -209,7 +188,6 @@ export const useDashboardData = () => {
         totalMonthlyRevenue: totalRevenueAccumulator,
         total_available_credits: totalCredits,
       });
-
       setUpcomingShifts(upcoming);
     } catch (error) {
       console.error("Dashboard error:", error);
