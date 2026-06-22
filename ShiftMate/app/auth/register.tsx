@@ -80,6 +80,17 @@ export default function Register() {
 
       if (profileError) throw profileError;
 
+      if (businessId) {
+        const { error: memberError } = await supabase
+          .from("business_members")
+          .insert({
+            user_id: authData.user.id,
+            business_id: businessId,
+            role: finalRole, // 'worker' o 'manager'
+          });
+        if (memberError) throw memberError;
+      }
+
       if (role === "owner") router.replace("/(manager)/setupBusiness");
       else if (finalRole === "manager")
         router.replace("/(manager)/(tabs)/dashboard");
