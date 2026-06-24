@@ -10,7 +10,7 @@ export type Shift = {
   start_time: string;
   end_time: string;
   image_url: string | null;
-  total_pay: number;   
+  total_pay: number;
   hourly_rate: number;
   status: string;
   businesses?: {
@@ -44,7 +44,9 @@ export const useLoadShiftsBoard = () => {
       status: s.status || "open",
       application_status: s.application_status,
       businesses: Array.isArray(s.businesses) ? s.businesses[0] : s.businesses,
-      departments: Array.isArray(s.departments) ? s.departments[0] : s.departments,
+      departments: Array.isArray(s.departments)
+        ? s.departments[0]
+        : s.departments,
     }));
   };
 
@@ -52,12 +54,14 @@ export const useLoadShiftsBoard = () => {
     if (isRefresh) setRefreshing(true);
     else setLoading(true);
 
-   try {
+    try {
       // 1. Fetch global shifts
       const globalData = await fetchGlobalShifts();
       setShifts(normalizeShifts(globalData));
-      
-      const { data: { session } } = await supabase.auth.getSession();
+
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
 
       if (session?.user) {
         setIsGuest(false);
@@ -70,13 +74,15 @@ export const useLoadShiftsBoard = () => {
 
         if (appError) throw appError;
 
-        const extractedShifts = (appData || []).map(app => {
-          if (!app.shifts) return null;
-          return {
-            ...app.shifts,
-            application_status: app.status 
-          };
-        }).filter(Boolean);
+        const extractedShifts = (appData || [])
+          .map((app) => {
+            if (!app.shifts) return null;
+            return {
+              ...app.shifts,
+              application_status: app.status,
+            };
+          })
+          .filter(Boolean);
 
         setMyApplications(normalizeShifts(extractedShifts));
 
@@ -87,10 +93,14 @@ export const useLoadShiftsBoard = () => {
           .single();
 
         if (profile?.business_id) {
+          const today = new Date().toISOString().split("T")[0];
+
           const { data: bShifts, error: bError } = await supabase
             .from("shifts")
             .select("*, businesses(id, name), departments(name)")
-            .eq("business_id", profile.business_id);
+            .eq("business_id", profile.business_id)
+            .eq("status", "open")
+            .gte("shift_date", today);
 
           if (bError) throw bError;
           setMyBusinessShifts(normalizeShifts(bShifts));
@@ -112,13 +122,13 @@ export const useLoadShiftsBoard = () => {
     loadData();
   }, [loadData]);
 
-  return { 
-    shifts, 
-    myBusinessShifts, 
+  return {
+    shifts,
+    myBusinessShifts,
     myApplications,
-    loading, 
-    refreshing, 
-    isGuest, 
-    refresh: () => loadData(true) 
+    loading,
+    refreshing,
+    isGuest,
+    refresh: () => loadData(true),
   };
 };

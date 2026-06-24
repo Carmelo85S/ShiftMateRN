@@ -27,7 +27,11 @@ export const ShiftHero = ({ shift, theme }: any) => {
     }
   };
 
+  const isCompleted = shift.status === "completed";
+
   const badge = getBadgeStyle();
+
+  console.log("Shift details: ", shift);
 
   return (
     <View style={styles.heroContainer}>
@@ -41,7 +45,6 @@ export const ShiftHero = ({ shift, theme }: any) => {
       <View style={styles.heroGradientOverlay} />
 
       <View style={styles.heroContent}>
-        {/* 🌟 Ora lo sfondo e il testo cambiano dinamicamente in tempo reale */}
         <View style={[styles.statusBadge, { backgroundColor: badge.bg }]}>
           <Text style={styles.statusBadgeText}>{badge.text}</Text>
         </View>
@@ -55,22 +58,33 @@ export const ShiftHero = ({ shift, theme }: any) => {
         </View>
       </View>
 
-      {/* 🌟 Pulito il contenitore del FAB per evitare doppie posizioni assolute */}
       <View style={styles.fabWrapper}>
-        <Pressable
-          onPress={() =>
-            router.push({
-              pathname: "/(manager)/(tabs)/shift/editShift",
-              params: { id: shift?.id },
-            })
-          }
-          style={[
-            styles.editFab,
-            { backgroundColor: theme.text, borderColor: theme.border },
-          ]}
-        >
-          <Ionicons name="options-outline" size={24} color={theme.background} />
-        </Pressable>
+        <View style={styles.fabWrapper}>
+          <Pressable
+            onPress={() => {
+              if (isCompleted) return;
+              router.push({
+                pathname: "/(manager)/(tabs)/shift/editShift",
+                params: { id: shift?.id },
+              });
+            }}
+            disabled={isCompleted}
+            style={[
+              styles.editFab,
+              {
+                backgroundColor: isCompleted ? "#8E8E93" : theme.text,
+                borderColor: theme.border,
+                opacity: isCompleted ? 0.5 : 1,
+              },
+            ]}
+          >
+            <Ionicons
+              name={isCompleted ? "lock-closed" : "options-outline"}
+              size={24}
+              color={theme.background}
+            />
+          </Pressable>
+        </View>
       </View>
     </View>
   );
