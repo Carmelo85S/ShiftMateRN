@@ -1,5 +1,5 @@
 import { Ionicons } from "@expo/vector-icons";
-import { useFocusEffect } from "expo-router";
+import { router, useFocusEffect } from "expo-router";
 import React, { useCallback, useState } from "react";
 import {
   ActivityIndicator,
@@ -21,20 +21,29 @@ import { Colors } from "@/constants/theme";
 import { useDashboardData } from "@/hooks/manager/useFetchDataDashboard";
 import { supabase } from "@/lib/supabase";
 
-// Abilita LayoutAnimation per Android
 if (Platform.OS === "android") {
   UIManager.setLayoutAnimationEnabledExperimental?.(true);
+}
+
+// Interfaccia per i dati dei report
+interface ReportItem {
+  id: string;
+  name: string;
+  amount: number;
 }
 
 export default function AnalyticsDashboardPage() {
   const insets = useSafeAreaInsets();
   const theme = Colors[useColorScheme() ?? "light"];
-  const { businessId } = useDashboardData();
+  const { businessId, role } = useDashboardData();
 
   const [activeTab, setActiveTab] = useState<"clients" | "workers">("clients");
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
-  const [reports, setReports] = useState<{ workers: any[]; clients: any[] }>({
+  const [reports, setReports] = useState<{
+    workers: ReportItem[];
+    clients: ReportItem[];
+  }>({
     workers: [],
     clients: [],
   });
@@ -71,8 +80,13 @@ export default function AnalyticsDashboardPage() {
         .from("shifts")
         .select(
           `
-          total_pay, client_name, shift_date, 
-          applications!inner ( status, profiles ( id, name, surname ) )
+          total_pay, 
+          client_name, 
+          shift_date, 
+          applications:applications!applications_shift_id_fkey ( 
+            status, 
+            profiles:profiles(id, name, surname) 
+          )
         `,
         )
         .eq("business_id", businessId)
@@ -82,40 +96,49 @@ export default function AnalyticsDashboardPage() {
 
       if (dbError) throw dbError;
 
-      const workerMap: Record<string, { name: string; amount: number }> = {};
-      const clientMap: Record<string, number> = {};
+      const workerMap: Record<string, ReportItem> = {};
+      const clientMap: Record<string, { id: string; amount: number }> = {};
 
       shiftData?.forEach((shift: any) => {
         const amount = parseFloat(shift.total_pay) || 0;
+
         if (shift.client_name) {
-          clientMap[shift.client_name] =
-            (clientMap[shift.client_name] || 0) + amount;
+          if (!clientMap[shift.client_name]) {
+            clientMap[shift.client_name] = { id: shift.client_name, amount: 0 };
+          }
+          clientMap[shift.client_name].amount += amount;
         }
-        const app = shift.applications?.[0];
-        if (
-          app?.status &&
-          ["accepted", "approved"].includes(app.status.toLowerCase()) &&
-          app.profiles
-        ) {
-          const profile = Array.isArray(app.profiles)
-            ? app.profiles[0]
-            : app.profiles;
-          const name =
-            `${profile.name || ""} ${profile.surname || ""}`.trim() || "Staff";
-          if (!workerMap[profile.id])
-            workerMap[profile.id] = { name, amount: 0 };
-          workerMap[profile.id].amount += amount;
+
+        const apps = shift.applications as any[];
+        if (apps && Array.isArray(apps)) {
+          const acceptedApp = apps.find((a) => a.status === "accepted");
+          if (acceptedApp?.profiles) {
+            const profile = acceptedApp.profiles;
+            const workerId = profile.id;
+            const name =
+              `${profile.name || ""} ${profile.surname || ""}`.trim() ||
+              "Staff";
+
+            if (!workerMap[workerId]) {
+              workerMap[workerId] = { id: workerId, name, amount: 0 };
+            }
+            workerMap[workerId].amount += amount;
+          }
         }
       });
 
       setReports({
         workers: Object.values(workerMap).sort((a, b) => b.amount - a.amount),
         clients: Object.entries(clientMap)
-          .map(([name, amount]) => ({ name, amount }))
+          .map(([name, data]) => ({
+            id: data.id,
+            name,
+            amount: data.amount,
+          }))
           .sort((a, b) => b.amount - a.amount),
       });
     } catch (err) {
-      console.error(err);
+      console.error("Errore nel caricamento report:", err);
     } finally {
       setLoading(false);
     }
@@ -129,7 +152,7 @@ export default function AnalyticsDashboardPage() {
 
   const filteredData = (
     activeTab === "clients" ? reports.clients : reports.workers
-  ).filter((item) => item.name?.toLowerCase().includes(search.toLowerCase()));
+  ).filter((item) => item.name.toLowerCase().includes(search.toLowerCase()));
 
   const totalAmount = filteredData.reduce((acc, curr) => acc + curr.amount, 0);
 
@@ -138,7 +161,7 @@ export default function AnalyticsDashboardPage() {
     theme,
     progress,
   }: {
-    item: { name: string; amount: number };
+    item: ReportItem;
     theme: any;
     progress: number;
   }) => (
@@ -267,12 +290,32 @@ export default function AnalyticsDashboardPage() {
             const progress =
               maxAmount > 0 ? (item.amount / maxAmount) * 100 : 0;
             return (
-              <AnalyticsCard
-                key={index}
-                item={item}
-                theme={theme}
-                progress={progress}
-              />
+              <Pressable
+                key={item.id ?? index}
+                onPress={() => {
+                  // Controllo di sicurezza lato UI: solo gli owner possono navigare al dettaglio
+                  if (role !== "owner") {
+                    console.log(
+                      "Accesso negato: solo gli owner possono visualizzare i dettagli",
+                    );
+                    return; // Blocca l'esecuzione
+                  }
+
+                  if (activeTab === "workers" && item.id) {
+                    router.push({
+                      pathname:
+                        "/(manager)/(tabs)/reports/worker-details/[workerId]",
+                      params: {
+                        workerId: item.id,
+                        name: item.name,
+                        month: currentDate.toISOString(),
+                      },
+                    });
+                  }
+                }}
+              >
+                <AnalyticsCard item={item} theme={theme} progress={progress} />
+              </Pressable>
             );
           })}
         </View>
@@ -293,7 +336,6 @@ const styles = StyleSheet.create({
   totalCard: {
     padding: 24,
     borderRadius: 24,
-    marginHorizontal: 24,
     marginBottom: 24,
     alignItems: "center",
   },
@@ -305,14 +347,13 @@ const styles = StyleSheet.create({
     opacity: 0.7,
   },
   totalValue: { color: "#FFF", fontSize: 36, fontWeight: "800", marginTop: 8 },
-  searchContainer: { paddingHorizontal: 24, marginBottom: 16 },
+  searchContainer: { marginBottom: 16 },
   searchInput: { height: 50, borderRadius: 16, paddingHorizontal: 20 },
   tabContainer: {
     flexDirection: "row",
     padding: 4,
     borderRadius: 16,
     marginBottom: 20,
-    marginHorizontal: 24,
   },
   tabButton: {
     flex: 1,

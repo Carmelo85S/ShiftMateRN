@@ -1,3 +1,4 @@
+import { ScreenWrapper } from "@/components/shared/wrapper/layout-wrapper";
 import { updateBudget } from "@/queries/managerQueries";
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
@@ -348,7 +349,7 @@ const DepartmentCard = ({
   };
 
   return (
-    <View style={[styles.mainCard, { backgroundColor: theme.card }]}>
+    <ScreenWrapper scrollable={true}>
       <Pressable style={styles.accordionHeader} onPress={onPressHeader}>
         <View style={styles.headerLeft}>
           <View
@@ -371,7 +372,6 @@ const DepartmentCard = ({
           />
         </View>
       </Pressable>
-
       {isExpanded && (
         <View style={styles.dropdownContent}>
           <View style={styles.progressContainer}>
@@ -497,7 +497,7 @@ const DepartmentCard = ({
           )}
         </View>
       )}
-    </View>
+    </ScreenWrapper>
   );
 };
 

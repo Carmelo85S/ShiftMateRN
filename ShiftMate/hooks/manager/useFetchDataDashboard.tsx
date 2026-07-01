@@ -29,6 +29,7 @@ type DashboardStats = {
 
 export const useDashboardData = () => {
   const [userName, setUserName] = useState("Manager");
+  const [role, setRole] = useState<string | null>(null);
   const [businessType, setBusinessType] = useState<
     "standard" | "staffing" | null
   >(null);
@@ -77,6 +78,7 @@ export const useDashboardData = () => {
         (profileData?.businesses as any)?.business_type || "standard";
 
       setUserName(profileData.name || "Manager");
+      setRole(profileData.role);
       setBusinessType(bType);
       setBusinessId(bId);
 
@@ -202,6 +204,7 @@ export const useDashboardData = () => {
 
   return {
     userName,
+    role,
     businessType,
     businessId,
     stats,

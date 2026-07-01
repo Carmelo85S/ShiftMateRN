@@ -17,7 +17,7 @@ interface ScreenWrapperProps {
   scrollable?: boolean;
   onRefresh?: () => void;
   refreshing?: boolean;
-  extraPaddingBottom?: number; // 🌟 Nuova prop opzionale per gestire spazi extra (es. bottoni floating)
+  extraPaddingBottom?: number;
 }
 
 export const ScreenWrapper = ({

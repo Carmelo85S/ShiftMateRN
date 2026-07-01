@@ -98,10 +98,10 @@ export const fetchManagerShifts = async (businessId: string) => {
   const { data: shifts, error } = await supabase
     .from("shifts")
     .select(`
-      id, title, shift_date, start_time, end_time, status, image_url, hourly_rate, total_pay, department_id, client_name,
-      departments ( name )
+      *,
+      departments ( name ) 
     `)
-    .eq("business_id", businessId) // <-- Filtro sul business_id
+    .eq("business_id", businessId)
     .order('shift_date', { ascending: true });
 
   if (error) {
