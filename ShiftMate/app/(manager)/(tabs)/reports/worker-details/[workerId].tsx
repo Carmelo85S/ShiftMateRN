@@ -1,3 +1,4 @@
+import { ScreenHeader } from "@/components/shared/Header";
 import { Colors } from "@/constants/theme";
 import { supabase } from "@/lib/supabase";
 import { Ionicons } from "@expo/vector-icons";
@@ -7,6 +8,7 @@ import {
     ActivityIndicator,
     Alert,
     FlatList,
+    Image,
     Pressable,
     StyleSheet,
     Text,
@@ -25,6 +27,7 @@ export default function WorkerDetailsScreen() {
   useEffect(() => {
     const fetchWorkerShifts = async () => {
       if (!workerId || !month) return;
+
       const date = new Date(month as string);
       const start = new Date(
         date.getFullYear(),
@@ -37,10 +40,14 @@ export default function WorkerDetailsScreen() {
         0,
       ).toISOString();
 
-      const { data, error } = await supabase
+      // Query diretta su 'shifts' usando le colonne che hai definito
+      const { data } = await supabase
         .from("shifts")
         .select(
-          `id, shift_date, client_name, total_pay, status, applications!inner(profile_id)`,
+          `
+          id, shift_date, total_pay, status, client_name, image_url,
+          applications!inner(profile_id)
+        `,
         )
         .eq("applications.profile_id", workerId)
         .gte("shift_date", start)
@@ -53,89 +60,84 @@ export default function WorkerDetailsScreen() {
   }, [workerId, month]);
 
   const totalPayable = shifts
-    .filter((s) => s.status !== "paid")
+    .filter((s) => s.status !== "paid") // Assicurati che lo status 'paid' sia gestito nel DB
     .reduce((acc, curr) => acc + (Number(curr.total_pay) || 0), 0);
-
-  const handlePayAll = () => {
-    Alert.alert(
-      "Confirm Payment",
-      `Proceed to pay ${totalPayable.toLocaleString()} SEK to ${name}?`,
-      [
-        { text: "Cancel" },
-        {
-          text: "Confirm",
-          onPress: () => console.log("Processing payment..."),
-        },
-      ],
-    );
-  };
 
   if (loading) return <ActivityIndicator style={{ flex: 1 }} />;
 
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
-      {/* Header */}
-      <View style={[styles.header, { paddingTop: insets.top }]}>
-        <Text style={[styles.title, { color: theme.text }]}>Worker Report</Text>
-        <Pressable onPress={() => router.back()} style={styles.closeButton}>
-          <Ionicons name="close" size={22} color={theme.text} />
+      <View
+        style={{
+          flexDirection: "row",
+          alignItems: "flex-start",
+          paddingRight: 20,
+        }}
+      >
+        <View style={{ flex: 1 }}>
+          <ScreenHeader
+            kpi="Worker Details"
+            title={name as string}
+            theme={theme}
+            containerStyle={{ paddingTop: insets.top + 20, paddingLeft: 20 }}
+          />
+        </View>
+        <Pressable
+          onPress={() => router.back()}
+          style={{ marginTop: insets.top + 20, padding: 8 }}
+        >
+          <Ionicons name="close" size={28} color={theme.text} />
         </Pressable>
-      </View>
-
-      {/* Hero Section */}
-      <View style={styles.hero}>
-        <Text style={[styles.workerName, { color: theme.text }]}>{name}</Text>
-        <Text style={[styles.totalAmount, { color: theme.tint }]}>
-          {totalPayable.toLocaleString()} SEK
-        </Text>
-        <Text style={[styles.subLabel, { color: theme.text + "60" }]}>
-          Pending Payout
-        </Text>
       </View>
 
       <FlatList
         data={shifts}
         contentContainerStyle={styles.list}
-        ListHeaderComponent={
-          <Text style={[styles.sectionTitle, { color: theme.text }]}>
-            Shift History
-          </Text>
-        }
         renderItem={({ item }) => (
           <View style={[styles.card, { backgroundColor: theme.card }]}>
-            <View style={styles.dateBadge}>
-              <Text style={styles.day}>
-                {new Date(item.shift_date).getDate()}
-              </Text>
-              <Text style={styles.month}>
-                {new Date(item.shift_date).toLocaleString("default", {
-                  month: "short",
-                })}
-              </Text>
-            </View>
-            <View style={styles.cardInfo}>
-              <Text style={[styles.client, { color: theme.text }]}>
+            {/* Usiamo direttamente image_url dalla tabella shifts */}
+            <Image
+              source={{
+                uri: item.image_url,
+              }}
+              style={styles.clientImage}
+            />
+
+            <View style={{ flex: 1, marginLeft: 12 }}>
+              <Text
+                style={{ fontSize: 16, fontWeight: "700", color: theme.text }}
+              >
                 {item.client_name}
               </Text>
-              <Text style={{ color: theme.text + "70", fontSize: 12 }}>
-                {item.status}
+              <Text style={{ color: theme.text + "80", fontSize: 12 }}>
+                {new Date(item.shift_date).toLocaleDateString()}
               </Text>
             </View>
-            {item.status !== "paid" ? (
-              <Pressable
-                style={styles.payButton}
-                onPress={() => Alert.alert("Pay", "Pay this shift?")}
-              >
-                <Text style={styles.payButtonText}>Pay</Text>
-              </Pressable>
+
+            {item.status === "paid" ? (
+              <Ionicons
+                name="checkmark-circle"
+                size={24}
+                color={theme.tint || "#34C759"}
+              />
             ) : (
-              <Ionicons name="checkmark-circle" size={24} color="#34C759" />
+              <Pressable
+                style={[styles.payBtn, { backgroundColor: theme.tint }]}
+                onPress={() =>
+                  Alert.alert("Pay", `Pagare ${item.total_pay} SEK?`)
+                }
+              >
+                <Text
+                  style={{ color: "#FFF", fontSize: 12, fontWeight: "700" }}
+                >
+                  Pay
+                </Text>
+              </Pressable>
             )}
           </View>
         )}
       />
 
-      {/* Action Bar Fissa */}
       {totalPayable > 0 && (
         <View
           style={[
@@ -143,18 +145,16 @@ export default function WorkerDetailsScreen() {
             { backgroundColor: theme.card, paddingBottom: insets.bottom + 15 },
           ]}
         >
-          <View>
-            <Text style={{ color: theme.text + "80", fontSize: 12 }}>
-              Total to pay
+          <Text style={{ color: theme.text, fontWeight: "700" }}>
+            {totalPayable.toLocaleString()} SEK
+          </Text>
+          <Pressable
+            style={[styles.mainBtn, { backgroundColor: theme.tint }]}
+            onPress={() => {}}
+          >
+            <Text style={{ color: "#FFF", fontWeight: "700" }}>
+              Pay All Pending
             </Text>
-            <Text
-              style={{ fontSize: 20, fontWeight: "800", color: theme.text }}
-            >
-              {totalPayable.toLocaleString()} SEK
-            </Text>
-          </View>
-          <Pressable style={styles.mainPayButton} onPress={handlePayAll}>
-            <Text style={styles.mainPayButtonText}>Pay All Pending</Text>
           </Pressable>
         </View>
       )}
@@ -164,55 +164,21 @@ export default function WorkerDetailsScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  header: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    padding: 20,
-    alignItems: "center",
-  },
-  title: { fontSize: 14, fontWeight: "700", letterSpacing: 0.5, opacity: 0.6 },
-  closeButton: {
-    padding: 8,
-    borderRadius: 20,
-    backgroundColor: "rgba(0,0,0,0.05)",
-  },
-  hero: { alignItems: "center", marginVertical: 30 },
-  workerName: { fontSize: 28, fontWeight: "800" },
-  totalAmount: { fontSize: 42, fontWeight: "900", marginVertical: 8 },
-  subLabel: { fontSize: 14, fontWeight: "500" },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: "700",
-    marginBottom: 15,
-    paddingHorizontal: 20,
-  },
-  list: { paddingBottom: 100 },
+  list: { paddingHorizontal: 20, paddingTop: 10 },
   card: {
     flexDirection: "row",
     alignItems: "center",
     padding: 15,
-    marginHorizontal: 20,
-    marginBottom: 12,
     borderRadius: 20,
+    marginBottom: 12,
   },
-  dateBadge: {
-    alignItems: "center",
-    backgroundColor: "rgba(0,0,0,0.05)",
-    padding: 10,
+  clientImage: {
+    width: 45,
+    height: 45,
     borderRadius: 12,
-    width: 50,
+    backgroundColor: "#eee",
   },
-  day: { fontWeight: "800", fontSize: 16 },
-  month: { fontSize: 10, textTransform: "uppercase" },
-  cardInfo: { flex: 1, marginLeft: 15 },
-  client: { fontSize: 16, fontWeight: "700" },
-  payButton: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 8,
-    backgroundColor: "rgba(0,0,0,0.05)",
-  },
-  payButtonText: { fontSize: 12, fontWeight: "600" },
+  payBtn: { paddingHorizontal: 16, paddingVertical: 8, borderRadius: 8 },
   footer: {
     flexDirection: "row",
     justifyContent: "space-between",
@@ -221,11 +187,5 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: "rgba(0,0,0,0.1)",
   },
-  mainPayButton: {
-    paddingHorizontal: 30,
-    paddingVertical: 14,
-    borderRadius: 16,
-    backgroundColor: "#007AFF",
-  },
-  mainPayButtonText: { color: "#FFF", fontWeight: "700" },
+  mainBtn: { paddingHorizontal: 24, paddingVertical: 12, borderRadius: 12 },
 });

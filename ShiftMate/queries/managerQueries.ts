@@ -184,25 +184,32 @@ export const getShiftForEdit = async (shiftId: string) => {
 export const updateShift = async (id: string, shiftData: {
   title: string;
   description: string;
-  shift_date: string;     // AGGIORNATO: Riceve stringa formattata dall'hook per evitare crash TIME
-  start_time: string;     // AGGIORNATO: Riceve stringa "HH:MM:SS"
-  end_time: string;       // AGGIORNATO: Riceve stringa "HH:MM:SS"
+  shift_date: string;
+  start_time: string;
+  end_time: string;
   image_url: string | null;
-  hourly_rate: number;    // AGGIORNATO: Riceve numero da Zod
-  departmentId: string;   // AGGIORNATO: Accetta UUID reparto
+  hourly_rate: number;
+  required_workers: number;      // Aggiunto perché presente nel payload
+  client_name: string | null;    // Aggiunto perché presente nel payload
+  address: string | null;        // Aggiunto perché presente nel payload
+  city: string | null;           // Aggiunto perché presente nel payload
+  department_id: string | null;  // <--- Aggiornato: nome colonna DB e supporto null
 }) => {
   const { error } = await supabase
     .from("shifts")
     .update({
       title: shiftData.title,
       description: shiftData.description,
-      department_id: shiftData.departmentId, // AGGIORNATO: Mappa sulla colonna UUID reale
+      department_id: shiftData.department_id, // <--- Ora combacia con shiftData
       shift_date: shiftData.shift_date,
       start_time: shiftData.start_time,
       end_time: shiftData.end_time,
       image_url: shiftData.image_url,
       hourly_rate: shiftData.hourly_rate,
-      // Il total_pay si aggiornerà via trigger del DB dato che ascolta update di start_time/end_time/hourly_rate
+      required_workers: shiftData.required_workers,
+      client_name: shiftData.client_name,
+      address: shiftData.address,
+      city: shiftData.city,
     })
     .eq("id", id);
 
