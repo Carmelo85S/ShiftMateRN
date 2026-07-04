@@ -1,6 +1,6 @@
 import { Colors } from "@/constants/theme";
-import { useRouter } from "expo-router";
-import React, { useEffect, useState } from "react";
+import { useFocusEffect, useRouter } from "expo-router";
+import React, { useCallback, useState } from "react";
 import {
   Dimensions,
   FlatList,
@@ -43,21 +43,29 @@ export default function WorkerShifts() {
   const { activeTab, setActiveTab, displayedShifts, myShiftsCount } =
     useClientSideFiltering(shifts, myBusinessShifts, myApplications);
 
-  const [needsOnboarding, setNeedsOnboarding] = useState(false);
+  const [needsOnboarding, setNeedsOnboarding] = useState<boolean | null>(null);
 
-  useEffect(() => {
-    const checkOnboarding = async () => {
-      if (isGuest) return;
-      const { data, error } = await supabase
-        .from("user_stripe_data")
-        .select("onboarding_completed")
-        .eq("id", (await supabase.auth.getUser()).data.user?.id)
-        .single();
-      console.log("DEBUG Stripe Data:", data, "Errore:", error); // <-- CONTROLLA QUESTO
-      setNeedsOnboarding(data?.onboarding_completed !== true);
-    };
-    checkOnboarding();
-  }, [isGuest]);
+  const checkOnboarding = async () => {
+    if (isGuest) return;
+
+    const { data: userData } = await supabase.auth.getUser();
+
+    const { data } = await supabase
+      .from("user_stripe_data")
+      .select("onboarding_completed")
+      .eq("id", userData.user?.id)
+      .maybeSingle();
+
+    setNeedsOnboarding(!data?.onboarding_completed);
+  };
+
+  checkOnboarding();
+
+  useFocusEffect(
+    useCallback(() => {
+      checkOnboarding();
+    }, [isGuest]),
+  );
 
   // Un utente è un "Candidate" (esterno) se è loggato (!isGuest) MA non ha turni aziendali/collegamenti ad aziende
   // Puoi anche passare direttamente una variabile 'role' dal tuo hook se preferisci
@@ -86,7 +94,7 @@ export default function WorkerShifts() {
         ListHeaderComponent={() => (
           <>
             {/* Banner Onboarding - Visualizzato solo se necessario */}
-            {needsOnboarding && (
+            {needsOnboarding === true && (
               <View style={styles.onboardingBanner}>
                 <View style={styles.bannerContent}>
                   <Text style={styles.bannerTitle}>Configura i pagamenti</Text>
