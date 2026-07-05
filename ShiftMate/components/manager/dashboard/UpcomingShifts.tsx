@@ -41,7 +41,7 @@ export const UpcomingShifts = ({
             { backgroundColor: theme.text },
             pressed && { opacity: 0.85, transform: [{ scale: 0.98 }] },
           ]}
-          onPress={() => router.push("/(manager)/(tabs)/create")}
+          onPress={() => router.push("/(manager)/(tabs)/create/createShift")}
         >
           <Text style={[styles.btnText, { color: theme.background }]}>
             Schedule a Shift
