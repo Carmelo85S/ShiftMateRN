@@ -52,10 +52,10 @@ export default function EditShift() {
   const { loading, imageUrl, setImageUrl, shiftData } = useFetchShift(
     id,
     setForm,
-  ) as any;
+  );
 
   // 🌟 Stati locali per agenzie di staffing
-  const [clientName, setClientName] = useState<string>("");
+  const [clientName, setClientName] = useState<string>();
   const [address, setAddress] = useState<string>("");
   const [city, setCity] = useState<string>("");
   const [workerCount, setWorkerCount] = useState<number>(1);
@@ -63,11 +63,13 @@ export default function EditShift() {
   // 🌟 Sincronizza gli stati locali quando i dati del turno vengono caricati dal DB
   useEffect(() => {
     if (shiftData) {
-      if (shiftData.client_name) setClientName(shiftData.client_name);
-      if (shiftData.address) setAddress(shiftData.address);
-      if (shiftData.city) setCity(shiftData.city);
-      if (shiftData.required_workers)
-        setWorkerCount(Number(shiftData.required_workers));
+      // Il form standard è già gestito da useFetchShift
+
+      // Inizializza gli stati locali solo una volta
+      setClientName(shiftData.client_name ?? "");
+      setAddress(shiftData.address ?? "");
+      setCity(shiftData.city ?? "");
+      setWorkerCount(Number(shiftData.required_workers) || 1);
     }
   }, [shiftData]);
 
@@ -82,23 +84,27 @@ export default function EditShift() {
     setWorkerCount((prev) => (prev > 1 ? prev - 1 : 1));
 
   const onUpdateSubmit = () => {
-    console.log("DEBUG: Tasto Update premuto!");
-
     const formToUpdate: any = {
       ...form,
-      // Se è staffing, usa gli stati locali, altrimenti valori di default
       required_workers: businessType === "staffing" ? workerCount : 1,
-
-      // Assicurati che department_id sia gestito correttamente
       department_id: businessType === "staffing" ? null : form.department,
 
-      // Inserisci i campi di staffing
-      address: businessType === "staffing" ? address : null,
-      city: businessType === "staffing" ? city : null,
-      client_name: businessType === "staffing" ? clientName : null,
+      // 🌟 TRUCCO: Se il valore è vuoto, usa il valore originale (shiftData)
+      address:
+        businessType === "staffing"
+          ? address || shiftData?.address || null
+          : null,
+      city:
+        businessType === "staffing" ? city || shiftData?.city || null : null,
+      client_name:
+        businessType === "staffing"
+          ? clientName || shiftData?.client_name || null
+          : null,
+
+      // Assicurati che anche la descrizione non venga piallata
+      description: form.description || shiftData?.description || "",
     };
 
-    console.log("DEBUG: Invio al DB:", formToUpdate);
     handleUpdate(formToUpdate as any);
   };
 
@@ -172,14 +178,6 @@ export default function EditShift() {
                 <Text style={[styles.counterLabel, { color: theme.text }]}>
                   Workers Needed
                 </Text>
-                <Text
-                  style={[
-                    styles.counterSubtitle,
-                    { color: theme.secondaryText },
-                  ]}
-                >
-                  How many people do you need?
-                </Text>
               </View>
               <View style={styles.counterRow}>
                 <Pressable
@@ -222,7 +220,7 @@ export default function EditShift() {
                 <Text
                   style={[styles.inputLabel, { color: theme.secondaryText }]}
                 >
-                  CLIENT / VENUE NAME
+                  {shiftData?.client_name ?? "CLIENT / VENUE NAME"}
                 </Text>
                 <TextInput
                   style={[styles.textInput, { color: theme.text }]}
@@ -243,7 +241,7 @@ export default function EditShift() {
                 <Text
                   style={[styles.inputLabel, { color: theme.secondaryText }]}
                 >
-                  WORKPLACE ADDRESS
+                  {shiftData?.address ?? "ADDRESS"}
                 </Text>
                 <TextInput
                   style={[styles.textInput, { color: theme.text }]}
@@ -264,7 +262,7 @@ export default function EditShift() {
                 <Text
                   style={[styles.inputLabel, { color: theme.secondaryText }]}
                 >
-                  CITY
+                  {shiftData?.city ?? "CITY"}
                 </Text>
                 <TextInput
                   style={[styles.textInput, { color: theme.text }]}
@@ -301,7 +299,7 @@ export default function EditShift() {
               opacity: pressed || saving ? 0.8 : 1,
             },
           ]}
-          onPress={onUpdateSubmit} // ◄ Sostituito con la funzione di controllo locale
+          onPress={onUpdateSubmit}
           disabled={saving}
         >
           {saving ? (

@@ -33,58 +33,43 @@ export const useEditShiftActions = ({
   const handleUpdate = async (formData: FormShift) => {
     if (!id) return;
 
+    // 1. Valida i dati così come sono (Zod gestirà i null e le stringhe vuote)
     const validation = FormShiftSchema.safeParse(formData);
+
     if (!validation.success) {
-      Alert.alert("Attenzione", validation.error.issues[0].message);
+      // Logga l'errore per capire QUALE campo fallisce
+      console.error(
+        "Zod Validation Error:",
+        validation.error.flatten().fieldErrors,
+      );
+      Alert.alert(
+        "Attenzione",
+        "Dati non validi: " + validation.error.issues[0].message,
+      );
       return;
     }
 
     setSaving(true);
     try {
+      // 2. USA I DATI VALIDATI (validation.data)
+      // Non ricostruire il payload manualmente, usa il risultato di Zod
       const payload = {
-        title: formData.title,
-        description: formData.description ?? "",
-        department_id:
-          formData.department_id &&
-          formData.department_id !== "staffing_agency_global" &&
-          formData.department_id.length > 30
-            ? formData.department_id
-            : null,
-        shift_date: formatDate(formData.shift_date),
-        start_time: formatTime(formData.start_time),
-        end_time: formatTime(formData.end_time),
-        image_url: imageUrl,
-        hourly_rate: Number(formData.hourly_rate) || 0,
-        required_workers: formData.required_workers ?? 1,
-        client_name: formData.client_name ?? null,
-        address: formData.address ?? null,
-        city: formData.city ?? null,
+        ...validation.data,
+        // Formatta solo le date/time che Zod ha già validato
+        shift_date: formatDate(validation.data.shift_date),
+        start_time: formatTime(validation.data.start_time),
+        end_time: formatTime(validation.data.end_time),
+        image_url: imageUrl, // Questo rimane esterno perché è gestito dallo stato dell'uploader
       };
 
-      console.log("DEBUG ID:", id);
-      console.log("DEBUG DEPARTMENT_ID:", payload.department_id);
-
-      if (payload.department_id && payload.department_id.length < 30) {
-        console.warn(
-          "ATTENZIONE: department_id sembra non essere un UUID valido!",
-        );
-      }
-
-      console.log("DEBUG: Invio update a Supabase", {
-        targetId: id,
-        isIdValidUuid: id && id.length === 36,
-        payload: payload,
-      });
-
+      console.log("DEBUG: Invio al DB:", payload);
       await updateShift(id, payload);
+
       Alert.alert("Success", "Shift updated!");
       router.back();
     } catch (err: any) {
-      console.error(
-        "DEBUG - Errore ricevuto dal DB:",
-        JSON.stringify(err, null, 2),
-      );
-      Alert.alert("Errore", err.message || "Errore sconosciuto");
+      console.error("DEBUG - Errore DB:", err);
+      Alert.alert("Errore", "Impossibile aggiornare lo shift.");
     } finally {
       setSaving(false);
     }

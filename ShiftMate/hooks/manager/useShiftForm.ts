@@ -1,18 +1,18 @@
-import { useState, useMemo } from "react";
+import { useMemo, useState } from "react";
 import { Platform } from "react-native";
 
 export const useShiftForm = (initialData?: any) => {
   const defaultDate = new Date();
   const defaultStart = new Date();
-  defaultStart.setHours(9, 0, 0, 0); // Default 09:00
+  defaultStart.setHours(9, 0, 0, 0);
   const defaultEnd = new Date();
-  defaultEnd.setHours(17, 0, 0, 0); // Default 17:00
+  defaultEnd.setHours(17, 0, 0, 0);
 
   const [form, setForm] = useState({
     title: initialData?.title || "",
     description: initialData?.description || "",
     department: initialData?.department || "",
-    industry: "hospitality",
+    //industry: "hospitality",
     hourly_rate: initialData?.hourly_rate?.toString() || "",
     shift_date: initialData?.shift_date ? new Date(initialData.shift_date) : defaultDate,
     start_time: initialData?.start_time ? new Date(initialData.start_time) : defaultStart,

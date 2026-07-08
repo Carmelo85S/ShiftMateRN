@@ -168,12 +168,12 @@ export const createShift = async (
 };
 
 export const getShiftForEdit = async (shiftId: string) => {
-  const {data, error} = await supabase
+  const { data, error } = await supabase
     .from("shifts")
     .select(`
-      title, description, shift_date, start_time, end_time, image_url, hourly_rate, total_pay, department_id,
-      departments ( name )
-    `) // AGGIORNATO: Rimosso department text, aggiunto l'oggetto relazionato
+      title, description, shift_date, start_time, end_time, image_url, 
+      hourly_rate, department_id, client_name, address, city, required_workers
+    `)
     .eq("id", shiftId)
     .maybeSingle();
 
@@ -181,36 +181,10 @@ export const getShiftForEdit = async (shiftId: string) => {
   return data;
 };
 
-export const updateShift = async (id: string, shiftData: {
-  title: string;
-  description: string;
-  shift_date: string;
-  start_time: string;
-  end_time: string;
-  image_url: string | null;
-  hourly_rate: number;
-  required_workers: number;      // Aggiunto perché presente nel payload
-  client_name: string | null;    // Aggiunto perché presente nel payload
-  address: string | null;        // Aggiunto perché presente nel payload
-  city: string | null;           // Aggiunto perché presente nel payload
-  department_id: string | null;  // <--- Aggiornato: nome colonna DB e supporto null
-}) => {
+export const updateShift = async (id: string, shiftData: any) => {
   const { error } = await supabase
     .from("shifts")
-    .update({
-      title: shiftData.title,
-      description: shiftData.description,
-      department_id: shiftData.department_id, // <--- Ora combacia con shiftData
-      shift_date: shiftData.shift_date,
-      start_time: shiftData.start_time,
-      end_time: shiftData.end_time,
-      image_url: shiftData.image_url,
-      hourly_rate: shiftData.hourly_rate,
-      required_workers: shiftData.required_workers,
-      client_name: shiftData.client_name,
-      address: shiftData.address,
-      city: shiftData.city,
-    })
+    .update(shiftData) 
     .eq("id", id);
 
   if (error) throw error;
