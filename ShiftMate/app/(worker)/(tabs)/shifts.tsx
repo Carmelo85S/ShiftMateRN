@@ -50,13 +50,13 @@ export default function WorkerShifts() {
 
     const { data: userData } = await supabase.auth.getUser();
 
-    const { data } = await supabase
+    const { data: onBoarding } = await supabase
       .from("user_stripe_data")
       .select("onboarding_completed")
       .eq("id", userData.user?.id)
       .maybeSingle();
 
-    setNeedsOnboarding(!data?.onboarding_completed);
+    setNeedsOnboarding(!onBoarding?.onboarding_completed);
   };
 
   checkOnboarding();
@@ -66,6 +66,8 @@ export default function WorkerShifts() {
       checkOnboarding();
     }, [isGuest]),
   );
+
+  console.log("needsOnboarding", needsOnboarding);
 
   // Un utente è un "Candidate" (esterno) se è loggato (!isGuest) MA non ha turni aziendali/collegamenti ad aziende
   // Puoi anche passare direttamente una variabile 'role' dal tuo hook se preferisci

@@ -30,10 +30,13 @@ type DashboardStats = {
 export const useDashboardData = () => {
   const [userName, setUserName] = useState("Manager");
   const [role, setRole] = useState<string | null>(null);
+  const [businessName, setBusinessName] = useState<string | null>(null);
   const [businessType, setBusinessType] = useState<
     "standard" | "staffing" | null
   >(null);
   const [businessId, setBusinessId] = useState<string | null>(null);
+  const [profileImage, setProfileImage] = useState<string | null>(null);
+  const [planType, setPlanType] = useState<string | null>(null);
 
   const [stats, setStats] = useState<DashboardStats>({
     departments: [],
@@ -65,7 +68,8 @@ export const useDashboardData = () => {
           name,
           business_id,
           role,
-          businesses ( business_type, owner_id )
+          avatar_url,
+          businesses ( name, business_type, plan_type, owner_id )
         `,
         )
         .eq("id", userId)
@@ -81,6 +85,9 @@ export const useDashboardData = () => {
       setRole(profileData.role);
       setBusinessType(bType);
       setBusinessId(bId);
+      setBusinessName((profileData?.businesses as any)?.name || null);
+      setProfileImage(profileData.avatar_url);
+      setPlanType((profileData?.businesses as any)?.plan_type || null);
 
       // 3. Recupero Crediti (singola fonte di verità)
       let totalCredits = 0;
@@ -204,9 +211,12 @@ export const useDashboardData = () => {
 
   return {
     userName,
+    businessName,
     role,
     businessType,
     businessId,
+    profileImage,
+    planType,
     stats,
     upcomingShifts,
     loading,

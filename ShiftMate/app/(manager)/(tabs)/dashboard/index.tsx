@@ -45,6 +45,9 @@ export default function Dashboard() {
   const {
     userName,
     businessType,
+    businessName,
+    profileImage,
+    planType,
     stats,
     upcomingShifts,
     loading: dataLoading,
@@ -90,6 +93,8 @@ export default function Dashboard() {
   console.log("DEBUG DASHBOARD:", {
     hasSubscription,
     businessId,
+    profileImage,
+    businessName,
     userRole,
   });
 
@@ -146,6 +151,9 @@ export default function Dashboard() {
 
         <DashboardHeader
           userName={userName}
+          businessName={businessName ?? undefined}
+          profileImage={profileImage}
+          planType={planType}
           theme={theme}
           onProfilePress={() => router.push("/profile")}
         />

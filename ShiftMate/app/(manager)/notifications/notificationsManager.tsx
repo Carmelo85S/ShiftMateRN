@@ -1,35 +1,45 @@
-import React, { useCallback } from "react";
-import { View, FlatList, ActivityIndicator, useColorScheme, StyleSheet, RefreshControl } from "react-native";
 import { Colors } from "@/constants/theme";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { Ionicons } from "@expo/vector-icons";
 import { Stack, useFocusEffect } from "expo-router";
+import React, { useCallback } from "react";
+import {
+  ActivityIndicator,
+  FlatList,
+  RefreshControl,
+  StyleSheet,
+  Text,
+  useColorScheme,
+  View,
+} from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { useHandleNotifications } from "@/hooks/manager/useHandleNotifications";
-import { NotificationsItem } from "@/components/shared/notification/NotificationsItem";
 import { NotificationsHeader } from "@/components/shared/notification/NotificationsHeader";
+import { NotificationsItem } from "@/components/shared/notification/NotificationsItem";
 import { ScreenWrapper } from "@/components/shared/wrapper/layout-wrapper";
+import { useHandleNotifications } from "@/hooks/manager/useHandleNotifications";
 
 export default function NotificationsScreen() {
   const theme = Colors[useColorScheme() ?? "light"];
   const insets = useSafeAreaInsets();
-  
-  const { 
-    notifications, 
-    loading, 
-    refreshing, 
-    fetchNotifications, 
-    handleMarkAllRead, 
-    handleNotificationPress, 
+
+  const {
+    notifications,
+    loading,
+    refreshing,
+    fetchNotifications,
+    handleMarkAllRead,
+    handleNotificationPress,
     handleDeleteNotification,
-    onRefresh
+    onRefresh,
   } = useHandleNotifications();
 
   useFocusEffect(
-    useCallback(() => { 
-      fetchNotifications(); 
-    }, [fetchNotifications])
+    useCallback(() => {
+      fetchNotifications();
+    }, [fetchNotifications]),
   );
 
+  // Loading iniziale
   if (loading && !refreshing) {
     return (
       <View style={[styles.center, { backgroundColor: theme.background }]}>
@@ -40,13 +50,16 @@ export default function NotificationsScreen() {
 
   return (
     <ScreenWrapper scrollable={false}>
-      <Stack.Screen options={{ 
-        headerTitle: "Notifications",
-        headerBackButtonDisplayMode: "minimal",
-        headerShadowVisible: false,
-        headerStyle: { backgroundColor: theme.background },
-        headerTintColor: theme.text
-      }} />
+      <Stack.Screen
+        options={{
+          headerTitle: "Notifications",
+          headerBackButtonDisplayMode: "minimal",
+          headerShadowVisible: false,
+          headerStyle: { backgroundColor: theme.background },
+          headerTintColor: theme.text,
+        }}
+      />
+
       <View style={{ flex: 1, backgroundColor: theme.background }}>
         <FlatList
           data={notifications}
@@ -61,24 +74,47 @@ export default function NotificationsScreen() {
           }
           contentContainerStyle={[
             styles.listContent,
-            { paddingTop: insets.top + 20, paddingBottom: 120 }
+            { paddingTop: insets.top + 20, paddingBottom: 120 },
           ]}
           showsVerticalScrollIndicator={false}
           ListHeaderComponent={
-            <NotificationsHeader 
-              hasUnread={notifications.some(n => !n.is_read)} 
-              theme={theme} 
-              onMarkAllRead={handleMarkAllRead} 
-            />
+            notifications.length > 0 ? (
+              <NotificationsHeader
+                hasUnread={notifications.some((n) => !n.is_read)}
+                theme={theme}
+                onMarkAllRead={handleMarkAllRead}
+              />
+            ) : null
           }
           renderItem={({ item }) => (
-            <NotificationsItem 
-              item={item} 
-              theme={theme} 
-              onPress={() => handleNotificationPress(item)} 
+            <NotificationsItem
+              item={item}
+              theme={theme}
+              onPress={() => handleNotificationPress(item)}
               onDelete={() => handleDeleteNotification(item.id)}
             />
           )}
+          // 🌟 EMPTY STATE: Visibile solo se la lista è vuota
+          ListEmptyComponent={
+            !loading ? (
+              <View style={styles.emptyContainer}>
+                <Ionicons
+                  name="notifications-outline"
+                  size={64}
+                  color={theme.secondaryText}
+                  style={{ opacity: 0.3 }}
+                />
+                <Text style={[styles.emptyTitle, { color: theme.text }]}>
+                  All caught up!
+                </Text>
+                <Text
+                  style={[styles.emptyText, { color: theme.secondaryText }]}
+                >
+                  You have no new notifications right now.
+                </Text>
+              </View>
+            ) : null
+          }
         />
       </View>
     </ScreenWrapper>
@@ -86,12 +122,29 @@ export default function NotificationsScreen() {
 }
 
 const styles = StyleSheet.create({
-  center: { 
-    flex: 1, 
-    justifyContent: 'center', 
-    alignItems: 'center' 
+  center: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
   },
-  listContent: { 
-    paddingHorizontal: 20 
-  }
+  listContent: {
+    paddingHorizontal: 20,
+  },
+  emptyContainer: {
+    marginTop: 100,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 40,
+  },
+  emptyTitle: {
+    fontSize: 18,
+    fontWeight: "800",
+    marginTop: 20,
+  },
+  emptyText: {
+    fontSize: 14,
+    marginTop: 8,
+    textAlign: "center",
+    lineHeight: 20,
+  },
 });

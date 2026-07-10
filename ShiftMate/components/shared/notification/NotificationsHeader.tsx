@@ -1,5 +1,5 @@
 import React from "react";
-import { View, Text, Pressable, StyleSheet } from "react-native";
+import { Pressable, StyleSheet, Text, View } from "react-native";
 
 interface NotificationsHeaderProps {
   hasUnread: boolean;
@@ -8,23 +8,31 @@ interface NotificationsHeaderProps {
   title?: string;
 }
 
-export const NotificationsHeader = ({ 
-  hasUnread, 
-  theme, 
-  onMarkAllRead, 
-  title = "Notifications" 
+export const NotificationsHeader = ({
+  hasUnread,
+  theme,
+  onMarkAllRead,
+  title = "Notifications",
 }: NotificationsHeaderProps) => {
   return (
     <View style={styles.headerArea}>
-      <Text style={[styles.screenTitle, { color: theme.text }]}>
+      <Text
+        style={[styles.screenTitle, { color: theme.text }]}
+        accessibilityRole="header"
+      >
         {title}
       </Text>
-      
+
       {hasUnread && (
-        <Pressable 
-          onPress={onMarkAllRead} 
-          style={({ pressed }) => ({ opacity: pressed ? 0.6 : 1, padding: 4 })}
-        > 
+        <Pressable
+          onPress={onMarkAllRead}
+          style={({ pressed }) => ({
+            opacity: pressed ? 0.6 : 1,
+            padding: 4,
+          })}
+          accessibilityLabel="Mark all notifications as read"
+          accessibilityRole="button"
+        >
           <Text style={[styles.markReadText, { color: theme.tint }]}>
             Mark all as read
           </Text>
@@ -35,19 +43,20 @@ export const NotificationsHeader = ({
 };
 
 const styles = StyleSheet.create({
-  headerArea: { 
-    flexDirection: 'row', 
-    justifyContent: 'space-between', 
-    alignItems: 'center', 
-    marginBottom: 25 
+  headerArea: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 25,
+    marginTop: 10,
   },
-  screenTitle: { 
-    fontSize: 32, 
-    fontWeight: "900", 
-    letterSpacing: -1 
+  screenTitle: {
+    fontSize: 32,
+    fontWeight: "900",
+    letterSpacing: -1,
   },
-  markReadText: { 
-    fontSize: 14, 
-    fontWeight: "700" 
-  }
+  markReadText: {
+    fontSize: 14,
+    fontWeight: "700",
+  },
 });

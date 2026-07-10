@@ -241,12 +241,14 @@ export default function HistoryScreen() {
         </Pressable>
       </View>
 
-      {/* KPI Card riassuntive del mese */}
-      <HistoryStatsCard
-        spending={monthlySpending}
-        count={filteredHistory.length}
-        theme={theme}
-      />
+      {/* 🌟 LA CARD APPARE SOLO QUANDO SEI SU 'PAST SHIFTS' */}
+      {activeTab === "shifts" && (
+        <HistoryStatsCard
+          spending={monthlySpending}
+          count={filteredHistory.length}
+          theme={theme}
+        />
+      )}
 
       {/* Segmented Control Tabs */}
       <View

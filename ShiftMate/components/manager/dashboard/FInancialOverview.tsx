@@ -1,19 +1,16 @@
-import { ScreenWrapper } from "@/components/shared/wrapper/layout-wrapper";
-import { updateBudget } from "@/queries/managerQueries";
 import { Ionicons } from "@expo/vector-icons";
-import { router } from "expo-router";
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import {
-  ActivityIndicator,
-  Alert,
+  FlatList,
   LayoutAnimation,
+  Modal,
   Platform,
   Pressable,
   StyleSheet,
   Text,
   TextInput,
   UIManager,
-  View,
+  View
 } from "react-native";
 
 if (
@@ -23,7 +20,7 @@ if (
   UIManager.setLayoutAnimationEnabledExperimental(true);
 }
 
-// Interfacce dati per entrambi i modelli aziendali
+// Interfacce
 interface DepartmentStat {
   id: string;
   name: string;
@@ -40,23 +37,14 @@ interface ClientStat {
 interface Props {
   stats: {
     departments?: DepartmentStat[];
-    clients?: ClientStat[]; // Staffing
+    clients?: ClientStat[];
     pendingCount?: number;
-    totalMonthlyRevenue?: number; // Staffing
+    totalMonthlyRevenue?: number;
   };
   theme: any;
   refreshDashboard: () => Promise<void> | void;
   isHistory?: boolean;
-  businessType?: "standard" | "staffing"; // business type
-}
-
-interface DepartmentCardProps {
-  dept: DepartmentStat;
-  theme: any;
-  isExpanded: boolean;
-  isHistory?: boolean;
-  onPressHeader: () => void;
-  onBudgetUpdated: () => Promise<void> | void;
+  businessType?: "standard" | "staffing";
 }
 
 export const FinancialOverview = ({
@@ -66,68 +54,32 @@ export const FinancialOverview = ({
   isHistory = false,
   businessType = "standard",
 }: Props) => {
-  const [expandedId, setExpandedId] = useState<string | null>(
-    stats.departments?.[0]?.id || null,
-  );
+  const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [isModalVisible, setIsModalVisible] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
 
-  // Sincronizza lo stato locale quando cambiano le props esterne
-  useEffect(() => {
-    if (businessType === "staffing") {
-      setExpandedId(null);
-      return;
-    }
-
-    if (stats.departments && stats.departments.length > 0) {
-      if (!expandedId || !stats.departments.some((d) => d.id === expandedId)) {
-        setExpandedId(stats.departments[0].id);
-      }
-    } else {
-      setExpandedId(null);
-    }
-  }, [stats.departments, businessType]);
-
-  // ==========================================
-  // 🌟 RENDERING PER STAFFING AGENCY (STAFFING)
-  // ==========================================
+  // LOGICA STAFFING
   if (businessType === "staffing") {
-    // 🛠️ FIX: Pulizia dei dati in tempo reale per prevenire disallineamenti tra database e hook
-    const clients = (stats.clients || []).filter(
-      (client) => client.name && client.name.trim() !== "",
+    const clients = (stats.clients || []).filter((c) => c.name?.trim());
+    const filteredClients = clients.filter((c) =>
+      c.name.toLowerCase().includes(searchQuery.toLowerCase()),
     );
     const totalRevenue =
       stats.totalMonthlyRevenue ||
       clients.reduce((acc, c) => acc + c.revenue, 0);
-
-    if (isHistory && totalRevenue === 0) {
-      return (
-        <View style={styles.emptyContainer}>
-          <Ionicons
-            name="analytics-outline"
-            size={48}
-            color={theme.text}
-            style={{ opacity: 0.1 }}
-          />
-          <Text style={[styles.emptyText, { color: theme.text }]}>
-            No revenue recorded for this month.
-          </Text>
-        </View>
-      );
-    }
 
     return (
       <View style={styles.container}>
         <Text style={[styles.sectionTitle, { color: theme.text }]}>
           Monthly Revenue
         </Text>
-
-        {/* KPI Card principale dell'agenzia */}
         <View
           style={[styles.staffingTotalCard, { backgroundColor: theme.text }]}
         >
           <Text
             style={[styles.staffingTotalLabel, { color: theme.background }]}
           >
-            TOTAL REVENUE (THIS MONTH)
+            TOTAL REVENUE
           </Text>
           <Text
             style={[styles.staffingTotalValue, { color: theme.background }]}
@@ -137,12 +89,132 @@ export const FinancialOverview = ({
         </View>
 
         <Text style={[styles.sectionSubtitle, { color: theme.text }]}>
-          Revenue per Client
+          Clients Overview
         </Text>
 
-        {/* 🛠️ FIX: Se l'hook fallisce il calcolo del totale ma ha una riga di ripiego o viceversa, mostriamo un fallback protetto */}
-        {clients.length === 0 && totalRevenue > 0 ? (
-          <View style={[styles.clientRowCard, { backgroundColor: theme.card }]}>
+        {/* Bottone che apre il Modal */}
+        <Pressable
+          style={[
+            styles.clientRowCard,
+            {
+              backgroundColor: theme.card,
+              flexDirection: "row",
+              alignItems: "center",
+              justifyContent: "space-between",
+            },
+          ]}
+          onPress={() => setIsModalVisible(true)}
+        >
+          <View style={styles.headerLeft}>
+            <View
+              style={[styles.iconBadge, { backgroundColor: theme.tint + "10" }]}
+            >
+              <Ionicons name="list-outline" size={18} color={theme.tint} />
+            </View>
+            <Text style={[styles.deptName, { color: theme.text }]}>
+              View all {clients.length} clients
+            </Text>
+          </View>
+          <Ionicons
+            name="chevron-forward"
+            size={20}
+            color={theme.secondaryText}
+          />
+        </Pressable>
+
+        {/* Modal Lista Clienti */}
+        <Modal
+          visible={isModalVisible}
+          animationType="slide"
+          presentationStyle="pageSheet"
+        >
+          <View
+            style={[
+              styles.modalContainer,
+              { backgroundColor: theme.background },
+            ]}
+          >
+            <View style={styles.modalHeader}>
+              <Text style={[styles.modalTitle, { color: theme.text }]}>
+                All Clients
+              </Text>
+              <Pressable onPress={() => setIsModalVisible(false)}>
+                <Text style={{ color: theme.tint, fontWeight: "700" }}>
+                  Close
+                </Text>
+              </Pressable>
+            </View>
+
+            <View style={[styles.searchBar, { backgroundColor: theme.card }]}>
+              <Ionicons name="search" size={18} color={theme.secondaryText} />
+              <TextInput
+                style={[styles.searchInput, { color: theme.text }]}
+                placeholder="Search..."
+                placeholderTextColor={theme.secondaryText}
+                value={searchQuery}
+                onChangeText={setSearchQuery}
+              />
+            </View>
+
+            <FlatList
+              data={filteredClients}
+              keyExtractor={(item) => item.id}
+              renderItem={({ item }) => (
+                <View
+                  style={[
+                    styles.clientRowCard,
+                    { backgroundColor: theme.card, marginBottom: 10 },
+                  ]}
+                >
+                  <Text style={[styles.deptName, { color: theme.text }]}>
+                    {item.name}
+                  </Text>
+                  <Text
+                    style={[styles.clientRevenueValue, { color: theme.text }]}
+                  >
+                    {item.revenue.toLocaleString("sv-SE")} SEK
+                  </Text>
+                </View>
+              )}
+              ListEmptyComponent={
+                <Text
+                  style={{
+                    textAlign: "center",
+                    marginTop: 20,
+                    color: theme.secondaryText,
+                  }}
+                >
+                  No clients found.
+                </Text>
+              }
+            />
+          </View>
+        </Modal>
+      </View>
+    );
+  }
+
+  // LOGICA STANDARD (Budget Dipartimenti)
+  const departments = stats.departments || [];
+  return (
+    <View style={styles.container}>
+      <Text style={[styles.sectionTitle, { color: theme.text }]}>
+        Department Budgets
+      </Text>
+      {departments.map((dept) => (
+        <View
+          key={dept.id}
+          style={[styles.mainCard, { backgroundColor: theme.card }]}
+        >
+          <Pressable
+            style={styles.accordionHeader}
+            onPress={() => {
+              LayoutAnimation.configureNext(
+                LayoutAnimation.Presets.easeInEaseOut,
+              );
+              setExpandedId(expandedId === dept.id ? null : dept.id);
+            }}
+          >
             <View style={styles.headerLeft}>
               <View
                 style={[
@@ -150,511 +222,78 @@ export const FinancialOverview = ({
                   { backgroundColor: theme.tint + "10" },
                 ]}
               >
-                <Ionicons
-                  name="briefcase-outline"
-                  size={16}
-                  color={theme.tint}
-                />
+                <Ionicons name="business" size={14} color={theme.tint} />
               </View>
               <Text style={[styles.deptName, { color: theme.text }]}>
-                Active Monthly Contracts
+                {dept.name}
               </Text>
             </View>
-            <Text style={[styles.clientRevenueValue, { color: theme.text }]}>
-              {totalRevenue.toLocaleString("sv-SE")} SEK
-            </Text>
-          </View>
-        ) : clients.length === 0 ? (
-          <View
-            style={[
-              styles.emptyCard,
-              { backgroundColor: theme.card, borderColor: theme.border },
-            ]}
-          >
-            <Ionicons
-              name="people-outline"
-              size={32}
-              color={theme.text}
-              style={{ opacity: 0.2, marginBottom: 8 }}
-            />
-            <Text style={[styles.emptyText, { color: theme.secondaryText }]}>
-              No active clients found this month.
-            </Text>
-          </View>
-        ) : (
-          clients.map((client) => (
-            <View
-              key={client.id}
-              style={[styles.clientRowCard, { backgroundColor: theme.card }]}
+            <Text
+              style={{
+                color: dept.availableBudget < 0 ? "#FF3B30" : "#34C759",
+                fontWeight: "800",
+              }}
             >
-              <View style={styles.headerLeft}>
-                <View
-                  style={[
-                    styles.iconBadge,
-                    { backgroundColor: theme.tint + "10" },
-                  ]}
-                >
-                  <Ionicons
-                    name="briefcase-outline"
-                    size={16}
-                    color={theme.tint}
-                  />
-                </View>
-                <Text style={[styles.deptName, { color: theme.text }]}>
-                  {client.name}
-                </Text>
-              </View>
-              <Text style={[styles.clientRevenueValue, { color: theme.text }]}>
-                {client.revenue.toLocaleString("sv-SE")} SEK
-              </Text>
-            </View>
-          ))
-        )}
-      </View>
-    );
-  }
-
-  // ==========================================
-  // 🌟 RENDERING PER STANDARD
-  // ==========================================
-  const departments = stats.departments || [];
-  const totalSpentInMonth = departments.reduce(
-    (acc, dept) => acc + (dept.effectiveSpent || 0),
-    0,
-  );
-
-  if (isHistory && totalSpentInMonth === 0) {
-    return (
-      <View style={styles.emptyContainer}>
-        <Ionicons
-          name="calendar-outline"
-          size={48}
-          color={theme.text}
-          style={{ opacity: 0.1 }}
-        />
-        <Text style={[styles.emptyText, { color: theme.text }]}>
-          No financial expanses recorded for this month.
-        </Text>
-      </View>
-    );
-  }
-
-  if (departments.length === 0) {
-    return (
-      <View
-        style={[
-          styles.emptyCard,
-          { backgroundColor: theme.card, borderColor: theme.border },
-        ]}
-      >
-        <Ionicons
-          name="home-outline"
-          size={48}
-          color={theme.text}
-          style={{ opacity: 0.1 }}
-        />
-        <Text style={[styles.emptyText, { color: theme.secondaryText }]}>
-          No departments found.
-        </Text>
-        {!isHistory && (
-          <Pressable
-            style={({ pressed }) => [
-              styles.btnComplete,
-              { backgroundColor: theme.text },
-              pressed && { opacity: 0.8 },
-            ]}
-            onPress={() =>
-              router.replace("/(manager)/(tabs)/create/createDepartment")
-            }
-          >
-            <Text style={[styles.btnText, { color: theme.background }]}>
-              Create department
+              €{dept.availableBudget.toLocaleString("it-IT")}
             </Text>
           </Pressable>
-        )}
-      </View>
-    );
-  }
-
-  const toggleExpand = (id: string) => {
-    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
-    setExpandedId(expandedId === id ? null : id);
-  };
-
-  return (
-    <View style={styles.container}>
-      <Text style={[styles.sectionTitle, { color: theme.text }]}>
-        Department Budgets
-      </Text>
-      {departments.map((dept) => (
-        <DepartmentCard
-          key={dept.id}
-          dept={dept}
-          theme={theme}
-          isExpanded={expandedId === dept.id}
-          isHistory={isHistory}
-          onPressHeader={() => toggleExpand(dept.id)}
-          onBudgetUpdated={refreshDashboard}
-        />
+        </View>
       ))}
     </View>
   );
 };
 
-// Componente Card Dipartimento per Ristoranti
-const DepartmentCard = ({
-  dept,
-  theme,
-  isExpanded,
-  isHistory = false,
-  onPressHeader,
-  onBudgetUpdated,
-}: DepartmentCardProps) => {
-  const [budgetInput, setBudgetInput] = useState<string>(
-    Math.round(dept.plannedBudget).toString(),
-  );
-  const [isSaving, setIsSaving] = useState<boolean>(false);
-  const [isEditing, setIsEditing] = useState<boolean>(false);
-
-  useEffect(() => {
-    setBudgetInput(Math.round(dept.plannedBudget).toString());
-  }, [dept.plannedBudget]);
-
-  const isNegative = dept.availableBudget < 0;
-  const spentPercentage =
-    dept.plannedBudget > 0
-      ? Math.min((dept.effectiveSpent / dept.plannedBudget) * 100, 100)
-      : 100;
-
-  let statusColor = "#34C759";
-  if (spentPercentage >= 90 || isNegative) statusColor = "#FF3B30";
-  else if (spentPercentage >= 70) statusColor = "#FF9500";
-
-  const handleSaveBudget = async () => {
-    const parsedBudget = parseFloat(budgetInput);
-    if (isNaN(parsedBudget) || parsedBudget < 0) {
-      Alert.alert("Errore", "Insert a valid number.");
-      return;
-    }
-    try {
-      setIsSaving(true);
-      await updateBudget(dept.id, parsedBudget);
-      await onBudgetUpdated();
-      setIsEditing(false);
-    } catch (error) {
-      Alert.alert("Errore", "Impossible update database.");
-    } finally {
-      setIsSaving(false);
-    }
-  };
-
-  return (
-    <ScreenWrapper scrollable={true}>
-      <Pressable style={styles.accordionHeader} onPress={onPressHeader}>
-        <View style={styles.headerLeft}>
-          <View
-            style={[styles.iconBadge, { backgroundColor: theme.tint + "10" }]}
-          >
-            <Ionicons name="business" size={14} color={theme.tint} />
-          </View>
-          <Text style={[styles.deptName, { color: theme.text }]}>
-            {dept.name}
-          </Text>
-        </View>
-        <View style={styles.headerRight}>
-          <Text style={[styles.headerAvailableValue, { color: statusColor }]}>
-            €{dept.availableBudget.toLocaleString("it-IT")}
-          </Text>
-          <Ionicons
-            name={isExpanded ? "chevron-up" : "chevron-down"}
-            size={16}
-            color={theme.secondaryText}
-          />
-        </View>
-      </Pressable>
-      {isExpanded && (
-        <View style={styles.dropdownContent}>
-          <View style={styles.progressContainer}>
-            <View style={styles.progressLabelRow}>
-              <Text
-                style={[styles.spendingLabel, { color: theme.secondaryText }]}
-              >
-                SPENDING PROGRESS
-              </Text>
-              <Text
-                style={[styles.progressPercentText, { color: statusColor }]}
-              >
-                {Math.round(spentPercentage)}%
-              </Text>
-            </View>
-            <View
-              style={[
-                styles.progressBarTrack,
-                { backgroundColor: theme.background },
-              ]}
-            >
-              <View
-                style={[
-                  styles.progressBarFill,
-                  {
-                    width: `${spentPercentage}%`,
-                    backgroundColor: statusColor,
-                  },
-                ]}
-              />
-            </View>
-          </View>
-
-          <View style={styles.spendingGrid}>
-            <View
-              style={[
-                styles.spendingItem,
-                { backgroundColor: theme.background },
-              ]}
-            >
-              <View style={styles.labelWithIcon}>
-                <Text
-                  style={[styles.spendingLabel, { color: theme.secondaryText }]}
-                >
-                  PLANNED (LIMIT)
-                </Text>
-                {!isHistory && (
-                  <Pressable
-                    onPress={() => {
-                      LayoutAnimation.configureNext(
-                        LayoutAnimation.Presets.easeInEaseOut,
-                      );
-                      setIsEditing(!isEditing);
-                    }}
-                  >
-                    <Ionicons
-                      name="create-outline"
-                      size={20}
-                      color={theme.tint}
-                      style={{ marginLeft: 4 }}
-                    />
-                  </Pressable>
-                )}
-              </View>
-              <Text style={[styles.spendingValue, { color: theme.text }]}>
-                €{dept.plannedBudget.toLocaleString("it-IT")}
-              </Text>
-            </View>
-
-            <View
-              style={[
-                styles.spendingItem,
-                { backgroundColor: theme.background },
-              ]}
-            >
-              <Text
-                style={[styles.spendingLabel, { color: theme.secondaryText }]}
-              >
-                EFFECTIVE (SPENT)
-              </Text>
-              <Text style={[styles.spendingValue, { color: theme.text }]}>
-                €{dept.effectiveSpent.toLocaleString("it-IT")}
-              </Text>
-            </View>
-          </View>
-
-          {isEditing && !isHistory && (
-            <View
-              style={[
-                styles.editBudgetForm,
-                { borderTopColor: theme.background },
-              ]}
-            >
-              <TextInput
-                style={[
-                  styles.budgetTextInput,
-                  {
-                    backgroundColor: theme.background,
-                    color: theme.text,
-                    borderColor: theme.tint + "30",
-                  },
-                ]}
-                value={budgetInput}
-                onChangeText={setBudgetInput}
-                keyboardType="numeric"
-                placeholder="Nuovo Budget"
-                placeholderTextColor={theme.secondaryText}
-                returnKeyType="done"
-                autoFocus
-              />
-              <Pressable
-                style={[styles.saveButton, { backgroundColor: theme.tint }]}
-                onPress={handleSaveBudget}
-                disabled={isSaving}
-              >
-                {isSaving ? (
-                  <ActivityIndicator size="small" color="#FFF" />
-                ) : (
-                  <Text style={styles.saveButtonText}>Salva</Text>
-                )}
-              </Pressable>
-            </View>
-          )}
-        </View>
-      )}
-    </ScreenWrapper>
-  );
-};
-
-export default FinancialOverview;
-
 const styles = StyleSheet.create({
-  container: { marginBottom: 8 },
+  container: { marginBottom: 20 },
   sectionTitle: {
     fontSize: 13,
     fontWeight: "800",
     marginBottom: 12,
-    textTransform: "uppercase",
+    opacity: 0.6,
     letterSpacing: 0.5,
-    opacity: 0.7,
   },
   sectionSubtitle: {
     fontSize: 11,
     fontWeight: "800",
     marginTop: 14,
-    marginBottom: 10,
-    textTransform: "uppercase",
-    letterSpacing: 0.5,
+    marginBottom: 8,
     opacity: 0.5,
   },
-  mainCard: {
-    borderRadius: 20,
-    marginBottom: 10,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.03,
-    shadowRadius: 10,
-    elevation: 2,
-    overflow: "hidden",
-  },
-  emptyCard: {
-    marginVertical: 16,
-    padding: 24,
-    borderRadius: 16,
-    alignItems: "center",
-    justifyContent: "center",
-    borderWidth: 1,
-  },
-  emptyText: {
-    fontSize: 14,
-    opacity: 0.4,
-    marginVertical: 12,
-    fontWeight: "600",
-    textAlign: "center",
-  },
-  btnComplete: {
-    height: 40,
-    paddingHorizontal: 24,
-    borderRadius: 12,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  btnText: { fontSize: 13, fontWeight: "700" },
+  mainCard: { borderRadius: 20, marginBottom: 10, padding: 4 },
   accordionHeader: {
     flexDirection: "row",
-    alignItems: "center",
     justifyContent: "space-between",
     padding: 14,
+    alignItems: "center",
   },
-  headerLeft: { flexDirection: "row", alignItems: "center", gap: 8, flex: 1 },
-  headerRight: { flexDirection: "row", alignItems: "center", gap: 10 },
-  iconBadge: { padding: 6, borderRadius: 8 },
+  headerLeft: { flexDirection: "row", alignItems: "center", gap: 10 },
+  iconBadge: { padding: 8, borderRadius: 10 },
   deptName: { fontSize: 14, fontWeight: "800" },
-  headerAvailableValue: { fontSize: 14, fontWeight: "800" },
-  dropdownContent: { paddingHorizontal: 14, paddingBottom: 14, paddingTop: 4 },
-  progressContainer: { marginBottom: 14, marginTop: 4 },
-  progressLabelRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    marginBottom: 6,
-    alignItems: "center",
-  },
-  progressPercentText: { fontSize: 11, fontWeight: "800" },
-  progressBarTrack: {
-    height: 7,
-    borderRadius: 4,
-    width: "100%",
-    overflow: "hidden",
-  },
-  progressBarFill: { height: "100%", borderRadius: 4 },
-  spendingGrid: { flexDirection: "row", gap: 8 },
-  spendingItem: {
-    flex: 1,
-    padding: 12,
-    borderRadius: 12,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  labelWithIcon: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginBottom: 4,
-  },
-  spendingLabel: { fontSize: 8, fontWeight: "700", opacity: 0.6 },
-  spendingValue: { fontSize: 14, fontWeight: "800" },
-  emptyContainer: { marginTop: 60, alignItems: "center" },
-  editBudgetForm: {
-    flexDirection: "row",
-    gap: 8,
-    borderTopWidth: 1,
-    paddingTop: 12,
-    marginTop: 12,
-    alignItems: "center",
-  },
-  budgetTextInput: {
-    flex: 1,
-    height: 38,
-    borderRadius: 8,
-    borderWidth: 1,
-    paddingHorizontal: 12,
-    fontSize: 13,
-    fontWeight: "600",
-  },
-  saveButton: {
-    height: 38,
-    paddingHorizontal: 16,
-    borderRadius: 8,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  saveButtonText: { color: "#FFF", fontSize: 12, fontWeight: "700" },
-
-  // DESIGN DEDICATO ALLA STAFFING AGENCY
-  staffingTotalCard: {
-    padding: 20,
-    borderRadius: 22,
-    marginBottom: 10,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.05,
-    shadowRadius: 12,
-    elevation: 3,
-  },
-  staffingTotalLabel: {
-    fontSize: 9,
-    fontWeight: "700",
-    letterSpacing: 0.5,
-    opacity: 0.6,
-    marginBottom: 4,
-  },
-  staffingTotalValue: { fontSize: 24, fontWeight: "800", letterSpacing: -0.5 },
   clientRowCard: {
     flexDirection: "row",
-    alignItems: "center",
     justifyContent: "space-between",
     padding: 16,
-    borderRadius: 20,
+    borderRadius: 16,
     marginBottom: 8,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.01,
-    shadowRadius: 5,
-    elevation: 1,
   },
-  clientRevenueValue: { fontSize: 14, fontWeight: "800" },
+  clientRevenueValue: { fontWeight: "800" },
+  staffingTotalCard: { padding: 20, borderRadius: 20, marginBottom: 15 },
+  staffingTotalLabel: { fontSize: 10, fontWeight: "700", opacity: 0.6 },
+  staffingTotalValue: { fontSize: 28, fontWeight: "900", marginTop: 4 },
+  modalContainer: { flex: 1, padding: 20, paddingTop: 40 },
+  modalHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginBottom: 20,
+  },
+  modalTitle: { fontSize: 22, fontWeight: "800" },
+  searchBar: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderRadius: 12,
+    marginBottom: 15,
+  },
+  searchInput: { flex: 1, marginLeft: 8, fontSize: 14 },
 });
