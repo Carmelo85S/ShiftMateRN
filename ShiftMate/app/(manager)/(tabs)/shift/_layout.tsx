@@ -9,30 +9,24 @@ export default function ShiftStackLayout() {
   return (
     <Stack
       screenOptions={{
-        // ✅ Abilita la barra in alto su tutte le pagine della cartella
         headerShown: true,
 
         headerBackButtonDisplayMode: "minimal",
 
-        // ✅ Colore della freccia e dei testi nell'header
         headerTintColor: theme.tint,
 
-        // ✅ Stile della barra (sfondo)
         headerStyle: {
           backgroundColor: theme.background,
         },
 
-        // ✅ Stile del titolo (Grassetto)
         headerTitleStyle: {
           fontWeight: "bold",
           color: theme.text,
         },
 
-        // ✅ Toglie la linea di separazione per un look più moderno
         headerShadowVisible: false,
       }}
     >
-      {/* 1. La pagina principale (Lista dei Turni) */}
       <Stack.Screen
         name="index"
         options={{
@@ -43,7 +37,6 @@ export default function ShiftStackLayout() {
         }}
       />
 
-      {/* 2. La pagina di Dettaglio (Dinamica) */}
       <Stack.Screen
         name="[id]"
         options={{
@@ -54,7 +47,6 @@ export default function ShiftStackLayout() {
         }}
       />
 
-      {/* 3. La pagina di Modifica */}
       <Stack.Screen
         name="editShift"
         options={{
@@ -66,7 +58,6 @@ export default function ShiftStackLayout() {
         }}
       />
 
-      {/* 4. La pagina di storico */}
       <Stack.Screen
         name="history"
         options={{

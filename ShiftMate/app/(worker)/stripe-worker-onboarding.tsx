@@ -3,12 +3,12 @@ import * as Linking from "expo-linking";
 import { Stack, useRouter } from "expo-router";
 import React, { useState } from "react";
 import {
-    ActivityIndicator,
-    Alert,
-    Pressable,
-    StyleSheet,
-    Text,
-    View,
+  ActivityIndicator,
+  Alert,
+  Pressable,
+  StyleSheet,
+  Text,
+  View,
 } from "react-native";
 
 export default function WorkerStripeOnboarding() {
@@ -23,7 +23,6 @@ export default function WorkerStripeOnboarding() {
       } = await supabase.auth.getUser();
       if (!user) throw new Error("Utente non autenticato");
 
-      // Chiamata alla Edge Function per creare l'account session
       const { data, error } = await supabase.functions.invoke(
         "create-worker-stripe-onboarding",
         {
@@ -35,7 +34,10 @@ export default function WorkerStripeOnboarding() {
       if (error) throw error;
       if (data?.url) await Linking.openURL(data.url);
     } catch (err: any) {
-      Alert.alert("Errore", "Impossibile avviare la configurazione Stripe.");
+      Alert.alert(
+        "Errore",
+        "Impossible connect to Stripe. Please try again later.",
+      );
     } finally {
       setLoading(false);
     }
@@ -43,11 +45,10 @@ export default function WorkerStripeOnboarding() {
 
   return (
     <View style={styles.container}>
-      <Stack.Screen options={{ title: "Configura Pagamenti" }} />
-      <Text style={styles.title}>Ricevi i tuoi compensi</Text>
+      <Stack.Screen options={{ title: "Setting Stripe" }} />
+      <Text style={styles.title}>Receive Payments</Text>
       <Text style={styles.subtitle}>
-        Collega il tuo account Stripe per ricevere i pagamenti dei turni
-        completati.
+        Connect your Stripe account to receive payments for completed shifts.
       </Text>
 
       <Pressable
@@ -58,7 +59,7 @@ export default function WorkerStripeOnboarding() {
         {loading ? (
           <ActivityIndicator color="#fff" />
         ) : (
-          <Text style={styles.buttonText}>Collega Stripe</Text>
+          <Text style={styles.buttonText}>Connect Stripe</Text>
         )}
       </Pressable>
     </View>

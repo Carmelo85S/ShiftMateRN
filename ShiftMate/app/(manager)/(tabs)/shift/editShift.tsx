@@ -48,24 +48,18 @@ export default function EditShift() {
     openPicker,
   } = useShiftForm();
 
-  // Recuperiamo i dati del turno (passando setForm per popolarlo)
   const { loading, imageUrl, setImageUrl, shiftData } = useFetchShift(
     id,
     setForm,
   );
 
-  // 🌟 Stati locali per agenzie di staffing
   const [clientName, setClientName] = useState<string>();
   const [address, setAddress] = useState<string>("");
   const [city, setCity] = useState<string>("");
   const [workerCount, setWorkerCount] = useState<number>(1);
 
-  // 🌟 Sincronizza gli stati locali quando i dati del turno vengono caricati dal DB
   useEffect(() => {
     if (shiftData) {
-      // Il form standard è già gestito da useFetchShift
-
-      // Inizializza gli stati locali solo una volta
       setClientName(shiftData.client_name ?? "");
       setAddress(shiftData.address ?? "");
       setCity(shiftData.city ?? "");
@@ -73,7 +67,6 @@ export default function EditShift() {
     }
   }, [shiftData]);
 
-  // Intercettiamo l'update per iniettare i campi staffing
   const { saving, deleting, handleUpdate, handleDelete } = useEditShiftActions({
     id,
     imageUrl,
@@ -89,7 +82,6 @@ export default function EditShift() {
       required_workers: businessType === "staffing" ? workerCount : 1,
       department_id: businessType === "staffing" ? null : form.department,
 
-      // 🌟 TRUCCO: Se il valore è vuoto, usa il valore originale (shiftData)
       address:
         businessType === "staffing"
           ? address || shiftData?.address || null
@@ -101,7 +93,6 @@ export default function EditShift() {
           ? clientName || shiftData?.client_name || null
           : null,
 
-      // Assicurati che anche la descrizione non venga piallata
       description: form.description || shiftData?.description || "",
     };
 
@@ -143,7 +134,6 @@ export default function EditShift() {
           />
         </View>
 
-        {/* DEPARTMENT SELECTOR (Solo se standard) */}
         {businessType === "standard" && (
           <DepartmentSelector
             selectedId={form.department}
@@ -164,10 +154,8 @@ export default function EditShift() {
           theme={theme}
         />
 
-        {/* UI SPECIFICA PER AGENZIE DI STAFFING (EDIT MODE) 🌟 */}
         {businessType === "staffing" && (
           <View style={styles.staffingContainer}>
-            {/* COUNTER LAVORATORI */}
             <View
               style={[
                 styles.workerCounterContainer,
@@ -204,13 +192,11 @@ export default function EditShift() {
               </View>
             </View>
 
-            {/* CAMPI DI LOCALIZZAZIONE E DETTAGLI CLIENTE */}
             <View style={styles.staffingFieldsBlock}>
               <Text style={[styles.fieldBlockTitle, { color: theme.text }]}>
                 Location & Client Details
               </Text>
 
-              {/* Campo Nome Cliente */}
               <View
                 style={[
                   styles.inputGroup,
@@ -231,7 +217,6 @@ export default function EditShift() {
                 />
               </View>
 
-              {/* Campo Indirizzo */}
               <View
                 style={[
                   styles.inputGroup,
@@ -252,7 +237,6 @@ export default function EditShift() {
                 />
               </View>
 
-              {/* Campo Città */}
               <View
                 style={[
                   styles.inputGroup,
@@ -326,7 +310,6 @@ export default function EditShift() {
           )}
         </Pressable>
 
-        {/** DATE/TIME PICKER MODAL */}
         <ShiftDatePickerModal
           picker={picker}
           form={form}
@@ -363,8 +346,6 @@ const styles = StyleSheet.create({
     padding: 15,
   },
   deleteButtonText: { color: "#FF3B30", fontWeight: "700", fontSize: 15 },
-
-  // Stili Staffing duplicati correttamente da CreateShift
   staffingContainer: { marginBottom: 24 },
   workerCounterContainer: {
     flexDirection: "row",

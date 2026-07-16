@@ -94,7 +94,6 @@ export default function NotificationsScreen() {
               onDelete={() => handleDeleteNotification(item.id)}
             />
           )}
-          // 🌟 EMPTY STATE: Visibile solo se la lista è vuota
           ListEmptyComponent={
             !loading ? (
               <View style={styles.emptyContainer}>

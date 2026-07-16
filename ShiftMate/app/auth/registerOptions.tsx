@@ -15,7 +15,6 @@ export default function RegisterOptions() {
       <Stack.Screen options={{ headerShown: false }} />
       <ScreenWrapper scrollable={false} style={styles.wrapper}>
         <View style={[styles.container, { paddingTop: insets.top }]}>
-          {/* BLOCCO CENTRALE (Header + Opzioni) */}
           <View style={styles.centerSection}>
             <View style={styles.header}>
               <Text style={[styles.kpi, { color: theme.tint }]}>

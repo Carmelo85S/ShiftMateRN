@@ -7,18 +7,17 @@ export const ShiftHero = ({ shift, theme }: any) => {
   const router = useRouter();
   const currentStatus = shift?.status?.toLowerCase();
 
-  // 🌟 Mappatura dinamica dei colori del badge per reagire ad ogni cambio di stato
   const getBadgeStyle = () => {
     switch (currentStatus) {
       case "completed":
-        return { bg: "#4CAF50", text: "COMPLETED" }; // Verde scuro/successo
+        return { bg: "#4CAF50", text: "COMPLETED" };
       case "open":
-        return { bg: theme.tint, text: "OPEN" }; // Colore Brand principale
+        return { bg: theme.tint, text: "OPEN" };
       case "assigned":
       case "filled":
-        return { bg: "#FF9500", text: "ASSIGNED" }; // Arancione/Warning (In corso)
+        return { bg: "#FF9500", text: "ASSIGNED" };
       case "canceled":
-        return { bg: "#FF3B30", text: "CANCELED" }; // Rosso/Errore
+        return { bg: "#FF3B30", text: "CANCELED" };
       default:
         return {
           bg: "#8E8E93",

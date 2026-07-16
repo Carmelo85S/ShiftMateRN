@@ -13,13 +13,11 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-// Componenti Custom
 import { ShiftCard } from "@/components/shared/shiftCard/ShiftCard";
 import { EmptyShifts } from "@/components/worker/shifts/EmptyShifts";
 import { ShiftsHeader } from "@/components/worker/shifts/ShiftsHeader";
 import { TabSelector } from "@/components/worker/shifts/TabSelector";
 
-// Hooks
 import { useClientSideFiltering } from "@/hooks/worker/shifts/useClientSideFiltering";
 import { useLoadShiftsBoard } from "@/hooks/worker/shifts/useLoadShiftsBoard";
 import { supabase } from "@/lib/supabase";
@@ -30,7 +28,6 @@ export default function WorkerShifts() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
 
-  // Recuperiamo i dati dall'hook
   const {
     shifts,
     myBusinessShifts,
@@ -69,8 +66,7 @@ export default function WorkerShifts() {
 
   console.log("needsOnboarding", needsOnboarding);
 
-  // Un utente è un "Candidate" (esterno) se è loggato (!isGuest) MA non ha turni aziendali/collegamenti ad aziende
-  // Puoi anche passare direttamente una variabile 'role' dal tuo hook se preferisci
+  // If the user is not a guest and has no shifts in their business, we consider them a candidate.
   const isCandidate = !isGuest && myBusinessShifts.length === 0;
 
   return (

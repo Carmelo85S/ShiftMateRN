@@ -225,12 +225,12 @@ const styles = StyleSheet.create({
   container: {
     flexGrow: 1,
     paddingHorizontal: 32,
-    paddingTop: 80, // Aumentato per pareggiare il Login
+    paddingTop: 80,
     paddingBottom: 40,
-    justifyContent: "center", // Centratura verticale come nel Login
+    justifyContent: "center",
   },
   header: {
-    marginBottom: 45, // Pareggiato al Login
+    marginBottom: 45,
     alignItems: "flex-start",
   },
   backBtn: {
@@ -254,18 +254,18 @@ const styles = StyleSheet.create({
     letterSpacing: -1,
   },
   form: {
-    gap: 24, // Pareggiato al Login (era 20)
+    gap: 24,
   },
   row: {
     flexDirection: "row",
     gap: 16,
   },
   inputWrapper: {
-    gap: 10, // Pareggiato al Login (era 8)
+    gap: 10,
     flex: 1,
   },
   inputLabel: {
-    fontSize: 14, // Pareggiato al Login (era 12)
+    fontSize: 14,
     fontWeight: "600",
     color: "#1A1D1E",
     marginLeft: 4,
@@ -296,10 +296,8 @@ const styles = StyleSheet.create({
     elevation: 5,
   },
   buttonText: {
-    fontWeight: "700", // Grassetto più marcato
-    fontSize: 16, // Dimensione coerente
+    fontWeight: "700",
+    fontSize: 16,
     letterSpacing: 0.2,
-    // Nota: Il colore viene gestito nel componente tramite inline style
-    // per permettere il contrasto corretto (theme.background)
   },
 });

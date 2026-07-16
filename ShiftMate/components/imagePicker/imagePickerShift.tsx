@@ -1,36 +1,51 @@
+import { supabase } from "@/lib/supabase";
 import { Ionicons } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
 import React, { useState } from "react";
-import { Alert, Image, StyleSheet, Text, TouchableOpacity, View, ActivityIndicator } from "react-native";
-import { supabase } from "@/lib/supabase";
+import {
+  ActivityIndicator,
+  Alert,
+  Image,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
 
 type ShiftUploaderProps = {
   initialUrl?: string | null;
   onUpload: (url: string) => void;
 };
 
-export default function ShiftUploader({ initialUrl, onUpload }: ShiftUploaderProps) {
+export default function ShiftUploader({
+  initialUrl,
+  onUpload,
+}: ShiftUploaderProps) {
   const [image, setImage] = useState<string | null>(initialUrl ?? null);
   const [uploading, setUploading] = useState(false);
 
   const pickImage = async () => {
-    const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    const permissionResult =
+      await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (!permissionResult.granted) {
-      Alert.alert("Permesso negato", "È necessario l'accesso alla galleria per caricare una foto.");
+      Alert.alert(
+        "Permission Denied",
+        "Is necessary to allow access to the gallery to upload an image.",
+      );
       return;
     }
 
     const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ['images'],
+      mediaTypes: ["images"],
       allowsEditing: true,
-      aspect: [16, 9], // Ratio più adatto per le card dei turni
-      quality: 0.7,    // Ridotto leggermente per caricamenti più veloci
+      aspect: [16, 9],
+      quality: 0.7,
     });
 
     if (!result.canceled) {
       const uri = result.assets[0].uri;
       setImage(uri);
-      
+
       setUploading(true);
       const uploadedUrl = await uploadShift(uri);
       setUploading(false);
@@ -49,9 +64,7 @@ export default function ShiftUploader({ initialUrl, onUpload }: ShiftUploaderPro
       if (!userData.user) return null;
 
       const fileExt = uri.split(".").pop();
-      
-      // CORREZIONE CRITICA: Generiamo un nome file UNICO per ogni upload
-      // Struttura: id_utente/timestamp_stringacasuale.estensione
+
       const uniquePath = `${Date.now()}_${Math.random().toString(36).substring(7)}`;
       const fileName = `${userData.user.id}/${uniquePath}.${fileExt}`;
 
@@ -60,15 +73,15 @@ export default function ShiftUploader({ initialUrl, onUpload }: ShiftUploaderPro
       formData.append("file", {
         uri,
         name: fileName,
-        type: `image/${fileExt === 'jpg' ? 'jpeg' : fileExt}`,
+        type: `image/${fileExt === "jpg" ? "jpeg" : fileExt}`,
       } as any);
 
       // Upload su Supabase Storage
       const { data, error } = await supabase.storage
         .from("shift")
-        .upload(fileName, formData, { 
-          cacheControl: '3600',
-          upsert: false // Non sovrascrivere mai i file esistenti
+        .upload(fileName, formData, {
+          cacheControl: "3600",
+          upsert: false,
         });
 
       if (error) {
@@ -76,7 +89,6 @@ export default function ShiftUploader({ initialUrl, onUpload }: ShiftUploaderPro
         return null;
       }
 
-      // Otteniamo l'URL pubblico definitivo
       const { data: publicData } = supabase.storage
         .from("shift")
         .getPublicUrl(fileName);
@@ -90,8 +102,8 @@ export default function ShiftUploader({ initialUrl, onUpload }: ShiftUploaderPro
 
   return (
     <View style={styles.container}>
-      <TouchableOpacity 
-        style={[styles.imagePicker, uploading && { opacity: 0.6 }]} 
+      <TouchableOpacity
+        style={[styles.imagePicker, uploading && { opacity: 0.6 }]}
         onPress={pickImage}
         disabled={uploading}
       >
@@ -122,14 +134,14 @@ export default function ShiftUploader({ initialUrl, onUpload }: ShiftUploaderPro
 }
 
 const styles = StyleSheet.create({
-  container: { 
-    width: '100%', 
-    alignItems: "center" 
+  container: {
+    width: "100%",
+    alignItems: "center",
   },
   imagePicker: {
-    width: "100%",         
-    height: 180,       
-    borderRadius: 24,   
+    width: "100%",
+    height: 180,
+    borderRadius: 24,
     borderWidth: 1,
     borderColor: "rgba(0,0,0,0.05)",
     overflow: "hidden",
@@ -142,8 +154,8 @@ const styles = StyleSheet.create({
     elevation: 2,
   },
   imageWrapper: {
-    width: '100%',
-    height: '100%',
+    width: "100%",
+    height: "100%",
   },
   previewImage: {
     width: "100%",
@@ -151,15 +163,15 @@ const styles = StyleSheet.create({
   },
   loadingOverlay: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0,0,0,0.4)',
-    justifyContent: 'center',
-    alignItems: 'center',
+    backgroundColor: "rgba(0,0,0,0.4)",
+    justifyContent: "center",
+    alignItems: "center",
   },
   editBadge: {
-    position: 'absolute',
+    position: "absolute",
     bottom: 12,
     right: 12,
-    backgroundColor: 'rgba(0,0,0,0.6)',
+    backgroundColor: "rgba(0,0,0,0.6)",
     padding: 8,
     borderRadius: 12,
   },
@@ -173,9 +185,9 @@ const styles = StyleSheet.create({
     width: 60,
     height: 60,
     borderRadius: 30,
-    backgroundColor: '#39E46715',
-    justifyContent: 'center',
-    alignItems: 'center',
+    backgroundColor: "#39E46715",
+    justifyContent: "center",
+    alignItems: "center",
     marginBottom: 10,
   },
   placeholderText: {

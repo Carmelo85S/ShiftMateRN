@@ -9,7 +9,7 @@ import {
   Alert,
   StyleSheet,
   useColorScheme,
-  View
+  View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
@@ -35,7 +35,7 @@ export default function ProfileManager() {
   const handleManageSubscription = async () => {
     const customerId = profile?.businesses?.stripe_customer_id;
 
-    // 1. Se NON ha un customerId, significa che non ha mai iniziato un processo di pagamento
+    // if not customerId, show alert and redirect to subscription page
     if (!customerId) {
       Alert.alert(
         "Info",
@@ -45,10 +45,7 @@ export default function ProfileManager() {
       return;
     }
 
-    // 2. Se ha un customerId, PERMETTIAMO comunque l'accesso al portale.
-    // Stripe gestirà internamente la situazione: se non ha abbonamenti attivi,
-    // il portale permetterà all'utente di aggiungere un metodo di pagamento o sottoscrivere un piano.
-
+    // Call Supabase Edge Function to create a Stripe customer portal link
     try {
       const {
         data: { session },

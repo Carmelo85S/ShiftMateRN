@@ -5,15 +5,15 @@ import { Ionicons } from "@expo/vector-icons";
 import { router, useLocalSearchParams } from "expo-router";
 import React, { useEffect, useState } from "react";
 import {
-    ActivityIndicator,
-    Alert,
-    FlatList,
-    Image,
-    Pressable,
-    StyleSheet,
-    Text,
-    View,
-    useColorScheme,
+  ActivityIndicator,
+  Alert,
+  FlatList,
+  Image,
+  Pressable,
+  StyleSheet,
+  Text,
+  View,
+  useColorScheme,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
@@ -40,7 +40,6 @@ export default function WorkerDetailsScreen() {
         0,
       ).toISOString();
 
-      // Query diretta su 'shifts' usando le colonne che hai definito
       const { data } = await supabase
         .from("shifts")
         .select(
@@ -60,7 +59,7 @@ export default function WorkerDetailsScreen() {
   }, [workerId, month]);
 
   const totalPayable = shifts
-    .filter((s) => s.status !== "paid") // Assicurati che lo status 'paid' sia gestito nel DB
+    .filter((s) => s.status !== "paid")
     .reduce((acc, curr) => acc + (Number(curr.total_pay) || 0), 0);
 
   if (loading) return <ActivityIndicator style={{ flex: 1 }} />;
@@ -95,7 +94,6 @@ export default function WorkerDetailsScreen() {
         contentContainerStyle={styles.list}
         renderItem={({ item }) => (
           <View style={[styles.card, { backgroundColor: theme.card }]}>
-            {/* Usiamo direttamente image_url dalla tabella shifts */}
             <Image
               source={{
                 uri: item.image_url,

@@ -10,14 +10,12 @@ export const UpcomingShifts = ({
   onViewAll,
   onShiftPress,
 }: any) => {
-  const router = useRouter(); // ◄ AGGIUNTO: Inizializza il router
+  const router = useRouter();
 
-  // Nota: expandedId è dichiarato ma non usato nel codice attuale, puoi tenerlo se servirà
   const [expandedId, setExpandedId] = useState<string | null>(
     shifts?.[0]?.id || null,
   );
 
-  // Stato vuoto: Nessun turno in arrivo trovato
   if (!shifts || shifts.length === 0) {
     return (
       <View

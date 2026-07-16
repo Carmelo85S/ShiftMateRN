@@ -204,19 +204,18 @@ export default function WorkerShiftDetailPage() {
     }
   };
 
-  // 🛠️ DYNAMIC DATA ENGINE: Risolve le informazioni con priorità alle agenzie di staffing
-  // 🌟 Se c'è un client_name usa quello, altrimenti fa il fallback sul nome del business standard
+  // if the shift has a client_name (Staffing) use that, otherwise fall back to the fixed business info
   const venueName =
     shift.client_name || shift.businesses?.name || "The Plaza Elite Lounge";
 
-  // Se il turno ha un indirizzo compilato a mano (Staffing) usa quello, altrimenti passa alle info del business fisso
+  // If the shift has a manually entered address (Staffing) use that, otherwise fall back to the fixed business info
   const addressText =
     shift.address ||
     shift.businesses?.business_address ||
     "Via Montenapoleone 8";
   const cityText = shift.city || shift.businesses?.business_city || "Milano";
 
-  // Stringa unificata visualizzata all'interno della mappa nativa e della card logistica
+  // Combine address and city for a full display string
   const fullDisplayAddress = `${addressText}, ${cityText}`;
 
   return (

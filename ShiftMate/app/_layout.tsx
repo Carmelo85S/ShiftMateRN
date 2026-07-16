@@ -12,7 +12,7 @@ import {
   Pressable,
   StyleSheet,
   Text,
-  View
+  View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
@@ -30,7 +30,6 @@ export default function RootLayout() {
 
   const [assets, error] = useAssets([require("../assets/images/hero.webp")]);
 
-  // 1. Gestione Sessione e Ruolo
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
@@ -51,23 +50,20 @@ export default function RootLayout() {
     return () => subscription.unsubscribe();
   }, []);
 
-  // Funzione per recuperare il ruolo
   const fetchUserRole = async (userId: string) => {
     const { data } = await supabase
       .from("profiles")
-      .select("role") // Assicurati di avere questo campo o verifica su tabella 'businesses'
+      .select("role")
       .eq("id", userId)
       .single();
 
     setUserRole(data?.role === "manager" ? "manager" : "worker");
   };
 
-  // 2. Notifiche (Filtro dinamico per ruolo)
   useEffect(() => {
     if (!session?.user?.id || !userRole) return;
 
     const fetchCount = async () => {
-      // Nota: potresti dover filtrare le notifiche in base al ruolo se necessario
       const { count } = await supabase
         .from("notifications")
         .select("*", { count: "exact", head: true })
@@ -94,7 +90,6 @@ export default function RootLayout() {
     };
   }, [session, userRole]);
 
-  // 3. Splash Screen e Animazioni
   useEffect(() => {
     if (assets || error) {
       const timer = setTimeout(async () => {
@@ -139,7 +134,6 @@ export default function RootLayout() {
               { top: insets.top + 10, opacity: fadeAnim },
             ]}
           >
-            {/* 🔔 BOTTONE NOTIFICHE DINAMICO */}
             <Pressable
               onPress={() => {
                 const route =

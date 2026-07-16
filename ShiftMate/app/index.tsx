@@ -92,7 +92,6 @@ export default function AuthChoice() {
           </Pressable>
         </View>
 
-        {/* FOOTER NOTE - Pushed to bottom by marginTop: 'auto' */}
         <Text style={styles.footerNote}>
           © 2026 ShiftMate Operations Platform
         </Text>

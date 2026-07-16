@@ -60,10 +60,9 @@ export default function HistoryScreen() {
   });
   const [monthlySpending, setMonthlySpending] = useState(0);
 
-  // 🌟 GESTIONE LOADING OTTIMIZZATA ANTI-SFARFALLIO
-  const [isInitialLoading, setIsInitialLoading] = useState(true); // Solo per il primo avvio assoluto
-  const [loading, setLoading] = useState(false); // Per i caricamenti silenziosi tra i mesi
-
+  // 🌟 GESTIONE LOADING OTTIMIZZATA
+  const [isInitialLoading, setIsInitialLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const isPastMonth =
     currentYear < now.getFullYear() ||
     (currentYear === now.getFullYear() && currentMonth < now.getMonth());
@@ -77,7 +76,6 @@ export default function HistoryScreen() {
       const userId = session?.user?.id;
       if (!userId) return;
 
-      // Recupera il profilo solo se non l'abbiamo ancora fatto
       let bType = businessType;
       if (!bType) {
         const { data: profileData } = await supabase
@@ -212,7 +210,6 @@ export default function HistoryScreen() {
     }
   };
 
-  // Blocco a schermo intero solo al primissimo avvio assoluto
   if (isInitialLoading || businessType === null) {
     return (
       <View style={[styles.center, { backgroundColor: theme.background }]}>
@@ -241,7 +238,6 @@ export default function HistoryScreen() {
         </Pressable>
       </View>
 
-      {/* 🌟 LA CARD APPARE SOLO QUANDO SEI SU 'PAST SHIFTS' */}
       {activeTab === "shifts" && (
         <HistoryStatsCard
           spending={monthlySpending}
@@ -250,7 +246,6 @@ export default function HistoryScreen() {
         />
       )}
 
-      {/* Segmented Control Tabs */}
       <View
         style={[styles.tabSegmentContainer, { backgroundColor: theme.card }]}
       >
@@ -298,7 +293,6 @@ export default function HistoryScreen() {
         options={{ title: "Shifts History", headerShadowVisible: false }}
       />
 
-      {/* 🌟 EFFETTO OPACITÀ LEGGERO: I dati caricano in background senza smontare la UI */}
       <View style={[{ flex: 1 }, loading && styles.backgroundLoading]}>
         {activeTab === "shifts" ? (
           <FlatList

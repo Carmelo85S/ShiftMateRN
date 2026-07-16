@@ -62,7 +62,6 @@ export default function Dashboard() {
     }, [fetchData]),
   );
 
-  // 2. Aggiungi un effetto per determinare il ruolo
   useFocusEffect(
     useCallback(() => {
       async function determineRole() {
@@ -74,14 +73,12 @@ export default function Dashboard() {
           .eq("id", businessId)
           .single();
 
-        // Se l'id utente loggato è l'owner_id del business, sei l'owner
         setUserRole(data?.owner_id === user.id ? "owner" : "manager");
       }
       determineRole();
     }, [user, businessId]),
   );
 
-  // 3. Blocca il render finché il ruolo non è calcolato
   if (dataLoading || subLoading || businessType === null || userRole === null) {
     return (
       <View style={[styles.center, { backgroundColor: theme.background }]}>
@@ -131,20 +128,19 @@ export default function Dashboard() {
           >
             <Text style={styles.bannerText}>
               {userRole === "manager"
-                ? "⚠️ Acquista crediti per pubblicare nuovi annunci."
-                : "⚠️ Nessun piano attivo o credito disponibile. Configura un piano o acquista un pacchetto."}
+                ? "⚠️ Buy a plan or credits to publish shifts."
+                : "⚠️ No active plan or credits available. Set up a plan or purchase a package."}
             </Text>
           </Pressable>
         )}
 
-        {/* 2. BANNER ONBOARDING UNIFICATO (Appare solo all'Owner, sempre se onboarding incompleto) */}
         {userRole === "owner" && !onboardingCompleted && (
           <Pressable
             style={[styles.banner, { backgroundColor: "#FF9F1C" }]}
             onPress={() => router.push("/(manager)/stripe-onboarding")}
           >
             <Text style={styles.bannerText}>
-              💳 Completa il setup dei pagamenti per iniziare a incassare.
+              💳 Complete the payment setup to start receiving payments.
             </Text>
           </Pressable>
         )}

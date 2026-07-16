@@ -171,7 +171,6 @@ export default function ShiftDetailPage() {
             )}
           </View>
 
-          {/* INFO EXTRA GEOLOCALIZZAZIONE */}
           {isStaffingShift && (shift?.client_name || shift?.address) && (
             <View
               style={[
@@ -214,7 +213,6 @@ export default function ShiftDetailPage() {
             theme={theme}
           />
 
-          {/* 🌟 SPOSTATO QUI DENTRO: Ora scorre fluidamente sotto i candidati senza sovrapporsi */}
           {showCompleteButton && (
             <View style={styles.actionContainer}>
               <Pressable

@@ -1,11 +1,9 @@
-import React from "react";
-import { StyleSheet, Text, View } from "react-native";
 import { Colors } from "@/constants/theme";
-import { Ionicons } from "@expo/vector-icons";
-import { useColorScheme } from "react-native";
+import React from "react";
+import { StyleSheet, Text, useColorScheme, View } from "react-native";
 
-import { ScreenWrapper } from "@/components/shared/wrapper/layout-wrapper";
 import { ScreenHeader } from "@/components/shared/Header";
+import { ScreenWrapper } from "@/components/shared/wrapper/layout-wrapper";
 import { PolicySection } from "@/components/worker/setting-section/PolicySection";
 
 export default function DataPrivacyPolicy() {
@@ -13,19 +11,15 @@ export default function DataPrivacyPolicy() {
 
   return (
     <ScreenWrapper scrollable={true} style={styles.container}>
-      <ScreenHeader 
-        kpi="LEGAL & SAFETY" 
-        title="Data Privacy" 
-        theme={theme} 
-      />
+      <ScreenHeader kpi="LEGAL & SAFETY" title="Data Privacy" theme={theme} />
 
       <Text style={[styles.intro, { color: theme.secondaryText }]}>
-        Your privacy is our priority. We only process the data strictly necessary to connect you with high-quality job opportunities.
+        Your privacy is our priority. We only process the data strictly
+        necessary to connect you with high-quality job opportunities.
       </Text>
 
       <View style={[styles.divider, { backgroundColor: theme.border }]} />
 
-      {/* 2. Sezioni Modulari */}
       <PolicySection
         icon="finger-print-sharp"
         title="WHAT WE COLLECT"
@@ -48,7 +42,6 @@ export default function DataPrivacyPolicy() {
         isAlert
       />
 
-      {/* 3. Footer */}
       <View style={[styles.footer, { borderTopColor: theme.border }]}>
         <Text style={[styles.lastUpdate, { color: theme.secondaryText }]}>
           Last updated: March 2026
@@ -62,15 +55,37 @@ export default function DataPrivacyPolicy() {
 }
 
 const styles = StyleSheet.create({
-  container: {paddingHorizontal: 25, paddingTop: 120},
+  container: { paddingHorizontal: 25, paddingTop: 120 },
   intro: { fontSize: 16, fontWeight: "600", lineHeight: 24, marginBottom: 30 },
   divider: { height: 1, marginBottom: 15 },
   section: { marginBottom: 40 },
-  sectionHeader: { flexDirection: 'row', alignItems: 'center', gap: 15, marginBottom: 15 },
-  iconBox: { width: 36, height: 36, borderRadius: 10, justifyContent: 'center', alignItems: 'center' },
+  sectionHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 15,
+    marginBottom: 15,
+  },
+  iconBox: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    justifyContent: "center",
+    alignItems: "center",
+  },
   sectionTitle: { fontSize: 13, fontWeight: "900", letterSpacing: 1 },
   bodyText: { fontSize: 15, lineHeight: 24, fontWeight: "500", opacity: 0.7 },
-  footer: { marginTop: 20, paddingTop: 30, borderTopWidth: 1, alignItems: 'center', gap: 8},
+  footer: {
+    marginTop: 20,
+    paddingTop: 30,
+    borderTopWidth: 1,
+    alignItems: "center",
+    gap: 8,
+  },
   lastUpdate: { fontSize: 12, fontWeight: "700" },
-  compliance: { fontSize: 11, fontWeight: "500", textAlign: 'center', opacity: 0.6}
+  compliance: {
+    fontSize: 11,
+    fontWeight: "500",
+    textAlign: "center",
+    opacity: 0.6,
+  },
 });
