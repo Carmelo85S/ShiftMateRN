@@ -1,50 +1,61 @@
-# Welcome to your Expo app 👋
+# ShiftMate 🕒
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+ShiftMate is a comprehensive workforce management platform designed to streamline staffing, shift scheduling, and financial budgeting for businesses. It bridges the gap between managers and workers through a real-time, cross-platform mobile experience.
 
-## Get started
+## 🚀 Key Features
 
-1. Install dependencies
+- **Multi-Role Architecture:** Dedicated interfaces for Managers (budgeting, planning) and Workers (shift management).
+- **Real-Time Sync:** Instant updates on shift availability and notifications using Supabase Realtime.
+- **Financial Control:** Real-time budget monitoring and reporting for department heads.
+- **Secure Auth:** Role-Based Access Control (RBAC) ensuring data integrity and security.
+- **Cross-Platform:** Built with Expo for seamless performance on iOS and Android.
 
+## 🛠 Tech Stack
+
+- **Frontend:** React Native (Expo), TypeScript
+- **Backend & DB:** Supabase (PostgreSQL, Realtime, Auth)
+- **Routing:** Expo Router
+- **Styling:** React Native StyleSheet
+- **Deployment:** EAS (Expo Application Services)
+
+## 📦 Getting Started
+
+### Prerequisites
+
+- Node.js (v18+)
+- npm or yarn
+- Expo Go (for testing)
+
+### Installation
+
+1. Clone the repository:
    ```bash
+   git clone [https://github.com/Carmelo85S/shiftmate.git](https://github.com/Carmelo85S/shiftmate.git)
+   cd shiftmate
    npm install
    ```
+1. Clone enviroment variables:
+   Create a .env file in the root directory and add your Supabase credentials:
 
-2. Start the app
+   EXPO_PUBLIC_SUPABASE_URL=your_supabase_url
+   EXPO_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
 
    ```bash
    npx expo start
    ```
 
-In the output, you'll find options to open the app in a
+## 🏗 Project Structure
 
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
+/app # File-based routing (Expo Router)
+/components # Reusable UI components (Shared, Worker, Manager)
+/hooks # Custom logic and data fetching hooks
+/constants # Theme and configuration
+/lib # Supabase clients and utilities
 
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
+## 📈 Roadmap
 
-## Get a fresh project
-
-When you're ready, run:
-
-```bash
-npm run reset-project
-```
-
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
-
-## Learn more
-
-To learn more about developing your project with Expo, look at the following resources:
-
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
-
-## Join the community
-
-Join our community of developers creating universal apps.
-
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+[x] Initial Architecture & Auth Flow
+[x] Real-time Notification System
+[ ] AI-Powered Shift Suggestions
+[ ] Stripe Integration for Subscription Management
+[ ] Advanced Reporting & Analytics Dashboard
