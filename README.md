@@ -2,6 +2,12 @@
 
 ShiftMate is a comprehensive workforce management platform designed to streamline staffing, shift scheduling, and financial budgeting for businesses. It bridges the gap between managers and workers through a real-time, cross-platform mobile experience.
 
+## 📸 Screenshots
+
+|              Dashboard               |                 Notifications                  |               Shifts Overview                |
+| :----------------------------------: | :--------------------------------------------: | :------------------------------------------: | ------------------------------------------ |
+| ![Home](ShiftMate/assets/screenshots/home.png) | ![Dashboard](assets/screenshots/dashboard.png) | ![History](ShiftMate/assets/screenshots/history.png) | ![Reports](ShiftMate/assets/screenshots/reports.png) |
+
 ## 🚀 Key Features
 
 - **Multi-Role Architecture:** Dedicated interfaces for Managers (budgeting, planning) and Workers (shift management).
