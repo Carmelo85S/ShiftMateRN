@@ -1,23 +1,26 @@
+import AvatarUploader from "@/components/imagePicker/imagePicker";
+import {
+  FormInputGroup,
+  FormInputRow,
+  FormTextArea,
+} from "@/components/shared/edit-profile/FormInputGroup";
+import { Colors } from "@/constants/theme";
+import { useEditProfileManager } from "@/hooks/manager/useEditProfileManager";
+import { Ionicons } from "@expo/vector-icons";
+import { useRouter } from "expo-router";
 import React from "react";
 import {
-  View,
-  ScrollView,
   ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
-  Text,
   Pressable,
+  ScrollView,
   StyleSheet,
+  Text,
   useColorScheme,
+  View,
 } from "react-native";
-import { Ionicons } from "@expo/vector-icons";
-import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-
-import { Colors } from "@/constants/theme";
-import AvatarUploader from "@/components/imagePicker/imagePicker";
-import { useEditProfileManager } from "@/hooks/manager/useEditProfileManager";
-import { FormInputGroup, FormInputRow, FormTextArea } from "@/components/shared/edit-profile/FormInputGroup";
 
 export default function EditProfileScreen() {
   const colorScheme = useColorScheme();
@@ -25,14 +28,14 @@ export default function EditProfileScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
 
-  const { 
-    form, 
-    setForm, 
-    loading, 
-    saving, 
-    handleSave, 
-    handleDeleteProfile, 
-    selectDepartment
+  const {
+    form,
+    setForm,
+    loading,
+    saving,
+    handleSave,
+    handleDeleteProfile,
+    selectDepartment,
   } = useEditProfileManager();
 
   if (loading) {
@@ -51,32 +54,34 @@ export default function EditProfileScreen() {
       <ScrollView
         contentContainerStyle={[
           styles.scrollContainer,
-          { paddingTop: insets.top + 10, paddingBottom: insets.bottom + 40 }
+          { paddingTop: insets.top + 10, paddingBottom: insets.bottom + 40 },
         ]}
-        showsVerticalScrollIndicator={false}
       >
-        {/* NAV BAR */}
         <View style={styles.navBar}>
           <Pressable onPress={() => router.back()} style={styles.iconBtn}>
             <Ionicons name="close" size={26} color={theme.text} />
           </Pressable>
-          <Text style={[styles.navTitle, { color: theme.text }]}>Edit Profile</Text>
+          <Text style={[styles.navTitle, { color: theme.text }]}>
+            Edit Profile
+          </Text>
           <View style={{ width: 44 }} />
         </View>
 
-        {/* AVATAR SECTION */}
         <View style={styles.avatarSection}>
           <View style={[styles.avatarContainer, { borderColor: theme.border }]}>
             <AvatarUploader
               initialUrl={form.avatar_url}
-              onUpload={(url) => setForm({ ...form, avatar_url: `${url}?t=${Date.now()}` })}
+              onUpload={(url) =>
+                setForm({ ...form, avatar_url: `${url}?t=${Date.now()}` })
+              }
             />
           </View>
         </View>
 
-        {/* FORM SECTION */}
         <View style={styles.formSection}>
-          <Text style={[styles.sectionLabel, { color: theme.secondaryText }]}>Personal Information</Text>
+          <Text style={[styles.sectionLabel, { color: theme.secondaryText }]}>
+            Personal Information
+          </Text>
           <FormInputGroup theme={theme}>
             <FormInputRow
               icon="person-outline"
@@ -95,38 +100,103 @@ export default function EditProfileScreen() {
             />
           </FormInputGroup>
 
-          <Text style={[styles.sectionLabel, { color: theme.secondaryText, marginTop: 24 }]}>Professional Info</Text>
-          
-          <Pressable 
-            onPress={selectDepartment} 
-            style={[styles.roleCard, { backgroundColor: theme.card, borderColor: theme.border }]}
+          <Text
+            style={[
+              styles.sectionLabel,
+              { color: theme.secondaryText, marginTop: 24 },
+            ]}
+          >
+            Professional Information
+          </Text>
+          <Pressable
+            onPress={selectDepartment}
+            style={[
+              styles.roleCard,
+              {
+                backgroundColor: theme.card,
+                borderColor: theme.border,
+                marginBottom: 12,
+              },
+            ]}
           >
             <View style={styles.roleContent}>
-              <View style={[styles.roleIcon, { backgroundColor: theme.tint + "15" }]}>
-                <Ionicons name="business-outline" size={20} color={theme.tint} />
+              <View
+                style={[
+                  styles.roleIcon,
+                  { backgroundColor: theme.tint + "15" },
+                ]}
+              >
+                <Ionicons
+                  name="business-outline"
+                  size={20}
+                  color={theme.tint}
+                />
               </View>
               <View>
-                <Text style={[styles.roleSubLabel, { color: theme.secondaryText }]}>Department</Text>
+                <Text
+                  style={[styles.roleSubLabel, { color: theme.secondaryText }]}
+                >
+                  Department
+                </Text>
                 <Text style={[styles.roleValue, { color: theme.text }]}>
-                  {form.department ? form.department.toUpperCase() : "Select..."}
+                  {form.department
+                    ? form.department.toUpperCase()
+                    : "Select..."}
                 </Text>
               </View>
             </View>
-            <Ionicons name="chevron-forward" size={18} color={theme.secondaryText} />
+            <Ionicons
+              name="chevron-forward"
+              size={18}
+              color={theme.secondaryText}
+            />
           </Pressable>
-
-          <FormInputGroup theme={theme} style={{ marginTop: 12 }}>
+          <FormInputGroup theme={theme}>
             <FormInputRow
               icon="briefcase-outline"
               value={form.job_role}
               onChangeText={(val) => setForm({ ...form, job_role: val })}
-              placeholder="Job Title (e.g. Manager)"
+              placeholder="Job Title"
+              theme={theme}
+            />
+            <FormInputRow
+              icon="school-outline"
+              value={form.experience}
+              onChangeText={(val) => setForm({ ...form, experience: val })}
+              placeholder="Years of Experience / Skills"
               theme={theme}
               isLast
             />
           </FormInputGroup>
 
-          <Text style={[styles.sectionLabel, { color: theme.secondaryText, marginTop: 24 }]}>Bio</Text>
+          <Text
+            style={[
+              styles.sectionLabel,
+              { color: theme.secondaryText, marginTop: 24 },
+            ]}
+          >
+            Contact Information
+          </Text>
+          <FormInputGroup theme={theme}>
+            <FormInputRow
+              icon="call-outline"
+              value={form.phone}
+              onChangeText={(val) => setForm({ ...form, phone: val })}
+              placeholder="Phone Number"
+              keyboardType="phone-pad"
+              theme={theme}
+              isLast
+            />
+          </FormInputGroup>
+
+          <Text
+            style={[
+              styles.sectionLabel,
+              { color: theme.secondaryText, marginTop: 24 },
+            ]}
+          >
+            Bio
+          </Text>
           <FormTextArea
             value={form.bio}
             onChangeText={(val) => setForm({ ...form, bio: val })}
@@ -134,19 +204,23 @@ export default function EditProfileScreen() {
             theme={theme}
           />
 
-          {/* ACTIONS */}
           <Pressable
             onPress={handleSave}
             disabled={saving}
             style={({ pressed }) => [
               styles.saveBtn,
-              { backgroundColor: theme.text, opacity: (saving || pressed) ? 0.8 : 1 }
+              {
+                backgroundColor: theme.text,
+                opacity: saving || pressed ? 0.8 : 1,
+              },
             ]}
           >
             {saving ? (
               <ActivityIndicator color={theme.background} />
             ) : (
-              <Text style={[styles.saveBtnText, { color: theme.background }]}>Save Changes</Text>
+              <Text style={[styles.saveBtnText, { color: theme.background }]}>
+                Save Changes
+              </Text>
             )}
           </Pressable>
 
@@ -155,35 +229,88 @@ export default function EditProfileScreen() {
             disabled={saving}
             style={({ pressed }) => [
               styles.deleteBtn,
-              { borderColor: theme.delete + "30", opacity: pressed ? 0.7 : 1 }
+              { borderColor: theme.delete + "30", opacity: pressed ? 0.7 : 1 },
             ]}
           >
             <Ionicons name="trash-outline" size={20} color={theme.delete} />
-            <Text style={[styles.deleteBtnText, { color: theme.delete }]}>Delete Account</Text>
+            <Text style={[styles.deleteBtnText, { color: theme.delete }]}>
+              Delete Account
+            </Text>
           </Pressable>
         </View>
       </ScrollView>
     </KeyboardAvoidingView>
   );
 }
-
 const styles = StyleSheet.create({
   center: { flex: 1, justifyContent: "center", alignItems: "center" },
   scrollContainer: { paddingHorizontal: 28 },
-  navBar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 30 },
-  iconBtn: { width: 44, height: 44, borderRadius: 14, justifyContent: 'center', alignItems: 'center' },
+  navBar: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: 30,
+  },
+  iconBtn: {
+    width: 44,
+    height: 44,
+    borderRadius: 14,
+    justifyContent: "center",
+    alignItems: "center",
+  },
   navTitle: { fontSize: 22, fontWeight: "900", letterSpacing: -0.5 },
   avatarSection: { alignItems: "center", marginBottom: 40 },
-  avatarContainer: { width: 130, height: 130, borderRadius: 50, borderWidth: 1, overflow: 'hidden' },
-  formSection: { width: '100%' },
-  sectionLabel: { fontSize: 12, fontWeight: "800", letterSpacing: 1, textTransform: 'uppercase', marginBottom: 12, opacity: 0.6 },
-  roleCard: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 16, borderRadius: 24, borderWidth: 1 },
-  roleContent: { flexDirection: 'row', alignItems: 'center', gap: 16 },
-  roleIcon: { width: 48, height: 48, borderRadius: 16, justifyContent: 'center', alignItems: 'center' },
+  avatarContainer: {
+    width: 130,
+    height: 130,
+    borderRadius: 50,
+    borderWidth: 1,
+    overflow: "hidden",
+  },
+  formSection: { width: "100%" },
+  sectionLabel: {
+    fontSize: 12,
+    fontWeight: "800",
+    letterSpacing: 1,
+    textTransform: "uppercase",
+    marginBottom: 12,
+    opacity: 0.6,
+  },
+  roleCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    padding: 16,
+    borderRadius: 24,
+    borderWidth: 1,
+  },
+  roleContent: { flexDirection: "row", alignItems: "center", gap: 16 },
+  roleIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: 16,
+    justifyContent: "center",
+    alignItems: "center",
+  },
   roleSubLabel: { fontSize: 11, fontWeight: "700", marginBottom: 2 },
   roleValue: { fontSize: 16, fontWeight: "700" },
-  saveBtn: { height: 64, borderRadius: 24, justifyContent: 'center', alignItems: 'center', marginTop: 40 },
+  saveBtn: {
+    height: 64,
+    borderRadius: 24,
+    justifyContent: "center",
+    alignItems: "center",
+    marginTop: 40,
+  },
   saveBtnText: { fontSize: 18, fontWeight: "800" },
-  deleteBtn: { flexDirection: 'row', height: 64, borderRadius: 24, justifyContent: 'center', alignItems: 'center', marginTop: 20, borderWidth: 1.5, gap: 10 },
+  deleteBtn: {
+    flexDirection: "row",
+    height: 64,
+    borderRadius: 24,
+    justifyContent: "center",
+    alignItems: "center",
+    marginTop: 20,
+    borderWidth: 1.5,
+    gap: 10,
+  },
   deleteBtnText: { fontSize: 16, fontWeight: "700" },
 });

@@ -344,7 +344,24 @@ export const markAllNotificationsAsRead = async (userId: string) => {
 };
 
 // --- USER PROFILE ---
-
+export interface UserProfile {
+  id: string;
+  name: string;
+  surname: string;
+  role: string;
+  job_role: string;
+  bio: string;
+  phone: string;
+  experience: string | null;
+  avatar_url: string | null;
+  business_id: string | null;
+  department?: string;
+  businesses?: {
+    stripe_customer_id: string | null;
+    stripe_subscription_status: string | null;
+    is_active_subscriber: boolean;
+  }[];
+}
 export const fetchUserProfile = async (userId: string) => {
   try {
     const { data, error } = await supabase
@@ -357,8 +374,10 @@ export const fetchUserProfile = async (userId: string) => {
         job_role, 
         bio, 
         phone, 
+        experience,
         avatar_url, 
         business_id,
+        department,
         businesses (
           stripe_customer_id,
           stripe_subscription_status,
@@ -388,7 +407,9 @@ export const updateUserProfile = async (userId: string, updates: any) => {
       job_role: updates.job_role,
       bio: updates.bio,
       phone: updates.phone,
+      experience: updates.experience,
       avatar_url: updates.avatar_url,
+      department: updates.department,
       updated_at: new Date().toISOString(),
     })
     .eq("id", userId);
