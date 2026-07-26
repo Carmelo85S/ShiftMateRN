@@ -24,37 +24,64 @@ export default function WorkerDetailsScreen() {
   const insets = useSafeAreaInsets();
   const theme = Colors[useColorScheme() ?? "light"];
 
+  console.log(
+    "🟢 WorkerDetailsScreen caricato - workerId:",
+    workerId,
+    "| month:",
+    month,
+  );
+
   useEffect(() => {
     const fetchWorkerShifts = async () => {
-      if (!workerId || !month) return;
+      if (!workerId || !month) {
+        console.log("⚠️ Parametri mancanti workerId o month");
+        return;
+      }
 
-      const date = new Date(month as string);
-      const start = new Date(
-        date.getFullYear(),
-        date.getMonth(),
-        1,
-      ).toISOString();
-      const end = new Date(
-        date.getFullYear(),
-        date.getMonth() + 1,
-        0,
-      ).toISOString();
+      try {
+        console.log("🔄 Recupero turni per il worker...");
+        const date = new Date(month as string);
+        const start = new Date(
+          date.getFullYear(),
+          date.getMonth(),
+          1,
+        ).toISOString();
+        const end = new Date(
+          date.getFullYear(),
+          date.getMonth() + 1,
+          0,
+        ).toISOString();
 
-      const { data } = await supabase
-        .from("shifts")
-        .select(
-          `
-          id, shift_date, total_pay, status, client_name, image_url,
-          applications!inner(profile_id)
-        `,
-        )
-        .eq("applications.profile_id", workerId)
-        .gte("shift_date", start)
-        .lte("shift_date", end);
+        const { data, error } = await supabase
+          .from("shifts")
+          .select(
+            `
+            id, shift_date, total_pay, status, client_name, image_url,
+            applications!inner(profile_id)
+          `,
+          )
+          .eq("applications.profile_id", workerId)
+          .gte("shift_date", start)
+          .lte("shift_date", end);
 
-      setShifts(data || []);
-      setLoading(false);
+        if (error) {
+          console.error("❌ Errore caricamento turni worker:", error);
+        } else {
+          console.log(
+            "✅ Turni caricati con successo:",
+            data?.length || 0,
+            "trovati",
+          );
+        }
+
+        setShifts(data || []);
+      } catch (err) {
+        console.error("❌ Eccezione durante il fetch dei turni:", err);
+      } finally {
+        setLoading(false);
+      }
     };
+
     fetchWorkerShifts();
   }, [workerId, month]);
 
@@ -62,7 +89,124 @@ export default function WorkerDetailsScreen() {
     .filter((s) => s.status !== "paid")
     .reduce((acc, curr) => acc + (Number(curr.total_pay) || 0), 0);
 
-  if (loading) return <ActivityIndicator style={{ flex: 1 }} />;
+  // 💳 Funzione per pagare un singolo turno tramite Edge Function
+  const handlePayShift = async (shiftId: string) => {
+    console.log("🚀 Inizio pagamento per il singolo turno ID:", shiftId);
+    try {
+      setLoading(true);
+
+      console.log("📡 Invocazione Edge Function 'pay-worker-shift' con body:", {
+        shiftId,
+        workerId,
+      });
+      const { data, error } = await supabase.functions.invoke(
+        "pay-worker-shift",
+        {
+          body: { shiftId, workerId },
+        },
+      );
+
+      if (error) {
+        console.error("❌ Errore Edge Function 'pay-worker-shift':", error);
+        throw error;
+      }
+
+      console.log("✅ Risposta Edge Function ricevuta:", data);
+      Alert.alert("Successo", "Pagamento inviato correttamente!");
+
+      // Aggiorna lo stato localmente
+      setShifts((prev) =>
+        prev.map((s) => (s.id === shiftId ? { ...s, status: "paid" } : s)),
+      );
+    } catch (err: any) {
+      console.error("❌ Errore catch in handlePayShift:", err.message || err);
+      Alert.alert(
+        "Errore",
+        err.message || "Impossibile completare il pagamento.",
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // 🚀 Funzione per pagare tutti i turni in sospeso
+  const handlePayAllPending = async () => {
+    const pendingShifts = shifts.filter((s) => s.status !== "paid");
+    console.log("📦 Turni pendenti da pagare:", pendingShifts.length);
+
+    if (pendingShifts.length === 0) return;
+
+    Alert.alert(
+      "Conferma Pagamento",
+      `Vuoi procedere al pagamento di ${pendingShifts.length} turni per un totale di ${totalPayable.toLocaleString()} SEK?`,
+      [
+        { text: "Annulla", style: "cancel" },
+        {
+          text: "Paga Tutto",
+          onPress: async () => {
+            setLoading(true);
+            try {
+              console.log(
+                "🚀 Avvio pagamento massivo per",
+                pendingShifts.length,
+                "turni",
+              );
+
+              for (const shift of pendingShifts) {
+                console.log("➡️ Pagamento turno in corso ID:", shift.id);
+                const { data, error } = await supabase.functions.invoke(
+                  "pay-worker-shift",
+                  {
+                    body: { shiftId: shift.id, workerId },
+                  },
+                );
+
+                if (error) {
+                  console.error(`❌ Errore sul turno ${shift.id}:`, error);
+                  throw error;
+                }
+                console.log(`✅ Turno ${shift.id} pagato con successo:`, data);
+              }
+
+              Alert.alert(
+                "Successo",
+                "Tutti i pagamenti sono stati inviati con successo!",
+              );
+
+              // Segna tutti come paid localmente
+              setShifts((prev) => prev.map((s) => ({ ...s, status: "paid" })));
+            } catch (err: any) {
+              console.error(
+                "❌ Errore durante il ciclo di pagamenti multipli:",
+                err.message || err,
+              );
+              Alert.alert(
+                "Errore",
+                err.message ||
+                  "Qualcosa è andato storto durante i pagamenti multipli.",
+              );
+            } finally {
+              setLoading(false);
+            }
+          },
+        },
+      ],
+    );
+  };
+
+  if (loading && shifts.length === 0) {
+    return (
+      <View
+        style={[
+          styles.container,
+          styles.center,
+          { backgroundColor: theme.background },
+        ]}
+      >
+        <ActivityIndicator size="large" color={theme.text} />
+      </View>
+    );
+  }
 
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
@@ -91,12 +235,13 @@ export default function WorkerDetailsScreen() {
 
       <FlatList
         data={shifts}
+        keyExtractor={(item) => item.id}
         contentContainerStyle={styles.list}
         renderItem={({ item }) => (
           <View style={[styles.card, { backgroundColor: theme.card }]}>
             <Image
               source={{
-                uri: item.image_url,
+                uri: item.image_url || "https://via.placeholder.com/150",
               }}
               style={styles.clientImage}
             />
@@ -105,10 +250,11 @@ export default function WorkerDetailsScreen() {
               <Text
                 style={{ fontSize: 16, fontWeight: "700", color: theme.text }}
               >
-                {item.client_name}
+                {item.client_name || "Turno di lavoro"}
               </Text>
               <Text style={{ color: theme.text + "80", fontSize: 12 }}>
-                {new Date(item.shift_date).toLocaleDateString()}
+                {new Date(item.shift_date).toLocaleDateString()} •{" "}
+                {item.total_pay} SEK
               </Text>
             </View>
 
@@ -121,9 +267,7 @@ export default function WorkerDetailsScreen() {
             ) : (
               <Pressable
                 style={[styles.payBtn, { backgroundColor: theme.tint }]}
-                onPress={() =>
-                  Alert.alert("Pay", `Pagare ${item.total_pay} SEK?`)
-                }
+                onPress={() => handlePayShift(item.id)}
               >
                 <Text
                   style={{ color: "#FFF", fontSize: 12, fontWeight: "700" }}
@@ -143,12 +287,12 @@ export default function WorkerDetailsScreen() {
             { backgroundColor: theme.card, paddingBottom: insets.bottom + 15 },
           ]}
         >
-          <Text style={{ color: theme.text, fontWeight: "700" }}>
+          <Text style={{ color: theme.text, fontWeight: "700", fontSize: 16 }}>
             {totalPayable.toLocaleString()} SEK
           </Text>
           <Pressable
             style={[styles.mainBtn, { backgroundColor: theme.tint }]}
-            onPress={() => {}}
+            onPress={handlePayAllPending}
           >
             <Text style={{ color: "#FFF", fontWeight: "700" }}>
               Pay All Pending
@@ -162,6 +306,7 @@ export default function WorkerDetailsScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
+  center: { justifyContent: "center", alignItems: "center" },
   list: { paddingHorizontal: 20, paddingTop: 10 },
   card: {
     flexDirection: "row",
