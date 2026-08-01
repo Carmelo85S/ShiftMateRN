@@ -15,6 +15,12 @@ import {
   View,
 } from "react-native";
 
+type InviteCodeResult = {
+  business_id: string;
+  business_name: string;
+  role_type: "manager" | "worker" | null;
+};
+
 export default function Register() {
   const theme = Colors.light;
   const router = useRouter();
@@ -43,24 +49,19 @@ export default function Register() {
       if (role === "team") {
         const cleanCode = inviteCode.trim().toUpperCase();
         console.log("DEBUG: Cerco azienda con codice:", cleanCode);
-        const { data: business, error: businessError } = await supabase
-          .from("businesses")
-          .select("id, invite_code_mgr, invite_code_wrk")
-          .or(`invite_code_mgr.eq.${cleanCode},invite_code_wrk.eq.${cleanCode}`)
-          .maybeSingle();
 
-        console.log(
-          "DEBUG: Risultato query:",
-          business,
-          "Errore:",
-          businessError,
-        );
+        const { data: result, error: rpcError } = await supabase
+          .rpc("validate_invite_code", { code: cleanCode })
+          .maybeSingle<InviteCodeResult>();
 
-        if (businessError || !business) throw new Error("Invalid invite code.");
+        console.log("DEBUG: Risultato RPC:", result, "Errore:", rpcError);
 
-        finalRole =
-          cleanCode === business.invite_code_mgr ? "manager" : "worker";
-        businessId = business.id;
+        if (rpcError || !result || !result.role_type) {
+          throw new Error("Invalid invite code.");
+        }
+
+        finalRole = result.role_type; // 'manager' o 'worker', già calcolato dalla funzione
+        businessId = result.business_id;
       }
 
       const { data: authData, error: authError } = await supabase.auth.signUp({
