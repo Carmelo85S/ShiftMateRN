@@ -2,6 +2,7 @@ import { FinancialOverview } from "@/components/manager/dashboard/FinancialOverv
 import { HistoryStatsCard } from "@/components/manager/history/HistoryStatsCard";
 import { ShiftCard } from "@/components/shared/shiftCard/ShiftCard";
 import { ScreenWrapper } from "@/components/shared/wrapper/layout-wrapper";
+import { STAFFING_ACTIVE_STATUSES } from "@/constants/shiftStatus";
 import { Colors } from "@/constants/theme";
 import { supabase } from "@/lib/supabase";
 import { Ionicons } from "@expo/vector-icons";
@@ -108,11 +109,15 @@ export default function HistoryScreen() {
       if (bType === "standard") {
         query = query.eq("status", "completed");
       } else {
-        query = query.in("status", ["completed", "filled", "assigned", "open"]);
+        query = query.in("status", STAFFING_ACTIVE_STATUSES);
       }
 
       const { data: shifts, error } = await query;
       if (error) throw error;
+
+      console.log("userId sessione:", userId);
+      console.log("mese/anno filtro:", startDate, "→", endDate);
+      console.log("shifts trovati:", shifts?.length, shifts);
 
       const currentShifts = shifts || [];
       setFilteredHistory(currentShifts);
@@ -172,6 +177,10 @@ export default function HistoryScreen() {
           }),
         );
       }
+
+      console.log("bType:", bType);
+      console.log("clientStatsArray:", clientStatsArray);
+      console.log("totalSpent:", totalSpent);
 
       setReportStats({
         departments: finalizedDepartments,
@@ -290,7 +299,24 @@ export default function HistoryScreen() {
   return (
     <ScreenWrapper scrollable={activeTab === "finance"}>
       <Stack.Screen
-        options={{ title: "Shifts History", headerShadowVisible: false }}
+        options={{
+          title: "Shifts History",
+          headerShadowVisible: false,
+          headerRight: () => (
+            <Pressable
+              onPress={() => router.back()}
+              hitSlop={10}
+              style={{
+                width: 32,
+                height: 32,
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
+              <Ionicons name="close" size={22} color={theme.text} />
+            </Pressable>
+          ),
+        }}
       />
 
       <View style={[{ flex: 1 }, loading && styles.backgroundLoading]}>

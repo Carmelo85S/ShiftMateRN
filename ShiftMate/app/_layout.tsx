@@ -23,7 +23,7 @@ export default function RootLayout() {
   const insets = useSafeAreaInsets();
 
   const [session, setSession] = useState<Session | null>(null);
-  const [userRole, setUserRole] = useState<"manager" | "worker" | null>(null); // ◄ STATO RUOLO
+  const [userRole, setUserRole] = useState<"owner" | "worker" | null>(null); // ◄ STATO RUOLO POTRA ESSERE ANCHE MANAGER, MA PER ORA SOLO OWNER E WORKER
   const [isAppReady, setIsAppReady] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -57,7 +57,7 @@ export default function RootLayout() {
       .eq("id", userId)
       .single();
 
-    setUserRole(data?.role === "manager" ? "manager" : "worker");
+    setUserRole(data?.role === "owner" ? "owner" : "worker");
   };
 
   useEffect(() => {
@@ -137,7 +137,7 @@ export default function RootLayout() {
             <Pressable
               onPress={() => {
                 const route =
-                  userRole === "manager"
+                  userRole === "owner"
                     ? "/(manager)/notifications/notificationsManager"
                     : "/(worker)/notifications";
                 navigationRouter.push(route as any);

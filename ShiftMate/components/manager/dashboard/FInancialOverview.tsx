@@ -10,7 +10,7 @@ import {
   Text,
   TextInput,
   UIManager,
-  View
+  View,
 } from "react-native";
 
 if (
@@ -60,6 +60,8 @@ export const FinancialOverview = ({
 
   // LOGICA STAFFING
   if (businessType === "staffing") {
+    console.log("FinancialOverview stats ricevute:", stats);
+
     const clients = (stats.clients || []).filter((c) => c.name?.trim());
     const filteredClients = clients.filter((c) =>
       c.name.toLowerCase().includes(searchQuery.toLowerCase()),

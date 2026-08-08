@@ -62,7 +62,7 @@ export default function ShiftStackLayout() {
         name="history"
         options={{
           title: "History",
-          presentation: "card",
+          presentation: "modal",
           headerStyle: {
             backgroundColor: theme.background,
           },

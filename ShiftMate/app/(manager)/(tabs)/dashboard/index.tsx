@@ -164,7 +164,7 @@ export default function Dashboard() {
 
         <HistoryBar
           theme={theme}
-          onPress={() => router.push("/(manager)/(tabs)/shift/history")}
+          onPress={() => router.push("/(manager)/(tabs)/shift")}
         />
 
         <UpcomingShifts

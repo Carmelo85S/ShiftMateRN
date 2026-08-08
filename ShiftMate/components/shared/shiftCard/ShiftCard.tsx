@@ -10,6 +10,7 @@ interface ShiftCardProps {
   isApplied?: boolean;
   isPending?: boolean;
   isRejected?: boolean;
+  isPaid?: boolean;
 }
 
 export const ShiftCard = ({
@@ -19,6 +20,7 @@ export const ShiftCard = ({
   isApplied,
   isPending,
   isRejected,
+  isPaid,
 }: ShiftCardProps) => {
   const theme = Colors.light;
   const dbStatus = item.status?.toLowerCase() || "open";
@@ -110,6 +112,7 @@ export const ShiftCard = ({
               isApplied={isApplied}
               isPending={isPending}
               isRejected={isRejected}
+              isPaid={isPaid}
             />
           </View>
         </View>
@@ -125,6 +128,7 @@ const StatusBadge = ({
   isApplied,
   isPending,
   isRejected,
+  isPaid,
 }: any) => {
   if (status === "completed")
     return <Badge icon="checkmark-circle" color="#10B981" label="Completed" />;
@@ -140,6 +144,8 @@ const StatusBadge = ({
       return (
         <Badge icon="close-circle-outline" color="#DC2626" label="Rejected" />
       );
+    if (isPaid)
+      return <Badge icon="checkmark-circle" color="#10B981" label="Paid" />;
     return <Badge icon="radio-button-on" color="#2647dcff" label="Open" />;
   }
 
@@ -147,6 +153,8 @@ const StatusBadge = ({
     return <Badge icon="people-outline" color="#10B981" label="Filled" />;
   if (status === "canceled")
     return <Badge icon="ban" color="#EF4444" label="Canceled" />;
+  if (status === "paid")
+    return <Badge icon="checkmark-circle" color="#10B981" label="Paid" />;
   return <Badge icon="radio-button-on" color="#3B82F6" label="Open" />;
 };
 

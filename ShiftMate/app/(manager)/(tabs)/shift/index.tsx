@@ -1,13 +1,22 @@
-import React, { useState } from "react";
-import { StyleSheet, Text, View, FlatList, ActivityIndicator, useColorScheme, RefreshControl } from "react-native";
-import { useRouter } from "expo-router";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { Colors } from "@/constants/theme";
-import { Ionicons } from "@expo/vector-icons";
-import { ScreenWrapper } from "@/components/shared/wrapper/layout-wrapper";
-import { ShiftCard } from "@/components/shared/shiftCard/ShiftCard"; // Assicurati sia la versione quadrata
-import { useManagerShift } from "@/hooks/manager/useManagerShift";
 import { ScreenHeader } from "@/components/shared/Header";
+import { ShiftCard } from "@/components/shared/shiftCard/ShiftCard"; // Assicurati sia la versione quadrata
+import { ScreenWrapper } from "@/components/shared/wrapper/layout-wrapper";
+import { Colors } from "@/constants/theme";
+import { useManagerShift } from "@/hooks/manager/useManagerShift";
+import { Ionicons } from "@expo/vector-icons";
+import { useRouter } from "expo-router";
+import React, { useState } from "react";
+import {
+  ActivityIndicator,
+  FlatList,
+  Pressable,
+  RefreshControl,
+  StyleSheet,
+  Text,
+  useColorScheme,
+  View,
+} from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 export default function ShiftsManager() {
   const router = useRouter();
@@ -16,7 +25,7 @@ export default function ShiftsManager() {
   const { shifts, loading, refreshing, onRefresh } = useManagerShift();
   const [selectedDept, setSelectedDept] = useState("All");
 
-  const departments = ["All", ...new Set(shifts.map(s => s.department))];
+  const departments = ["All", ...new Set(shifts.map((s) => s.department))];
   if (loading && !refreshing) {
     return (
       <View style={[styles.center, { backgroundColor: theme.background }]}>
@@ -33,42 +42,63 @@ export default function ShiftsManager() {
         numColumns={2}
         columnWrapperStyle={styles.columnRow}
         refreshControl={
-          <RefreshControl 
-            refreshing={refreshing} 
-            onRefresh={onRefresh} 
-            tintColor={theme.tint} 
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor={theme.tint}
             colors={[theme.tint]}
           />
         }
-        contentContainerStyle={[
-              styles.listContent, 
-              { paddingTop: insets.top }
-        ]}
+        contentContainerStyle={[styles.listContent, { paddingTop: insets.top }]}
         showsVerticalScrollIndicator={false}
         ListHeaderComponent={
           <View style={styles.headerArea}>
             <View style={styles.titleRow}>
-              <ScreenHeader
-                kpi="CENTER"
-                title="Shift Hub"
-                theme={theme}
-              />
-              <View style={[styles.countBadge, { backgroundColor: theme.text + "10" }]}>
-                <Text style={[styles.countText, { color: theme.text }]}>{shifts.length}</Text>
+              <ScreenHeader kpi="CENTER" title="Shift Hub" theme={theme} />
+              <View style={styles.headerActions}>
+                <Pressable
+                  onPress={() => router.push("/(manager)/(tabs)/shift/history")}
+                  style={({ pressed }) => [
+                    styles.iconBtn,
+                    { backgroundColor: theme.text + "10" },
+                    pressed && { opacity: 0.7 },
+                  ]}
+                >
+                  <Ionicons name="time-outline" size={18} color={theme.text} />
+                </Pressable>
+                <View
+                  style={[
+                    styles.countBadge,
+                    { backgroundColor: theme.text + "10" },
+                  ]}
+                >
+                  <Text style={[styles.countText, { color: theme.text }]}>
+                    {shifts.length}
+                  </Text>
+                </View>
               </View>
             </View>
           </View>
         }
         renderItem={({ item }) => (
-          <ShiftCard 
-            item={item} 
-            onPress={() => router.push(`/(manager)/(tabs)/shift/${item.id}`)} 
+          <ShiftCard
+            key={item.id}
+            item={item}
+            isPaid={item.status === "paid"}
+            onPress={() => router.push(`/(manager)/(tabs)/shift/${item.id}`)}
           />
         )}
         ListEmptyComponent={
           <View style={styles.emptyContainer}>
-            <Ionicons name="calendar-outline" size={48} color={theme.text} style={{ opacity: 0.1 }} />
-            <Text style={[styles.emptyText, { color: theme.text }]}>No shifts posted.</Text>
+            <Ionicons
+              name="calendar-outline"
+              size={48}
+              color={theme.text}
+              style={{ opacity: 0.1 }}
+            />
+            <Text style={[styles.emptyText, { color: theme.text }]}>
+              No shifts posted.
+            </Text>
           </View>
         }
       />
@@ -102,13 +132,27 @@ const styles = StyleSheet.create({
     alignItems: "flex-start",
   },
 
+  headerActions: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    marginTop: 8,
+  },
+
+  iconBtn: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+
   countBadge: {
     minWidth: 38,
     height: 38,
     borderRadius: 19,
     justifyContent: "center",
     alignItems: "center",
-    marginTop: 8,
   },
 
   countText: {

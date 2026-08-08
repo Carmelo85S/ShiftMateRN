@@ -12,6 +12,9 @@ interface Shift {
   end_time: string;
   image_url: string | null;
   status: string;
+  total_pay: number; // 🆕
+  hourly_rate: number; // 🆕
+  client_name: string | null; // 🆕
 }
 export const useManagerShift = () => {
   const [shifts, setShifts] = useState<Shift[]>([]);
@@ -48,6 +51,9 @@ export const useManagerShift = () => {
         status: item.status,
         // Estrai il nome del dipartimento
         department: item.departments?.name || "General",
+        total_pay: item.total_pay || 0, //
+        hourly_rate: item.hourly_rate || 0, // 🆕
+        client_name: item.client_name || null, // 🆕
       }));
 
       setShifts(formattedShifts);

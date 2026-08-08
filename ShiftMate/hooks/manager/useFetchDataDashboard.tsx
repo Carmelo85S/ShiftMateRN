@@ -1,3 +1,4 @@
+import { STAFFING_ACTIVE_STATUSES } from "@/constants/shiftStatus";
 import { supabase } from "@/lib/supabase";
 import {
   countPendingApplications,
@@ -121,9 +122,7 @@ export const useDashboardData = () => {
           const activeShiftsThisMonth = (allShifts || []).filter((s) => {
             const sDate = new Date(s.shift_date);
             return (
-              ["completed", "filled", "assigned", "open"].includes(
-                s.status?.toLowerCase(),
-              ) &&
+              STAFFING_ACTIVE_STATUSES.includes(s.status?.toLowerCase()) &&
               sDate.getFullYear() === currentYear &&
               String(sDate.getMonth() + 1).padStart(2, "0") === currentMonth
             );

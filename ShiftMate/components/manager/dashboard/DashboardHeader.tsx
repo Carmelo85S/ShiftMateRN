@@ -34,18 +34,16 @@ export const DashboardHeader = ({
           {formattedDate}
         </Text>
         <Text style={[styles.userName, { color: theme.text }]}>
-          Hi, {userName.split(" ")[0]}
+          Hi, {userName.split(" ")[0]}👋
         </Text>
         <View style={styles.infoRow}>
           <Text style={[styles.businessName, { color: theme.text }]}>
             {businessName ?? "Your Business"}
           </Text>
           {planType && (
-            <View
-              style={[styles.badge, { backgroundColor: theme.tint + "20" }]}
-            >
+            <View style={styles.badge}>
               <Text style={[styles.badgeText, { color: theme.tint }]}>
-                {planType}
+                Your plan is: {planType}
               </Text>
             </View>
           )}
@@ -83,10 +81,14 @@ const styles = StyleSheet.create({
     letterSpacing: 1,
     marginBottom: 4,
   },
-  userName: { fontSize: 32, fontWeight: "900", letterSpacing: -0.5 },
-  infoRow: { flexDirection: "row", alignItems: "center", marginTop: 8, gap: 8 },
+  userName: { fontSize: 22, fontWeight: "500", letterSpacing: 1 },
+  infoRow: {
+    flexDirection: "column",
+    marginTop: 8,
+    gap: 8,
+  },
   businessName: { fontSize: 15, fontWeight: "600", opacity: 0.7 },
-  badge: { paddingHorizontal: 8, paddingVertical: 2, borderRadius: 6 },
+  badge: { paddingVertical: 2, borderRadius: 6 },
   badgeText: { fontSize: 10, fontWeight: "800", textTransform: "uppercase" },
   profileButton: {
     width: 75,
