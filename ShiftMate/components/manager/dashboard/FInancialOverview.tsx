@@ -31,7 +31,7 @@ interface DepartmentStat {
 interface ClientStat {
   id: string;
   name: string;
-  revenue: number;
+  payroll: number;
 }
 
 interface Props {
@@ -39,7 +39,7 @@ interface Props {
     departments?: DepartmentStat[];
     clients?: ClientStat[];
     pendingCount?: number;
-    totalMonthlyRevenue?: number;
+    totalMonthlyPayroll?: number;
   };
   theme: any;
   refreshDashboard: () => Promise<void> | void;
@@ -60,20 +60,23 @@ export const FinancialOverview = ({
 
   // LOGICA STAFFING
   if (businessType === "staffing") {
-    console.log("FinancialOverview stats ricevute:", stats);
+    console.log(
+      "FinancialOverview stats ricevute:",
+      JSON.stringify(stats, null, 2),
+    );
 
     const clients = (stats.clients || []).filter((c) => c.name?.trim());
     const filteredClients = clients.filter((c) =>
       c.name.toLowerCase().includes(searchQuery.toLowerCase()),
     );
-    const totalRevenue =
-      stats.totalMonthlyRevenue ||
-      clients.reduce((acc, c) => acc + c.revenue, 0);
+    const totalPayroll =
+      stats.totalMonthlyPayroll ||
+      clients.reduce((acc, c) => acc + c.payroll, 0);
 
     return (
       <View style={styles.container}>
         <Text style={[styles.sectionTitle, { color: theme.text }]}>
-          Monthly Revenue
+          Monthly Payroll
         </Text>
         <View
           style={[styles.staffingTotalCard, { backgroundColor: theme.text }]}
@@ -81,17 +84,17 @@ export const FinancialOverview = ({
           <Text
             style={[styles.staffingTotalLabel, { color: theme.background }]}
           >
-            TOTAL REVENUE
+            TOTAL PAYROLL
           </Text>
           <Text
             style={[styles.staffingTotalValue, { color: theme.background }]}
           >
-            {totalRevenue.toLocaleString("sv-SE")} SEK
+            {totalPayroll.toLocaleString("sv-SE")} SEK
           </Text>
         </View>
 
         <Text style={[styles.sectionSubtitle, { color: theme.text }]}>
-          Clients Overview
+          Payroll by Client
         </Text>
 
         {/* Bottone che apre il Modal */}
@@ -172,9 +175,9 @@ export const FinancialOverview = ({
                     {item.name}
                   </Text>
                   <Text
-                    style={[styles.clientRevenueValue, { color: theme.text }]}
+                    style={[styles.clientPayrollValue, { color: theme.text }]}
                   >
-                    {item.revenue.toLocaleString("sv-SE")} SEK
+                    {item.payroll.toLocaleString("sv-SE")} SEK
                   </Text>
                 </View>
               )}
@@ -246,56 +249,152 @@ export const FinancialOverview = ({
 };
 
 const styles = StyleSheet.create({
-  container: { marginBottom: 20 },
+  // ─────────────────────────────
+  // CONTAINER
+  // ─────────────────────────────
+
+  container: {
+    marginBottom: 20,
+  },
+
+  // ─────────────────────────────
+  // SECTION TITLES
+  // ─────────────────────────────
+
   sectionTitle: {
     fontSize: 13,
     fontWeight: "800",
-    marginBottom: 12,
-    opacity: 0.6,
-    letterSpacing: 0.5,
+    marginBottom: 9,
+    letterSpacing: 0.4,
+    opacity: 0.65,
   },
+
   sectionSubtitle: {
     fontSize: 11,
     fontWeight: "800",
     marginTop: 14,
-    marginBottom: 8,
+    marginBottom: 7,
+    letterSpacing: 0.3,
     opacity: 0.5,
   },
-  mainCard: { borderRadius: 20, marginBottom: 10, padding: 4 },
+
+  // ─────────────────────────────
+  // DEPARTMENT BUDGETS
+  // ─────────────────────────────
+
+  mainCard: {
+    borderRadius: 13,
+    marginBottom: 6,
+    overflow: "hidden",
+  },
+
   accordionHeader: {
+    minHeight: 52,
+    paddingHorizontal: 11,
+    paddingVertical: 8,
     flexDirection: "row",
     justifyContent: "space-between",
-    padding: 14,
     alignItems: "center",
   },
-  headerLeft: { flexDirection: "row", alignItems: "center", gap: 10 },
-  iconBadge: { padding: 8, borderRadius: 10 },
-  deptName: { fontSize: 14, fontWeight: "800" },
-  clientRowCard: {
+
+  headerLeft: {
     flexDirection: "row",
-    justifyContent: "space-between",
-    padding: 16,
-    borderRadius: 16,
-    marginBottom: 8,
+    alignItems: "center",
+    flex: 1,
   },
-  clientRevenueValue: { fontWeight: "800" },
-  staffingTotalCard: { padding: 20, borderRadius: 20, marginBottom: 15 },
-  staffingTotalLabel: { fontSize: 10, fontWeight: "700", opacity: 0.6 },
-  staffingTotalValue: { fontSize: 28, fontWeight: "900", marginTop: 4 },
-  modalContainer: { flex: 1, padding: 20, paddingTop: 40 },
+
+  iconBadge: {
+    width: 30,
+    height: 30,
+    borderRadius: 9,
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: 9,
+  },
+
+  deptName: {
+    fontSize: 12,
+    fontWeight: "700",
+  },
+
+  // ─────────────────────────────
+  // CLIENT ROW
+  // ─────────────────────────────
+
+  clientRowCard: {
+    minHeight: 52,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 11,
+    paddingVertical: 8,
+    borderRadius: 13,
+    marginBottom: 6,
+  },
+
+  clientPayrollValue: {
+    fontSize: 12,
+    fontWeight: "800",
+  },
+
+  // ─────────────────────────────
+  // STAFFING TOTAL REVENUE
+  // ─────────────────────────────
+
+  staffingTotalCard: {
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    borderRadius: 14,
+    marginBottom: 12,
+  },
+
+  staffingTotalLabel: {
+    fontSize: 9,
+    fontWeight: "700",
+    letterSpacing: 0.8,
+    opacity: 0.55,
+  },
+
+  staffingTotalValue: {
+    fontSize: 24,
+    fontWeight: "900",
+    marginTop: 2,
+  },
+
+  // ─────────────────────────────
+  // MODAL
+  // ─────────────────────────────
+
+  modalContainer: {
+    flex: 1,
+    paddingHorizontal: 18,
+    paddingTop: 40,
+  },
+
   modalHeader: {
     flexDirection: "row",
+    alignItems: "center",
     justifyContent: "space-between",
-    marginBottom: 20,
+    marginBottom: 16,
   },
-  modalTitle: { fontSize: 22, fontWeight: "800" },
+
+  modalTitle: {
+    fontSize: 21,
+    fontWeight: "800",
+  },
+
   searchBar: {
+    height: 42,
     flexDirection: "row",
     alignItems: "center",
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    borderRadius: 12,
-    marginBottom: 15,
+    paddingHorizontal: 11,
+    borderRadius: 11,
+    marginBottom: 12,
   },
-  searchInput: { flex: 1, marginLeft: 8, fontSize: 14 },
+
+  searchInput: {
+    flex: 1,
+    marginLeft: 7,
+    fontSize: 13,
+  },
 });

@@ -17,8 +17,10 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { DashboardHeader } from "@/components/manager/dashboard/DashboardHeader";
 import { FinancialOverview } from "@/components/manager/dashboard/FinancialOverview";
 import { HistoryBar } from "@/components/manager/dashboard/HistoryBar";
+import { OperationsOverview } from "@/components/manager/dashboard/OperationsOverview";
 import { UpcomingShifts } from "@/components/manager/dashboard/UpcomingShifts";
 import { ScreenWrapper } from "@/components/shared/wrapper/layout-wrapper";
+import { useOperationsOverview } from "@/hooks/manager/useFetchOperationOverview";
 import { supabase } from "@/lib/supabase";
 
 export default function Dashboard() {
@@ -56,10 +58,17 @@ export default function Dashboard() {
     onRefresh,
   } = useDashboardData();
 
+  const {
+    stats: operationsStats,
+    loading: operationsLoading,
+    fetchOperationsStats,
+  } = useOperationsOverview();
+
   useFocusEffect(
     useCallback(() => {
       fetchData();
-    }, [fetchData]),
+      fetchOperationsStats();
+    }, [fetchData, fetchOperationsStats]),
   );
 
   useFocusEffect(
@@ -152,6 +161,14 @@ export default function Dashboard() {
           planType={planType}
           theme={theme}
           onProfilePress={() => router.push("/profile")}
+        />
+
+        <OperationsOverview
+          theme={theme}
+          openShifts={operationsStats.openShifts}
+          filledShifts={operationsStats.filledShifts}
+          workersNeeded={operationsStats.workersNeeded}
+          pendingApplications={operationsStats.pendingApplications}
         />
 
         <FinancialOverview

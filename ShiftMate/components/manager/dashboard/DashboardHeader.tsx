@@ -20,7 +20,7 @@ export const DashboardHeader = ({
   onProfilePress,
 }: Props) => {
   const formattedDate = new Date()
-    .toLocaleDateString("it-IT", {
+    .toLocaleDateString("en-EN", {
       weekday: "short",
       day: "numeric",
       month: "short",

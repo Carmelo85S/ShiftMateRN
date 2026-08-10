@@ -17,14 +17,14 @@ type DepartmentStat = {
 type ClientStat = {
   id: string;
   name: string;
-  revenue: number;
+  payroll: number;
 };
 
 type DashboardStats = {
   departments: DepartmentStat[];
   clients: ClientStat[];
   pendingCount: number;
-  totalMonthlyRevenue?: number;
+  totalMonthlyPayroll?: number;
   total_available_credits: number;
 };
 
@@ -115,7 +115,7 @@ export const useDashboardData = () => {
 
       let departmentStatsArray: DepartmentStat[] = [];
       let clientStatsArray: ClientStat[] = [];
-      let totalRevenueAccumulator = 0;
+      let totalPayrollAccumulator = 0;
 
       if (bId) {
         if (bType === "staffing") {
@@ -137,14 +137,14 @@ export const useDashboardData = () => {
           );
 
           clientStatsArray = uniqueClients.map((clientName) => {
-            const revenueSum = activeShiftsThisMonth
+            const payrollSum = activeShiftsThisMonth
               .filter(
                 (s) =>
                   (s.client_name?.trim() || "Generic Client") === clientName,
               )
               .reduce((acc, s) => acc + (Number(s.total_pay) || 0), 0);
-            totalRevenueAccumulator += revenueSum;
-            return { id: clientName, name: clientName, revenue: revenueSum };
+            totalPayrollAccumulator += payrollSum;
+            return { id: clientName, name: clientName, payroll: payrollSum };
           });
         } else {
           const { data: departments } = await supabase
@@ -193,7 +193,7 @@ export const useDashboardData = () => {
         departments: departmentStatsArray,
         clients: clientStatsArray,
         pendingCount: pendingCount || 0,
-        totalMonthlyRevenue: totalRevenueAccumulator,
+        totalMonthlyPayroll: totalPayrollAccumulator,
         total_available_credits: totalCredits,
       });
       setUpcomingShifts(upcoming);
