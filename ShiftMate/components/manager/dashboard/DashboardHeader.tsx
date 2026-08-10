@@ -20,7 +20,7 @@ export const DashboardHeader = ({
   onProfilePress,
 }: Props) => {
   const formattedDate = new Date()
-    .toLocaleDateString("en-EN", {
+    .toLocaleDateString("en-US", {
       weekday: "short",
       day: "numeric",
       month: "short",
@@ -34,7 +34,7 @@ export const DashboardHeader = ({
           {formattedDate}
         </Text>
         <Text style={[styles.userName, { color: theme.text }]}>
-          Hi, {userName.split(" ")[0]}👋
+          Hi, {userName.split(" ")[0]} 👋
         </Text>
         <View style={styles.infoRow}>
           <Text style={[styles.businessName, { color: theme.text }]}>
@@ -93,10 +93,10 @@ const styles = StyleSheet.create({
   profileButton: {
     width: 75,
     height: 75,
-    borderRadius: 28,
+    borderRadius: 50,
     justifyContent: "center",
     alignItems: "center",
     borderWidth: 1.5,
   },
-  avatar: { width: "100%", height: "100%", borderRadius: 28 },
+  avatar: { width: "100%", height: "100%", borderRadius: 50 },
 });

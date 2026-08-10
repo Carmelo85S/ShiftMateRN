@@ -1,11 +1,11 @@
 import { ScreenHeader } from "@/components/shared/Header";
-import { ShiftCard } from "@/components/shared/shiftCard/ShiftCard"; // Assicurati sia la versione quadrata
+import { ShiftCard } from "@/components/shared/shiftCard/ShiftCard";
 import { ScreenWrapper } from "@/components/shared/wrapper/layout-wrapper";
 import { Colors } from "@/constants/theme";
 import { useManagerShift } from "@/hooks/manager/useManagerShift";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
-import React, { useState } from "react";
+import React from "react";
 import {
   ActivityIndicator,
   FlatList,
@@ -21,15 +21,22 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 export default function ShiftsManager() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const theme = Colors[useColorScheme() ?? "light"];
-  const { shifts, loading, refreshing, onRefresh } = useManagerShift();
-  const [selectedDept, setSelectedDept] = useState("All");
 
-  const departments = ["All", ...new Set(shifts.map((s) => s.department))];
+  const theme = Colors[useColorScheme() ?? "light"];
+
+  const { shifts, loading, refreshing, onRefresh } = useManagerShift();
+
   if (loading && !refreshing) {
     return (
-      <View style={[styles.center, { backgroundColor: theme.background }]}>
-        <ActivityIndicator size="small" color={theme.text} />
+      <View
+        style={[
+          styles.center,
+          {
+            backgroundColor: theme.background,
+          },
+        ]}
+      >
+        <ActivityIndicator size="small" color={theme.tint} />
       </View>
     );
   }
@@ -39,8 +46,8 @@ export default function ShiftsManager() {
       <FlatList
         data={shifts}
         keyExtractor={(item) => item.id}
-        numColumns={2}
-        columnWrapperStyle={styles.columnRow}
+        numColumns={1}
+        showsVerticalScrollIndicator={false}
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
@@ -49,30 +56,67 @@ export default function ShiftsManager() {
             colors={[theme.tint]}
           />
         }
-        contentContainerStyle={[styles.listContent, { paddingTop: insets.top }]}
-        showsVerticalScrollIndicator={false}
+        contentContainerStyle={[
+          styles.listContent,
+          {
+            paddingTop: insets.top,
+          },
+        ]}
         ListHeaderComponent={
           <View style={styles.headerArea}>
             <View style={styles.titleRow}>
-              <ScreenHeader kpi="CENTER" title="Shift Hub" theme={theme} />
+              <View style={styles.titleContainer}>
+                <ScreenHeader
+                  kpi="MANAGEMENT"
+                  title="Shifts"
+                  theme={theme}
+                  containerStyle={styles.screenHeader}
+                />
+
+                <Text
+                  style={[
+                    styles.subtitle,
+                    {
+                      color: theme.secondaryText,
+                    },
+                  ]}
+                >
+                  Manage your scheduled shifts
+                </Text>
+              </View>
+
               <View style={styles.headerActions}>
                 <Pressable
                   onPress={() => router.push("/(manager)/(tabs)/shift/history")}
                   style={({ pressed }) => [
                     styles.iconBtn,
-                    { backgroundColor: theme.text + "10" },
-                    pressed && { opacity: 0.7 },
+                    {
+                      backgroundColor: theme.text + "10",
+                    },
+                    pressed && {
+                      opacity: 0.7,
+                    },
                   ]}
                 >
-                  <Ionicons name="time-outline" size={18} color={theme.text} />
+                  <Ionicons name="time-outline" size={19} color={theme.text} />
                 </Pressable>
+
                 <View
                   style={[
                     styles.countBadge,
-                    { backgroundColor: theme.text + "10" },
+                    {
+                      backgroundColor: theme.tint + "12",
+                    },
                   ]}
                 >
-                  <Text style={[styles.countText, { color: theme.text }]}>
+                  <Text
+                    style={[
+                      styles.countText,
+                      {
+                        color: theme.tint,
+                      },
+                    ]}
+                  >
                     {shifts.length}
                   </Text>
                 </View>
@@ -82,9 +126,9 @@ export default function ShiftsManager() {
         }
         renderItem={({ item }) => (
           <ShiftCard
-            key={item.id}
             item={item}
-            isPaid={item.status === "paid"}
+            variant="manager"
+            isPaid={item.status?.toLowerCase() === "paid"}
             onPress={() => router.push(`/(manager)/(tabs)/shift/${item.id}`)}
           />
         )}
@@ -92,12 +136,33 @@ export default function ShiftsManager() {
           <View style={styles.emptyContainer}>
             <Ionicons
               name="calendar-outline"
-              size={48}
+              size={46}
               color={theme.text}
-              style={{ opacity: 0.1 }}
+              style={{
+                opacity: 0.15,
+              }}
             />
-            <Text style={[styles.emptyText, { color: theme.text }]}>
-              No shifts posted.
+
+            <Text
+              style={[
+                styles.emptyText,
+                {
+                  color: theme.text,
+                },
+              ]}
+            >
+              No shifts posted
+            </Text>
+
+            <Text
+              style={[
+                styles.emptySubtext,
+                {
+                  color: theme.secondaryText,
+                },
+              ]}
+            >
+              Your scheduled shifts will appear here.
             </Text>
           </View>
         }
@@ -114,28 +179,38 @@ const styles = StyleSheet.create({
   },
 
   listContent: {
-    paddingBottom: 10,
-  },
-
-  columnRow: {
-    justifyContent: "space-between",
-    marginBottom: 12,
+    paddingBottom: 30,
   },
 
   headerArea: {
-    marginBottom: 28,
+    marginBottom: 18,
   },
 
   titleRow: {
     flexDirection: "row",
-    justifyContent: "space-between",
     alignItems: "flex-start",
+    justifyContent: "space-between",
+  },
+
+  titleContainer: {
+    flex: 1,
+  },
+
+  screenHeader: {
+    marginBottom: 0,
+  },
+
+  subtitle: {
+    fontSize: 12,
+    fontWeight: "500",
+    marginTop: -1,
   },
 
   headerActions: {
     flexDirection: "row",
     alignItems: "center",
     gap: 8,
+    marginLeft: 12,
     marginTop: 8,
   },
 
@@ -150,27 +225,34 @@ const styles = StyleSheet.create({
   countBadge: {
     minWidth: 38,
     height: 38,
+    paddingHorizontal: 10,
     borderRadius: 19,
     justifyContent: "center",
     alignItems: "center",
   },
 
   countText: {
-    fontSize: 15,
-    fontWeight: "700",
+    fontSize: 14,
+    fontWeight: "800",
   },
 
   emptyContainer: {
-    flex: 1,
     alignItems: "center",
     justifyContent: "center",
     paddingTop: 100,
+    paddingHorizontal: 30,
   },
 
   emptyText: {
     fontSize: 16,
-    fontWeight: "600",
-    opacity: 0.45,
-    marginTop: 16,
+    fontWeight: "700",
+    marginTop: 14,
+  },
+
+  emptySubtext: {
+    fontSize: 12,
+    fontWeight: "500",
+    marginTop: 5,
+    textAlign: "center",
   },
 });

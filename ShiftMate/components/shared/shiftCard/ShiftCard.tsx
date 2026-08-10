@@ -1,7 +1,7 @@
 import { Colors } from "@/constants/theme";
 import { Ionicons } from "@expo/vector-icons";
 import React from "react";
-import { Image, Pressable, StyleSheet, Text, View } from "react-native";
+import { Pressable, StyleSheet, Text, View } from "react-native";
 
 interface ShiftCardProps {
   item: any;
@@ -25,6 +25,23 @@ export const ShiftCard = ({
   const theme = Colors.light;
   const dbStatus = item.status?.toLowerCase() || "open";
 
+  const shiftDate = item.shift_date
+    ? new Date(item.shift_date).toLocaleDateString("en-GB", {
+        day: "2-digit",
+        month: "short",
+      })
+    : "N/A";
+
+  const startTime = item.start_time?.slice(0, 5) || "--:--";
+  const endTime = item.end_time?.slice(0, 5) || "";
+
+  const location =
+    item.location ||
+    item.address ||
+    item.workplace_address ||
+    item.client_address ||
+    null;
+
   return (
     <Pressable
       onPress={onPress}
@@ -32,96 +49,130 @@ export const ShiftCard = ({
         styles.card,
         {
           backgroundColor: theme.card,
-          opacity: pressed ? 0.9 : 1,
-          transform: [{ scale: pressed ? 0.97 : 1 }],
+          borderColor: theme.border || "#E5E7EB",
+          opacity: pressed ? 0.94 : 1,
         },
       ]}
     >
-      {/* IMMAGINE E PREZZO */}
-      <View
-        style={[styles.imageWrapper, { backgroundColor: theme.background }]}
-      >
-        {item.image_url ? (
-          <Image source={{ uri: item.image_url }} style={styles.image} />
-        ) : (
-          <Ionicons name="apps-outline" size={30} color={theme.tint + "40"} />
-        )}
-        <View style={styles.priceTag}>
-          <Text style={styles.priceText}>
-            €{Math.round(item.total_pay || 0)}
+      {/* HEADER */}
+      <View style={styles.header}>
+        <View style={styles.headerLeft}>
+          <View
+            style={[
+              styles.iconBox,
+              {
+                backgroundColor: theme.tint + "10",
+              },
+            ]}
+          >
+            <Ionicons name="briefcase-outline" size={18} color={theme.tint} />
+          </View>
+
+          <View style={styles.headerText}>
+            <Text
+              style={[styles.title, { color: theme.text }]}
+              numberOfLines={1}
+            >
+              {item.title || "Shift"}
+            </Text>
+          </View>
+        </View>
+
+        {/* PAYMENT */}
+        <View style={styles.payContainer}>
+          <Text style={[styles.payValue, { color: theme.text }]}>
+            {Math.round(item.total_pay || 0)}
+          </Text>
+
+          <Text style={[styles.payCurrency, { color: theme.secondaryText }]}>
+            SEK
           </Text>
         </View>
       </View>
 
-      {/* INFO CONTENUTO */}
-      <View style={styles.infoContent}>
-        <View>
-          <Text style={[styles.title, { color: theme.text }]} numberOfLines={1}>
-            {item.title}
+      {/* MAIN DETAILS */}
+      <View style={styles.details}>
+        <View style={styles.detailItem}>
+          <Ionicons
+            name="calendar-outline"
+            size={15}
+            color={theme.secondaryText}
+          />
+
+          <Text style={[styles.detailText, { color: theme.text }]}>
+            {shiftDate}
           </Text>
-          <View style={styles.row}>
-            <Ionicons name="time-sharp" size={12} color={theme.tint} />
-            <Text style={[styles.detailText, { color: theme.secondaryText }]}>
-              {item.start_time?.slice(0, 5)}
-            </Text>
-            <View style={styles.dot} />
-            <Text style={[styles.detailText, { color: theme.secondaryText }]}>
-              {item.shift_date
-                ? new Date(item.shift_date).toLocaleDateString("it-IT", {
-                    day: "2-digit",
-                    month: "short",
-                  })
-                : "N/A"}
-            </Text>
-          </View>
         </View>
 
-        {/* CARD FOOTER */}
-        <View style={styles.footer}>
-          <View
-            style={[
-              styles.deptBadge,
-              {
-                backgroundColor: item.client_name
-                  ? "rgba(16, 185, 129, 0.1)"
-                  : theme.tint + "10",
-              },
-            ]}
-          >
+        <View style={styles.detailItem}>
+          <Ionicons name="time-outline" size={15} color={theme.secondaryText} />
+
+          <Text style={[styles.detailText, { color: theme.text }]}>
+            {startTime}
+            {endTime ? ` – ${endTime}` : ""}
+          </Text>
+        </View>
+
+        <View style={styles.detailItem}>
+          <Ionicons
+            name="people-outline"
+            size={15}
+            color={theme.secondaryText}
+          />
+
+          <Text style={[styles.detailText, { color: theme.text }]}>
+            {item.required_workers || 1}
+          </Text>
+        </View>
+      </View>
+
+      {/* LOCATION + STATUS */}
+      <View style={styles.locationStatusRow}>
+        {location ? (
+          <View style={styles.locationRow}>
             <Ionicons
-              name={item.client_name ? "business" : "layers"}
-              size={10}
-              color={item.client_name ? "#10B981" : theme.tint}
-              style={{ marginRight: 4 }}
+              name="location-outline"
+              size={14}
+              color={theme.secondaryText}
             />
+
             <Text
-              style={[
-                styles.deptText,
-                { color: item.client_name ? "#10B981" : theme.tint },
-              ]}
+              style={[styles.locationText, { color: theme.secondaryText }]}
               numberOfLines={1}
             >
-              {item.client_name || item.departments?.name || "General"}
+              {location}
             </Text>
           </View>
+        ) : (
+          <View style={styles.locationPlaceholder} />
+        )}
 
-          <View style={styles.statusContainer}>
-            <StatusBadge
-              status={dbStatus}
-              variant={variant}
-              isApplied={isApplied}
-              isPending={isPending}
-              isRejected={isRejected}
-              isPaid={isPaid}
-            />
-          </View>
-        </View>
+        <StatusBadge
+          status={dbStatus}
+          variant={variant}
+          isApplied={isApplied}
+          isPending={isPending}
+          isRejected={isRejected}
+          isPaid={isPaid}
+        />
       </View>
     </Pressable>
   );
 };
 
-// Sotto-componente helper per lo stato
+/* -------------------------------------------------------------------------- */
+/* STATUS                                                                     */
+/* -------------------------------------------------------------------------- */
+
+interface StatusBadgeProps {
+  status: string;
+  variant: "worker" | "manager" | "global";
+  isApplied?: boolean;
+  isPending?: boolean;
+  isRejected?: boolean;
+  isPaid?: boolean;
+}
+
 const StatusBadge = ({
   status,
   variant,
@@ -129,115 +180,195 @@ const StatusBadge = ({
   isPending,
   isRejected,
   isPaid,
-}: any) => {
-  if (status === "completed")
-    return <Badge icon="checkmark-circle" color="#10B981" label="Completed" />;
-
-  if (variant === "worker") {
-    if (isApplied)
-      return (
-        <Badge icon="checkmark-done-circle" color="#10B981" label="Confirmed" />
-      );
-    if (isPending)
-      return <Badge icon="hourglass-outline" color="#D97706" label="Pending" />;
-    if (isRejected)
-      return (
-        <Badge icon="close-circle-outline" color="#DC2626" label="Rejected" />
-      );
-    if (isPaid)
-      return <Badge icon="checkmark-circle" color="#10B981" label="Paid" />;
-    return <Badge icon="radio-button-on" color="#2647dcff" label="Open" />;
+}: StatusBadgeProps) => {
+  if (status === "completed") {
+    return <Badge icon="checkmark-circle" color="#059669" label="Completed" />;
   }
 
-  if (status === "filled" || status === "assigned")
-    return <Badge icon="people-outline" color="#10B981" label="Filled" />;
-  if (status === "canceled")
-    return <Badge icon="ban" color="#EF4444" label="Canceled" />;
-  if (status === "paid")
-    return <Badge icon="checkmark-circle" color="#10B981" label="Paid" />;
-  return <Badge icon="radio-button-on" color="#3B82F6" label="Open" />;
+  if (variant === "worker") {
+    if (isPending) {
+      return <Badge icon="time-outline" color="#D97706" label="Pending" />;
+    }
+
+    if (isRejected) {
+      return <Badge icon="close-circle" color="#DC2626" label="Rejected" />;
+    }
+
+    if (isPaid) {
+      return <Badge icon="card-outline" color="#059669" label="Paid" />;
+    }
+
+    if (isApplied) {
+      return <Badge icon="checkmark-circle" color="#2563EB" label="Applied" />;
+    }
+
+    return <Badge icon="ellipse" color="#059669" label="Open" />;
+  }
+
+  if (status === "filled" || status === "assigned") {
+    return (
+      <Badge icon="checkmark-circle-outline" color="#2563EB" label="Assigned" />
+    );
+  }
+
+  if (status === "canceled" || status === "cancelled") {
+    return (
+      <Badge icon="close-circle-outline" color="#DC2626" label="Cancelled" />
+    );
+  }
+
+  if (status === "paid") {
+    return <Badge icon="card-outline" color="#059669" label="Paid" />;
+  }
+
+  return <Badge icon="ellipse" color="#059669" label="Open" />;
 };
 
-const Badge = ({ icon, color, label }: any) => (
-  <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
+/* -------------------------------------------------------------------------- */
+/* BADGE                                                                      */
+/* -------------------------------------------------------------------------- */
+
+const Badge = ({
+  icon,
+  color,
+  label,
+}: {
+  icon: keyof typeof Ionicons.glyphMap;
+  color: string;
+  label: string;
+}) => (
+  <View style={styles.statusBadge}>
     <Ionicons name={icon} size={12} color={color} />
+
     <Text style={[styles.statusText, { color }]}>{label}</Text>
   </View>
 );
 
 export default ShiftCard;
 
+/* -------------------------------------------------------------------------- */
+/* STYLES                                                                     */
+/* -------------------------------------------------------------------------- */
+
 const styles = StyleSheet.create({
   card: {
-    width: "47%",
-    aspectRatio: 0.82,
-    borderRadius: 28,
-    marginBottom: 15,
-    padding: 8,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.06,
-    shadowRadius: 12,
-    elevation: 3,
-    borderWidth: 1,
-    borderColor: "rgba(0,0,0,0.03)",
-  },
-  imageWrapper: {
     width: "100%",
-    height: "52%",
-    borderRadius: 22,
-    overflow: "hidden",
-    justifyContent: "center",
-    alignItems: "center",
-    position: "relative",
+    borderRadius: 16,
+    padding: 15,
+    marginBottom: 10,
+    borderWidth: 1,
   },
-  image: { width: "100%", height: "100%", resizeMode: "cover" },
-  priceTag: {
-    position: "absolute",
-    top: 8,
-    right: 8,
-    backgroundColor: "rgba(0,0,0,0.7)",
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 10,
-  },
-  priceText: { color: "#FFF", fontSize: 12, fontWeight: "900" },
-  infoContent: {
-    flex: 1,
-    paddingHorizontal: 6,
-    paddingTop: 8,
-    justifyContent: "space-between",
-  },
-  title: {
-    fontSize: 14,
-    fontWeight: "800",
-    letterSpacing: -0.5,
-    marginBottom: 2,
-  },
-  row: { flexDirection: "row", alignItems: "center", gap: 4 },
-  detailText: { fontSize: 10, fontWeight: "600" },
-  dot: { width: 3, height: 3, borderRadius: 2, backgroundColor: "#D1D1D6" },
-  footer: {
-    flexDirection: "column",
-    alignItems: "flex-start",
-    gap: 6,
-    marginTop: "auto",
-    paddingBottom: 4,
-  },
-  deptBadge: {
+
+  /* HEADER */
+
+  header: {
     flexDirection: "row",
     alignItems: "center",
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 8,
-    flexShrink: 1,
+    justifyContent: "space-between",
   },
-  deptText: {
-    fontSize: 8,
+
+  headerLeft: {
+    flexDirection: "row",
+    alignItems: "center",
+    flex: 1,
+    marginRight: 12,
+  },
+
+  iconBox: {
+    width: 38,
+    height: 38,
+    borderRadius: 10,
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: 10,
+  },
+
+  headerText: {
+    flex: 1,
+  },
+
+  title: {
+    fontSize: 15,
+    fontWeight: "700",
+  },
+
+  /* PAYMENT */
+
+  payContainer: {
+    alignItems: "flex-end",
+    justifyContent: "center",
+  },
+
+  payValue: {
+    fontSize: 16,
+    fontWeight: "800",
+  },
+
+  payCurrency: {
+    fontSize: 9,
+    fontWeight: "700",
+    marginTop: -1,
+  },
+
+  /* DETAILS */
+
+  details: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 18,
+    marginTop: 16,
+  },
+
+  detailItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
+  },
+
+  detailText: {
+    fontSize: 12,
+    fontWeight: "600",
+  },
+
+  /* LOCATION + STATUS */
+
+  locationStatusRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginTop: 11,
+    gap: 10,
+  },
+
+  locationRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
+    flex: 1,
+  },
+
+  locationPlaceholder: {
+    flex: 1,
+  },
+
+  locationText: {
+    flex: 1,
+    fontSize: 11,
+    fontWeight: "500",
+  },
+
+  /* STATUS */
+
+  statusBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    flexShrink: 0,
+  },
+
+  statusText: {
+    fontSize: 10,
     fontWeight: "800",
     textTransform: "uppercase",
-    letterSpacing: 0.5,
   },
-  statusContainer: { marginTop: 4 },
-  statusText: { fontSize: 10, fontWeight: "800", textTransform: "uppercase" },
 });

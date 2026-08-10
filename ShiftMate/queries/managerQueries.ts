@@ -95,20 +95,32 @@ export const createBusinessAndAssignOwner = async (
 // --- SHIFT MANAGEMENT ---
 
 export const fetchManagerShifts = async (businessId: string) => {
-  const { data: shifts, error } = await supabase
+  console.log("🔎 fetchManagerShifts businessId:", businessId);
+
+  if (!businessId) {
+    console.error("❌ businessId mancante");
+    return [];
+  }
+
+  const { data, error } = await supabase
     .from("shifts")
     .select(`
       *,
-      departments ( name ) 
+      departments (
+        name
+      )
     `)
     .eq("business_id", businessId)
-    .order('shift_date', { ascending: true });
+    .order("shift_date", { ascending: true });
+
+  console.log("📦 SHIFTS DATA:", data);
+  console.log("❌ SHIFTS ERROR:", error);
 
   if (error) {
-    console.error("Errore fetch shift:", error);
-    return [];
+    throw error;
   }
-  return shifts || [];
+
+  return data ?? [];
 };
 
 export const createShift = async (

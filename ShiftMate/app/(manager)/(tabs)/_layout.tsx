@@ -4,7 +4,13 @@ import { Ionicons } from "@expo/vector-icons";
 import { CommonActions } from "@react-navigation/native";
 import { Tabs, useRouter } from "expo-router";
 import React from "react";
-import { Dimensions, Pressable, StyleSheet, useColorScheme, View } from "react-native";
+import {
+  Dimensions,
+  Pressable,
+  StyleSheet,
+  useColorScheme,
+  View,
+} from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 const { width } = Dimensions.get("window");

@@ -114,92 +114,89 @@ export default function Dashboard() {
       refreshing={refreshing}
       style={styles.wrapperCustom}
     >
-      <View style={[styles.mainContent, { paddingTop: insets.top }]}>
-        {/* 1. BANNER PIANO (Appare se l'utente non ha modo di pubblicare) */}
-        {!hasActiveAccess && (
-          <Pressable
-            style={[
-              styles.banner,
-              {
-                backgroundColor:
-                  userRole === "manager" ? "#E63946" : theme.tint,
+      {/* 1. BANNER PIANO (Appare se l'utente non ha modo di pubblicare) */}
+      {!hasActiveAccess && (
+        <Pressable
+          style={[
+            styles.banner,
+            {
+              backgroundColor: userRole === "manager" ? "#E63946" : theme.tint,
+            },
+          ]}
+          onPress={() =>
+            router.push({
+              pathname: "/subscription",
+              params: {
+                businessId: String(businessId),
+                userRole: String(userRole),
               },
-            ]}
-            onPress={() =>
-              router.push({
-                pathname: "/subscription",
-                params: {
-                  businessId: String(businessId),
-                  userRole: String(userRole),
-                },
-              })
-            }
-          >
-            <Text style={styles.bannerText}>
-              {userRole === "manager"
-                ? "⚠️ Buy a plan or credits to publish shifts."
-                : "⚠️ No active plan or credits available. Set up a plan or purchase a package."}
-            </Text>
-          </Pressable>
-        )}
-
-        {userRole === "owner" && !onboardingCompleted && (
-          <Pressable
-            style={[styles.banner, { backgroundColor: "#FF9F1C" }]}
-            onPress={() => router.push("/(manager)/stripe-onboarding")}
-          >
-            <Text style={styles.bannerText}>
-              💳 Complete the payment setup to start receiving payments.
-            </Text>
-          </Pressable>
-        )}
-
-        <DashboardHeader
-          userName={userName}
-          businessName={businessName ?? undefined}
-          profileImage={profileImage}
-          planType={planType}
-          theme={theme}
-          onProfilePress={() => router.push("/profile")}
-        />
-
-        <OperationsOverview
-          theme={theme}
-          openShifts={operationsStats.openShifts}
-          filledShifts={operationsStats.filledShifts}
-          workersNeeded={operationsStats.workersNeeded}
-          pendingApplications={operationsStats.pendingApplications}
-        />
-
-        <FinancialOverview
-          stats={stats}
-          theme={theme}
-          refreshDashboard={fetchData}
-          isHistory={false}
-          businessType={businessType}
-        />
-
-        <HistoryBar
-          theme={theme}
-          onPress={() => router.push("/(manager)/(tabs)/shift")}
-        />
-
-        <UpcomingShifts
-          shifts={upcomingShifts}
-          theme={theme}
-          onViewAll={() => router.push("/(manager)/(tabs)/shift")}
-          onShiftPress={(id: string) =>
-            router.push(`/(manager)/(tabs)/shift/${id}`)
+            })
           }
-        />
-      </View>
+        >
+          <Text style={styles.bannerText}>
+            {userRole === "manager"
+              ? "⚠️ Buy a plan or credits to publish shifts."
+              : "⚠️ No active plan or credits available. Set up a plan or purchase a package."}
+          </Text>
+        </Pressable>
+      )}
+
+      {userRole === "owner" && !onboardingCompleted && (
+        <Pressable
+          style={[styles.banner, { backgroundColor: "#FF9F1C" }]}
+          onPress={() => router.push("/(manager)/stripe-onboarding")}
+        >
+          <Text style={styles.bannerText}>
+            💳 Complete the payment setup to start receiving payments.
+          </Text>
+        </Pressable>
+      )}
+
+      <DashboardHeader
+        userName={userName}
+        businessName={businessName ?? undefined}
+        profileImage={profileImage}
+        planType={planType}
+        theme={theme}
+        onProfilePress={() => router.push("/profile")}
+      />
+
+      <OperationsOverview
+        theme={theme}
+        openShifts={operationsStats.openShifts}
+        filledShifts={operationsStats.filledShifts}
+        workersNeeded={operationsStats.workersNeeded}
+        pendingApplications={operationsStats.pendingApplications}
+      />
+
+      <FinancialOverview
+        stats={stats}
+        theme={theme}
+        refreshDashboard={fetchData}
+        isHistory={false}
+        businessType={businessType}
+      />
+
+      <HistoryBar
+        theme={theme}
+        onPress={() => router.push("/(manager)/(tabs)/shift")}
+      />
+
+      <UpcomingShifts
+        shifts={upcomingShifts}
+        theme={theme}
+        onViewAll={() => router.push("/(manager)/(tabs)/shift")}
+        onShiftPress={(id: string) =>
+          router.push(`/(manager)/(tabs)/shift/${id}`)
+        }
+      />
     </ScreenWrapper>
   );
 }
 
 const styles = StyleSheet.create({
   center: { flex: 1, justifyContent: "center", alignItems: "center" },
-  wrapperCustom: { paddingHorizontal: 24 },
+  wrapperCustom: { paddingHorizontal: 24, paddingVertical: 20 },
   mainContent: { flex: 1, paddingBottom: 20 },
   banner: {
     padding: 16,

@@ -1,6 +1,6 @@
+import { Colors } from "@/constants/theme";
 import { Stack } from "expo-router";
 import { useColorScheme } from "react-native";
-import { Colors } from "@/constants/theme";
 
 export default function DashboardLayout() {
   const colorScheme = useColorScheme();
@@ -20,11 +20,11 @@ export default function DashboardLayout() {
         },
       }}
     >
-      <Stack.Screen 
-        name="index" 
-        options={{ 
-          title: "Dashboard"
-        }} 
+      <Stack.Screen
+        name="index"
+        options={{
+          title: "Dashboard",
+        }}
       />
     </Stack>
   );

@@ -1,5 +1,5 @@
 import React from "react";
-import { View, Text, StyleSheet, ViewStyle, TextStyle } from "react-native";
+import { StyleSheet, Text, View, ViewStyle } from "react-native";
 
 interface HeaderProps {
   kpi: string;
@@ -11,21 +11,40 @@ interface HeaderProps {
   containerStyle?: ViewStyle;
 }
 
-export const ScreenHeader = ({ kpi, title, theme, containerStyle }: HeaderProps) => {
+export const ScreenHeader = ({
+  kpi,
+  title,
+  theme,
+  containerStyle,
+}: HeaderProps) => {
   return (
     <View style={[styles.headerArea, containerStyle]}>
       <Text style={[styles.kpi, { color: theme.tint }]}>
         {kpi.toUpperCase()}
       </Text>
-      <Text style={[styles.title, { color: theme.text }]}>
-        {title}
-      </Text>
+
+      <Text style={[styles.title, { color: theme.text }]}>{title}</Text>
     </View>
   );
 };
 
 const styles = StyleSheet.create({
-  headerArea: { marginBottom: 30 },
-  kpi: { fontSize: 11, fontWeight: "900", letterSpacing: 2, marginBottom: 4 },
-  title: { fontSize: 42, fontWeight: "900", letterSpacing: -2,lineHeight: 48}
+  headerArea: {
+    marginTop: -8,
+    marginBottom: 20,
+  },
+
+  kpi: {
+    fontSize: 10,
+    fontWeight: "800",
+    letterSpacing: 1.8,
+    marginBottom: 3,
+  },
+
+  title: {
+    fontSize: 34,
+    fontWeight: "900",
+    letterSpacing: -1.5,
+    lineHeight: 39,
+  },
 });
