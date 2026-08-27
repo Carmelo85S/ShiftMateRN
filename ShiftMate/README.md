@@ -4,7 +4,7 @@ ShiftMate is a comprehensive workforce management platform designed to streamlin
 
 ## 📸 Screenshots
 
-| ![Home](assets/screenshots/home.png) | ![Dashboard](assets/screenshots/dashboard.png) | ![History](assets/screenshots/history.png) z | ![Reports](assets/screenshots/reports.png) |
+| ![Dashboard](assets/screenshots/dashboard.png) | ![History](assets/screenshots/history.png) z | ![Reports](assets/screenshots/reports.png) |
 
 ## 🚀 Key Features
 
