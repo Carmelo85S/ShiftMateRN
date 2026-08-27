@@ -1,415 +1,324 @@
+import { CandidatesCard } from "@/components/manager/candidate/CandidatesCard";
+import { ShiftHero } from "@/components/manager/shift/ShiftHero";
+import { ShiftInfo } from "@/components/manager/shift/ShiftInfo";
 import { Colors } from "@/constants/theme";
+import { useDashboardData } from "@/hooks/manager/useFetchDataDashboard";
+import { useShiftDetail } from "@/hooks/manager/useShiftDetail";
 import { Ionicons } from "@expo/vector-icons";
-import React from "react";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { useLocalSearchParams } from "expo-router";
+import React, { useState } from "react";
+import {
+  ActivityIndicator,
+  Alert,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  useColorScheme,
+  View,
+} from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-interface ShiftCardProps {
-  item: any;
-  onPress: () => void;
-  variant?: "worker" | "manager" | "global";
-  isApplied?: boolean;
-  isPending?: boolean;
-  isRejected?: boolean;
-  isPaid?: boolean;
-}
+export default function ShiftDetailPage() {
+  const { id } = useLocalSearchParams();
+  const theme = Colors[useColorScheme() ?? "light"];
+  const insets = useSafeAreaInsets();
+  const { businessType } = useDashboardData();
+  const {
+    shift,
+    applications,
+    loading,
+    refreshing,
+    onRefresh,
+    completeShift,
+    user,
+  } = useShiftDetail(id);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-export const ShiftCard = ({
-  item,
-  onPress,
-  variant = "worker",
-  isApplied,
-  isPending,
-  isRejected,
-  isPaid,
-}: ShiftCardProps) => {
-  const theme = Colors.light;
-  const dbStatus = item.status?.toLowerCase() || "open";
+  if ((loading || !user) && !refreshing) {
+    return (
+      <View style={[styles.center, { backgroundColor: theme.background }]}>
+        <ActivityIndicator size="small" color={theme.text} />
+      </View>
+    );
+  }
 
-  const shiftDate = item.shift_date
-    ? new Date(item.shift_date).toLocaleDateString("en-GB", {
-        day: "2-digit",
-        month: "short",
-      })
-    : "N/A";
+  const isManager = user?.role?.toLowerCase() === "manager";
+  const isOwner = shift?.manager_id === user?.id;
+  const currentStatus = shift?.status?.toLowerCase();
 
-  const startTime = item.start_time?.slice(0, 5) || "--:--";
-  const endTime = item.end_time?.slice(0, 5) || "";
+  const acceptedWorkersCount =
+    applications?.filter((app) => app.status?.toLowerCase() === "accepted")
+      .length || 0;
+  const requiredWorkersCount = Number(shift?.required_workers) || 1;
 
-  /*
-   * Location priority:
-   * 1. location
-   * 2. address
-   * 3. workplace_address
-   * 4. client_address
-   */
-  const location =
-    item.location ||
-    item.address ||
-    item.workplace_address ||
-    item.client_address ||
-    null;
+  const isValidStatus = ["open", "assigned", "filled"].includes(currentStatus);
+  const hasAcceptedWorker = acceptedWorkersCount > 0;
+  const showCompleteButton =
+    isManager && isOwner && isValidStatus && hasAcceptedWorker;
 
-  /*
-   * Debug
-   */
-  console.log("ShiftCard:", {
-    id: item.id,
-    status: item.status,
-    client_name: item.client_name,
-    location: item.location,
-    address: item.address,
-    workplace_address: item.workplace_address,
-    client_address: item.client_address,
-    shift_date: item.shift_date,
-    start_time: item.start_time,
-    end_time: item.end_time,
-  });
+  const calculateOvertime = (endTime: string, minutesToAdd: number): string => {
+    const [hours, minutes, seconds] = endTime.split(":").map(Number);
+
+    const date = new Date();
+    date.setHours(hours);
+    date.setMinutes(minutes + minutesToAdd);
+    date.setSeconds(seconds || 0);
+
+    const newHour = String(date.getHours()).padStart(2, "0");
+    const newMinute = String(date.getMinutes()).padStart(2, "0");
+    const newSecond = String(date.getSeconds()).padStart(2, "0");
+
+    return `${newHour}:${newMinute}:${newSecond}`;
+  };
+
+  const handleCompletePress = () => {
+    if (!shift?.end_time) return;
+
+    Alert.alert(
+      "Close Shift",
+      `The scheduled end time was ${shift.end_time.substring(0, 5)}. Did the staff finish on time or complete overtime?`,
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "On Time (Standard)",
+          onPress: () => processCompletion(shift.end_time),
+        },
+        {
+          text: "+15 Minutes",
+          onPress: () =>
+            processCompletion(calculateOvertime(shift.end_time, 15)),
+        },
+        {
+          text: "+30 Minutes",
+          onPress: () =>
+            processCompletion(calculateOvertime(shift.end_time, 30)),
+        },
+        {
+          text: "+1 Hour",
+          onPress: () =>
+            processCompletion(calculateOvertime(shift.end_time, 60)),
+        },
+      ],
+    );
+  };
+
+  const processCompletion = async (endTimeToSave: string) => {
+    setIsSubmitting(true);
+    try {
+      await completeShift(endTimeToSave);
+      Alert.alert(
+        "Success",
+        "Shift completed! The financial overview has been updated.",
+      );
+    } catch (err: any) {
+      Alert.alert("Error", err.message || "Could not complete the shift.");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const isStaffingShift =
+    businessType === "staffing" && (!!shift?.client_name || !!shift?.address);
+  console.log("shift.client_name: ", shift?.client_name);
+  console.log("shift.address: ", shift?.address);
 
   return (
-    <Pressable
-      onPress={onPress}
-      style={({ pressed }) => [
-        styles.card,
-        {
-          backgroundColor: theme.card,
-          borderColor: theme.border || "#E5E7EB",
-          opacity: pressed ? 0.94 : 1,
-        },
-      ]}
+    <ScrollView
+      style={[styles.container, { backgroundColor: theme.background }]}
+      contentContainerStyle={{ paddingBottom: insets.bottom + 60 }}
     >
-      {/* HEADER */}
-      <View style={styles.header}>
-        <View style={styles.headerLeft}>
-          <View
-            style={[
-              styles.iconBox,
-              {
-                backgroundColor: theme.tint + "10",
-              },
-            ]}
-          >
-            <Ionicons name="briefcase-outline" size={18} color={theme.tint} />
-          </View>
+      <View style={{ flex: 1 }}>
+        <ShiftHero shift={shift} theme={theme} />
 
-          <View style={styles.headerText}>
-            <Text
-              style={[styles.title, { color: theme.text }]}
-              numberOfLines={1}
+        <View
+          style={[styles.mainContent, { backgroundColor: theme.background }]}
+        >
+          {/* BADGE ROW */}
+          <View style={styles.badgeRow}>
+            <View
+              style={[
+                styles.typeBadge,
+                { backgroundColor: theme.card, borderColor: theme.border },
+              ]}
             >
-              {item.title || "Shift"}
-            </Text>
+              <Ionicons
+                name={
+                  businessType === "staffing"
+                    ? "briefcase-outline"
+                    : "restaurant-outline"
+                }
+                size={14}
+                color={theme.text}
+              />
+              <Text style={[styles.typeBadgeText, { color: theme.text }]}>
+                {isStaffingShift ? "Staffing Request" : "Hospitality Shift"}
+              </Text>
+            </View>
+
+            {isStaffingShift && (
+              <View
+                style={[
+                  styles.typeBadge,
+                  { backgroundColor: theme.card, borderColor: theme.border },
+                ]}
+              >
+                <Ionicons name="people-outline" size={14} color={theme.text} />
+                <Text style={[styles.typeBadgeText, { color: theme.text }]}>
+                  Staff: {acceptedWorkersCount} / {requiredWorkersCount}
+                </Text>
+              </View>
+            )}
           </View>
-        </View>
 
-        {/* PAYMENT */}
-        <View style={styles.payContainer}>
-          <Text style={[styles.payValue, { color: theme.text }]}>
-            {Math.round(item.total_pay || 0)}
-          </Text>
+          {/* INFO EXTRA GEOLOCALIZZAZIONE */}
+          {isStaffingShift && (shift?.client_name || shift?.address) && (
+            <View
+              style={[
+                styles.staffingInfoCard,
+                { backgroundColor: theme.card, borderColor: theme.border },
+              ]}
+            >
+              <Text
+                style={[
+                  styles.staffingSectionTitle,
+                  { color: theme.secondaryText },
+                ]}
+              >
+                ASSIGNED CLIENT & LOCATION
+              </Text>
 
-          <Text style={[styles.payCurrency, { color: theme.secondaryText }]}>
-            SEK
-          </Text>
-        </View>
-      </View>
+              {(shift?.client_name || shift?.address) && (
+                <View style={styles.infoDetailRow}>
+                  <Ionicons
+                    name="location"
+                    size={18}
+                    color={theme.text}
+                    style={styles.infoIcon}
+                  />
 
-      {/* MAIN DETAILS */}
-      <View style={styles.details}>
-        <View style={styles.detailItem}>
-          <Ionicons
-            name="calendar-outline"
-            size={15}
-            color={theme.secondaryText}
+                  <Text style={[styles.infoDetailText, { color: theme.text }]}>
+                    {shift?.client_name || "Unknown client"}
+                    {shift?.address ? ` • ${shift.address}` : ""}
+                    {shift?.city ? `, ${shift.city}` : ""}
+                  </Text>
+                </View>
+              )}
+            </View>
+          )}
+
+          <ShiftInfo shift={shift} theme={theme} />
+          <CandidatesCard
+            shiftId={shift?.id}
+            applications={applications}
+            theme={theme}
           />
 
-          <Text style={[styles.detailText, { color: theme.text }]}>
-            {shiftDate}
-          </Text>
-        </View>
-
-        <View style={styles.detailItem}>
-          <Ionicons name="time-outline" size={15} color={theme.secondaryText} />
-
-          <Text style={[styles.detailText, { color: theme.text }]}>
-            {startTime}
-            {endTime ? ` – ${endTime}` : ""}
-          </Text>
-        </View>
-
-        <View style={styles.detailItem}>
-          <Ionicons
-            name="people-outline"
-            size={15}
-            color={theme.secondaryText}
-          />
-
-          <Text style={[styles.detailText, { color: theme.text }]}>
-            {item.required_workers || 1}
-          </Text>
+          {/* 🌟 SPOSTATO QUI DENTRO: Ora scorre fluidamente sotto i candidati senza sovrapporsi */}
+          {showCompleteButton && (
+            <View style={styles.actionContainer}>
+              <Pressable
+                style={({ pressed }) => [
+                  styles.btnComplete,
+                  { backgroundColor: theme.text },
+                  pressed && { opacity: 0.8 },
+                ]}
+                onPress={handleCompletePress}
+                disabled={isSubmitting}
+              >
+                {isSubmitting ? (
+                  <ActivityIndicator color={theme.background} />
+                ) : (
+                  <Text style={[styles.btnText, { color: theme.background }]}>
+                    Mark as Completed
+                  </Text>
+                )}
+              </Pressable>
+            </View>
+          )}
         </View>
       </View>
-
-      {/* LOCATION + STATUS */}
-      <View style={styles.locationStatusRow}>
-        {location ? (
-          <View style={styles.locationRow}>
-            <Ionicons
-              name="location-outline"
-              size={14}
-              color={theme.secondaryText}
-            />
-
-            <Text
-              style={[styles.locationText, { color: theme.secondaryText }]}
-              numberOfLines={1}
-            >
-              {location}
-            </Text>
-          </View>
-        ) : (
-          <View style={styles.locationPlaceholder} />
-        )}
-
-        <StatusBadge
-          status={dbStatus}
-          variant={variant}
-          isApplied={isApplied}
-          isPending={isPending}
-          isRejected={isRejected}
-          isPaid={isPaid}
-        />
-      </View>
-    </Pressable>
+    </ScrollView>
   );
-};
-
-/* -------------------------------------------------------------------------- */
-/* STATUS                                                                     */
-/* -------------------------------------------------------------------------- */
-
-interface StatusBadgeProps {
-  status: string;
-  variant: "worker" | "manager" | "global";
-  isApplied?: boolean;
-  isPending?: boolean;
-  isRejected?: boolean;
-  isPaid?: boolean;
 }
 
-const StatusBadge = ({
-  status,
-  variant,
-  isApplied,
-  isPending,
-  isRejected,
-  isPaid,
-}: StatusBadgeProps) => {
-  /*
-   * COMPLETED
-   */
-  if (status === "completed") {
-    return (
-      <Badge
-        icon="checkmark-circle-outline"
-        color="#059669"
-        label="Completed"
-      />
-    );
-  }
-
-  /*
-   * WORKER STATUS
-   */
-  if (variant === "worker") {
-    if (isPending) {
-      return <Badge icon="time-outline" color="#D97706" label="Pending" />;
-    }
-
-    if (isRejected) {
-      return (
-        <Badge icon="close-circle-outline" color="#DC2626" label="Rejected" />
-      );
-    }
-
-    if (isPaid) {
-      return <Badge icon="card-outline" color="#059669" label="Paid" />;
-    }
-
-    if (isApplied) {
-      return (
-        <Badge
-          icon="checkmark-circle-outline"
-          color="#2563EB"
-          label="Applied"
-        />
-      );
-    }
-
-    return <Badge icon="ellipse" color="#059669" label="Open" />;
-  }
-
-  /*
-   * MANAGER / GLOBAL STATUS
-   */
-  if (status === "filled" || status === "assigned") {
-    return <Badge icon="people-outline" color="#2563EB" label="Assigned" />;
-  }
-
-  if (status === "canceled" || status === "cancelled") {
-    return (
-      <Badge icon="close-circle-outline" color="#DC2626" label="Canceled" />
-    );
-  }
-
-  if (status === "paid") {
-    return <Badge icon="card-outline" color="#059669" label="Paid" />;
-  }
-
-  return <Badge icon="ellipse" color="#059669" label="Open" />;
-};
-
-/* -------------------------------------------------------------------------- */
-/* BADGE                                                                      */
-/* -------------------------------------------------------------------------- */
-
-const Badge = ({
-  icon,
-  color,
-  label,
-}: {
-  icon: keyof typeof Ionicons.glyphMap;
-  color: string;
-  label: string;
-}) => (
-  <View style={styles.statusBadge}>
-    <Ionicons name={icon} size={12} color={color} />
-
-    <Text style={[styles.statusText, { color }]}>{label}</Text>
-  </View>
-);
-
-export default ShiftCard;
-
 const styles = StyleSheet.create({
-  card: {
-    width: "100%",
-    borderRadius: 16,
-    padding: 15,
-    marginBottom: 10,
+  container: {
+    flex: 1,
+  },
+  center: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  mainContent: {
+    flex: 1,
+    borderTopLeftRadius: 32,
+    borderTopRightRadius: 32,
+    marginTop: -30,
+    paddingTop: 40,
+    paddingHorizontal: 24,
+    paddingBottom: 30,
+  },
+  badgeRow: {
+    flexDirection: "row",
+    gap: 8,
+    marginBottom: 20,
+  },
+  typeBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 20,
     borderWidth: 1,
   },
-
-  /* HEADER */
-
-  header: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-  },
-
-  headerLeft: {
-    flexDirection: "row",
-    alignItems: "center",
-    flex: 1,
-    marginRight: 12,
-  },
-
-  iconBox: {
-    width: 38,
-    height: 38,
-    borderRadius: 10,
-    alignItems: "center",
-    justifyContent: "center",
-    marginRight: 10,
-  },
-
-  headerText: {
-    flex: 1,
-  },
-
-  title: {
-    fontSize: 15,
-    fontWeight: "700",
-  },
-
-  /* PAYMENT */
-
-  payContainer: {
-    alignItems: "flex-end",
-    justifyContent: "center",
-  },
-
-  payValue: {
-    fontSize: 16,
-    fontWeight: "800",
-  },
-
-  payCurrency: {
-    fontSize: 9,
-    fontWeight: "700",
-    marginTop: -1,
-  },
-
-  /* DETAILS */
-
-  details: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 18,
-    marginTop: 16,
-  },
-
-  detailItem: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 5,
-  },
-
-  detailText: {
+  typeBadgeText: {
     fontSize: 12,
-    fontWeight: "600",
+    fontWeight: "700",
+    textTransform: "uppercase",
+    letterSpacing: 0.3,
   },
-
-  /* LOCATION + STATUS */
-
-  locationStatusRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    marginTop: 12,
+  staffingInfoCard: {
+    padding: 16,
+    borderRadius: 24,
+    borderWidth: 1,
+    marginBottom: 20,
     gap: 10,
   },
-
-  locationRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 5,
-    flex: 1,
-    minWidth: 0,
-  },
-
-  locationPlaceholder: {
-    flex: 1,
-  },
-
-  locationText: {
-    flex: 1,
-    fontSize: 11,
-    fontWeight: "500",
-  },
-
-  /* STATUS */
-
-  statusBadge: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 4,
-    flexShrink: 0,
-  },
-
-  statusText: {
+  staffingSectionTitle: {
     fontSize: 10,
     fontWeight: "800",
-    textTransform: "uppercase",
+    letterSpacing: 0.6,
+  },
+  infoDetailRow: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  infoIcon: {
+    marginRight: 10,
+    opacity: 0.7,
+  },
+  infoDetailText: {
+    fontSize: 14,
+    fontWeight: "500",
+    flex: 1,
+  },
+  actionContainer: {
+    // 🌟 Eliminati position absolute, insets, bordi ed elevation! Ora è un blocco nativo.
+    marginTop: 32,
+    marginBottom: 20,
+    width: "100%",
+  },
+  btnComplete: {
+    height: 56,
+    borderRadius: 16,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  btnText: {
+    fontWeight: "800",
+    fontSize: 16,
   },
 });
