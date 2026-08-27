@@ -60,8 +60,6 @@ export default function HistoryScreen() {
     totalMonthlyRevenue: 0,
   });
   const [monthlySpending, setMonthlySpending] = useState(0);
-
-  // 🌟 GESTIONE LOADING OTTIMIZZATA
   const [isInitialLoading, setIsInitialLoading] = useState(true);
   const [loading, setLoading] = useState(false);
   const isPastMonth =
@@ -413,8 +411,8 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     paddingHorizontal: 8,
     borderRadius: 20,
-    borderWidth: 0, // Tolto bordo per un look più pulito
-    backgroundColor: "rgba(0,0,0,0.03)", // Grigio leggero invece di card forte
+    borderWidth: 0,
+    backgroundColor: "rgba(0,0,0,0.03)",
     marginBottom: 20,
   },
   dateText: {
